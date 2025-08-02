@@ -13,7 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- STEP 1: ADDED THE IDB LIBRARY -->
+    <!-- IDB Library -->
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
 
     <!-- Inter Font -->
@@ -914,13 +914,6 @@
         };
 
         // --- Data Management ---
-        
-        // STEP 3: REPLACED/ADDED ALL DATA MANAGEMENT FUNCTIONS
-        
-        /**
-         * Loads all data from IndexedDB into the global appData object.
-         * Initializes default data on the very first run.
-         */
         async function loadAppData() {
             await openJournalDB();
             
@@ -951,7 +944,7 @@
                         breakevenThreshold: 2.0
                     }
                 };
-                await saveAppData(); // Save the new default structure to the DB
+                await saveAppData();
             } else {
                 appData.accounts = accounts.reduce((obj, acc) => {
                     obj[acc.name] = acc;
@@ -973,9 +966,6 @@
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
         }
         
-        /**
-         * Saves the entire appData state to IndexedDB.
-         */
         async function saveAppData() {
             if (!db) await openJournalDB();
             
@@ -992,9 +982,6 @@
             console.log("Data saved to IndexedDB.");
         }
         
-        /**
-         * Deletes a single account from the DB by its key.
-         */
         async function deleteAccountFromDB(accountName) {
             if (!db) await openJournalDB();
             await db.delete(STORES.accounts, accountName);
@@ -1011,7 +998,6 @@
             return account;
         };
 
-        // FIX: Corrected all .trades accessors to get the array directly from the helper
         const getActiveTrades = () => {
             const account = getActiveAccount();
             return account ? account.trades : [];
@@ -1058,7 +1044,7 @@
             toast.innerHTML = `<span>${message}</span><div class="toast-progress" style="animation-duration: ${duration / 1000}s;"></div>`;
             toastContainer.appendChild(toast);
             
-            setTimeout(() => toast.classList.add('show'), 10); // Animate in
+            setTimeout(() => toast.classList.add('show'), 10);
             setTimeout(() => {
                 toast.classList.remove('show');
                 toast.addEventListener('transitionend', () => toast.remove());
@@ -1080,7 +1066,6 @@
 
                 const close = (value) => {
                     dom['custom-modal-overlay'].classList.remove('open');
-                    // Remove event listeners to prevent memory leaks
                     dom['custom-modal-confirm-btn'].onclick = null;
                     dom['custom-modal-cancel-btn'].onclick = null;
                     resolve(value);
@@ -1095,8 +1080,6 @@
             });
         };
 
-
-        // --- CORRECTED Calculations ---
         const calculatePL = (type, lot, entry, exit, index) => {
             if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) return { profit: null, movement: null };
             
@@ -1104,19 +1087,16 @@
             if (type === 'Sell') diff = entry - exit;
 
             let profit;
-            // Forex Calculation: Standard contract size is 100,000. Profit = price diff * contract size * lots.
             if (index.includes('/')) {
                 profit = diff * 100000 * lot;
             } 
-            // Indices, Commodities, etc. Calculation
             else {
                 profit = diff * lot;
             }
             
-            // This part is for display/info only and does not affect P/L
             let movement = Math.abs(exit - entry);
             if (index.includes('/')) {
-                movement *= (index.includes('JPY') ? 100 : 10000); // Convert to pips
+                movement *= (index.includes('JPY') ? 100 : 10000);
             }
 
             return { profit, movement };
@@ -1142,7 +1122,6 @@
             return `${seconds}s`;
         }
 
-        // --- Form & Edit Logic ---
         const resetForm = () => {
             const form = dom['log-trade-btn'].closest('div.space-y-4');
             form.querySelectorAll('input, select').forEach(el => {
@@ -1266,7 +1245,6 @@
             display.innerHTML = plText;
         };
 
-        // --- Event Listeners Setup ---
         const setupEventListeners = () => {
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
@@ -1639,7 +1617,7 @@
 
              const content = dom['analytics-content-for-pdf'];
              
-             await new Promise(resolve => setTimeout(resolve, 100)); // Wait for styles to apply
+             await new Promise(resolve => setTimeout(resolve, 100));
 
              try {
                  const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#111827', useCORS: true, windowWidth: 1200 });
@@ -1788,7 +1766,6 @@
 
             const chartOptions = getChartColors();
             
-            // Daily performance chart
             const dailyStats = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             closedTrades.forEach(t => dailyStats[days[new Date(t.timestamp).getDay()]] += t.profitLoss);
@@ -1807,7 +1784,6 @@
                 options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
             });
 
-            // Hourly performance chart
             const hourlyStats = Array(24).fill(0);
             closedTrades.forEach(t => hourlyStats[new Date(t.timestamp).getHours()] += t.profitLoss);
             if(hourlyPerfChart) hourlyPerfChart.destroy();
@@ -2056,7 +2032,6 @@
             const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
             const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
 
-            // MAE calculations
             const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
             let totalMAE = 0;
             maeTrades.forEach(trade => {
@@ -2065,22 +2040,19 @@
             });
             const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
             
-            // MFE calculations
             const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
-            let totalMFE = 0; // This is Total Slipped Profit
+            let totalMFE = 0;
             mfeTrades.forEach(trade => {
                 const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
                 if(peakProfit > 0) totalMFE += peakProfit;
             });
             const avgMFE = mfeTrades.length > 0 ? totalMFE / mfeTrades.length : 0;
 
-            // Update DOM
             dom['avg-mae-winners'].textContent = `$${avgMAE.toFixed(2)}`;
             dom['total-mae-winners'].textContent = `$${totalMAE.toFixed(2)}`;
             dom['avg-mfe-losers'].textContent = `$${avgMFE.toFixed(2)}`;
             dom['total-mfe-losers'].textContent = `$${totalMFE.toFixed(2)}`;
 
-            // Update Bars
             const maeRatio = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
             dom['mae-comparison-bar'].style.width = `${Math.min(100, maeRatio)}%`;
 
@@ -2089,7 +2061,7 @@
         };
         const runMonteCarlo = () => {
             toggleLoader(true);
-            setTimeout(() => { // Run in next tick to allow loader to show
+            setTimeout(() => {
                 const tradesToProject = parseInt(dom['mc-trades'].value);
                 const numSimulations = parseInt(dom['mc-simulations'].value);
                 const closedTrades = getActiveTrades().filter(t => t.profitLoss !== null);
@@ -2139,7 +2111,7 @@
                 mcChart = new Chart(dom.mcChart, {
                     type: 'line',
                     data: {
-                        datasets: simulationResults.slice(0, 50).map((path, i) => ({ // Only draw 50 paths for performance
+                        datasets: simulationResults.slice(0, 50).map((path, i) => ({
                             label: `Sim ${i + 1}`,
                             data: path,
                             borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -2172,6 +2144,8 @@
             linkElement.click();
             showToast("Data exported successfully!", "success");
         };
+        
+        // FIX: Updated importData to be more robust and handle old backup formats.
         const importData = (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -2180,6 +2154,19 @@
                 try {
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.activeAccountName && importedData.accounts) {
+                        
+                        // Ensure settings object has an ID for the database keyPath
+                        if (importedData.settings && !importedData.settings.id) {
+                            importedData.settings.id = 'appSettings';
+                        }
+
+                        // Ensure each account has a name property for the database keyPath
+                        for (const accountKey in importedData.accounts) {
+                            if (!importedData.accounts[accountKey].name) {
+                                importedData.accounts[accountKey].name = accountKey;
+                            }
+                        }
+
                         appData = importedData;
                         await saveAppData();
                         populateAccountSwitcher();
@@ -2190,11 +2177,13 @@
                     }
                 } catch (err) {
                     showToast("Could not parse backup file.", "error");
+                    console.error("Import error:", err);
                 }
                 event.target.value = ''; 
             };
             reader.readAsText(file);
         };
+
         const applyFilters = () => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const allTrades = getActiveTrades();
@@ -2922,4 +2911,5 @@
     </script>
 </body>
 </html>
+
 
