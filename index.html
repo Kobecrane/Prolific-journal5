@@ -1036,7 +1036,6 @@
             playbookInstrumentSelector.innerHTML = tradeInstrumentSelector.innerHTML;
         };
 
-        // --- UI Feedback (Toast, Loader, Custom Modal) ---
         const showToast = (message, type = 'info', duration = 3000) => {
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -2145,7 +2144,6 @@
             showToast("Data exported successfully!", "success");
         };
         
-        // FIX: Updated importData to be more robust and handle old backup formats.
         const importData = (event) => {
             const file = event.target.files[0];
             if (!file) return;
@@ -2155,12 +2153,10 @@
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.activeAccountName && importedData.accounts) {
                         
-                        // Ensure settings object has an ID for the database keyPath
                         if (importedData.settings && !importedData.settings.id) {
                             importedData.settings.id = 'appSettings';
                         }
 
-                        // Ensure each account has a name property for the database keyPath
                         for (const accountKey in importedData.accounts) {
                             if (!importedData.accounts[accountKey].name) {
                                 importedData.accounts[accountKey].name = accountKey;
@@ -2911,5 +2907,3 @@
     </script>
 </body>
 </html>
-
-
