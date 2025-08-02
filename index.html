@@ -12,10 +12,6 @@
     <!-- jsPDF and html2canvas for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- IDB Library -->
-    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
-
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -808,35 +804,6 @@
 
 
     <script type="module">
-        // --- NEW: IndexedDB Configuration ---
-        const DB_NAME = 'ProlificJournalDB';
-        const DB_VERSION = 1;
-        const STORES = {
-            accounts: 'accounts',
-            settings: 'settings',
-            activeAccount: 'activeAccount'
-        };
-        let db; // This will hold the database connection object
-
-        /**
-         * NEW: Opens the database and creates object stores if they don't exist.
-         */
-        async function openJournalDB() {
-            db = await idb.openDB(DB_NAME, DB_VERSION, {
-                upgrade(db) {
-                    if (!db.objectStoreNames.contains(STORES.accounts)) {
-                        db.createObjectStore(STORES.accounts, { keyPath: 'name' });
-                    }
-                    if (!db.objectStoreNames.contains(STORES.settings)) {
-                        db.createObjectStore(STORES.settings, { keyPath: 'id' });
-                    }
-                    if (!db.objectStoreNames.contains(STORES.activeAccount)) {
-                        db.createObjectStore(STORES.activeAccount, { keyPath: 'id' });
-                    }
-                },
-            });
-        }
-
         // --- App State & Constants ---
         let appData = {};
         let tradeType = 'Buy';
@@ -876,7 +843,7 @@
         const dom = {};
 
         // --- Initial App Load ---
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             elementIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) dom[id] = el;
@@ -884,9 +851,7 @@
             dom.pageButtons = document.querySelectorAll('.page-btn');
 
             setupEventListeners();
-            
-            await loadAppData(); 
-            
+            loadAppData();
             populateAccountSwitcher();
             loadAccountDataIntoUI();
             populatePlaybookInstrumentsSelect();
@@ -914,112 +879,64 @@
         };
 
         // --- Data Management ---
-        async function loadAppData() {
-            await openJournalDB();
-            
-            const accounts = await db.getAll(STORES.accounts);
-            const settings = await db.get(STORES.settings, 'appSettings');
-            const activeAccount = await db.get(STORES.activeAccount, 'active');
-
-            if (accounts.length === 0) {
-                console.log("No data found in DB, initializing default structure.");
-                appData = {
-                    activeAccountName: 'Default Account',
-                    accounts: {
-                        'Default Account': {
-                            name: 'Default Account',
-                            trades: [],
-                            startingBalance: null,
-                            tags: [
-                                { name: 'Strategy', color: '#8B5CF6' },
-                                { name: 'Mistake', color: '#EF4444' }
-                            ],
-                            goals: [],
-                            playbook: []
-                        }
-                    },
-                    settings: {
-                        id: 'appSettings',
-                        accentColor: '#3b82f6',
-                        breakevenThreshold: 2.0
+        const loadAppData = () => {
+            const savedData = localStorage.getItem('prolificJournalData');
+            appData = savedData ? JSON.parse(savedData) : {
+                activeAccountName: 'Default Account',
+                accounts: {
+                    'Default Account': {
+                        trades: [],
+                        startingBalance: null,
+                        tags: [
+                            { name: 'Strategy', color: '#8B5CF6' },
+                            { name: 'Mistake', color: '#EF4444' },
+                            { name: 'News Trade', color: '#F59E0B' }
+                        ],
+                        goals: [],
+                        playbook: []
                     }
-                };
-                await saveAppData();
-            } else {
-                appData.accounts = accounts.reduce((obj, acc) => {
-                    obj[acc.name] = acc;
-                    return obj;
-                }, {});
-                appData.settings = settings;
-                appData.activeAccountName = activeAccount ? activeAccount.name : Object.keys(appData.accounts)[0];
+                },
+                settings: {
+                    accentColor: '#3b82f6',
+                    breakevenThreshold: 2.0
+                }
+            };
+             if (!appData.settings) {
+                 appData.settings = { accentColor: '#3b82f6', breakevenThreshold: 2.0 };
             }
-
-            if (!appData.settings) {
-                 appData.settings = { id: 'appSettings', accentColor: '#3b82f6', breakevenThreshold: 2.0 };
-            }
-             if (appData.settings.breakevenThreshold === undefined) {
+            if (appData.settings.breakevenThreshold === undefined) {
                 appData.settings.breakevenThreshold = 2.0;
             }
-
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
-        }
-        
-        async function saveAppData() {
-            if (!db) await openJournalDB();
-            
-            const tx = db.transaction([STORES.accounts, STORES.settings, STORES.activeAccount], 'readwrite');
-            
-            Object.values(appData.accounts).forEach(account => {
-                tx.store.objectStore(STORES.accounts).put(account);
-            });
+        };
 
-            tx.store.objectStore(STORES.settings).put(appData.settings);
-            tx.store.objectStore(STORES.activeAccount).put({ id: 'active', name: appData.activeAccountName });
-
-            await tx.done;
-            console.log("Data saved to IndexedDB.");
-        }
-        
-        async function deleteAccountFromDB(accountName) {
-            if (!db) await openJournalDB();
-            await db.delete(STORES.accounts, accountName);
-            console.log(`Account ${accountName} deleted from DB.`);
-        }
-
+        const saveAppData = () => localStorage.setItem('prolificJournalData', JSON.stringify(appData));
         const getActiveAccount = () => {
             const accountName = appData.activeAccountName || (appData.accounts ? Object.keys(appData.accounts)[0] : null);
-            if (!accountName || !appData.accounts) return { name: 'Error', trades: [], tags: [], goals: [], playbook: [] };
+            if (!accountName || !appData.accounts) return { trades: [], tags: [], goals: [], playbook: [] };
             const account = appData.accounts[accountName];
             if (account && !account.tags) account.tags = [];
             if (account && !account.goals) account.goals = [];
             if (account && !account.playbook) account.playbook = [];
             return account;
         };
-
-        const getActiveTrades = () => {
-            const account = getActiveAccount();
-            return account ? account.trades : [];
-        }
-
-        const switchAccount = async (accountName) => {
+        const getActiveTrades = () => getActiveAccount().trades;
+        const switchAccount = (accountName) => {
             if (appData.accounts[accountName]) {
                 appData.activeAccountName = accountName;
-                await saveAppData();
+                saveAppData();
                 loadAccountDataIntoUI();
                 refreshUI();
             }
         };
-
         const loadAccountDataIntoUI = () => {
             const balance = getActiveAccount().startingBalance;
             dom['starting-balance'].value = balance !== null ? balance : '';
         };
-
         const populateAccountSwitcher = () => {
             const switcher = dom['account-switcher'];
-            if (!switcher) return;
             switcher.innerHTML = '';
             Object.keys(appData.accounts).forEach(name => {
                 const option = document.createElement('option');
@@ -1036,6 +953,7 @@
             playbookInstrumentSelector.innerHTML = tradeInstrumentSelector.innerHTML;
         };
 
+        // --- UI Feedback (Toast, Loader, Custom Modal) ---
         const showToast = (message, type = 'info', duration = 3000) => {
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -1043,7 +961,7 @@
             toast.innerHTML = `<span>${message}</span><div class="toast-progress" style="animation-duration: ${duration / 1000}s;"></div>`;
             toastContainer.appendChild(toast);
             
-            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => toast.classList.add('show'), 10); // Animate in
             setTimeout(() => {
                 toast.classList.remove('show');
                 toast.addEventListener('transitionend', () => toast.remove());
@@ -1065,6 +983,7 @@
 
                 const close = (value) => {
                     dom['custom-modal-overlay'].classList.remove('open');
+                    // Remove event listeners to prevent memory leaks
                     dom['custom-modal-confirm-btn'].onclick = null;
                     dom['custom-modal-cancel-btn'].onclick = null;
                     resolve(value);
@@ -1079,6 +998,8 @@
             });
         };
 
+
+        // --- CORRECTED Calculations ---
         const calculatePL = (type, lot, entry, exit, index) => {
             if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) return { profit: null, movement: null };
             
@@ -1086,16 +1007,19 @@
             if (type === 'Sell') diff = entry - exit;
 
             let profit;
+            // Forex Calculation: Standard contract size is 100,000. Profit = price diff * contract size * lots.
             if (index.includes('/')) {
                 profit = diff * 100000 * lot;
             } 
+            // Indices, Commodities, etc. Calculation
             else {
                 profit = diff * lot;
             }
             
+            // This part is for display/info only and does not affect P/L
             let movement = Math.abs(exit - entry);
             if (index.includes('/')) {
-                movement *= (index.includes('JPY') ? 100 : 10000);
+                movement *= (index.includes('JPY') ? 100 : 10000); // Convert to pips
             }
 
             return { profit, movement };
@@ -1121,6 +1045,7 @@
             return `${seconds}s`;
         }
 
+        // --- Form & Edit Logic ---
         const resetForm = () => {
             const form = dom['log-trade-btn'].closest('div.space-y-4');
             form.querySelectorAll('input, select').forEach(el => {
@@ -1163,7 +1088,7 @@
             updateRealtimePL();
         };
         
-        const handleLogTrade = async () => {
+        const handleLogTrade = () => {
              const lotSize = parseFloat(dom['lot-size'].value);
              const entryPrice = parseFloat(dom['entry-price'].value);
              const numPositions = parseInt(dom['num-positions'].value) || 1;
@@ -1181,12 +1106,12 @@
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
              const editingId = dom['editing-trade-id'].value;
-             const activeAccount = getActiveAccount();
+             const activeTrades = getActiveTrades();
 
              if (editingId) {
-                  const tradeIndex = activeAccount.trades.findIndex(t => t.id === editingId);
+                  const tradeIndex = activeTrades.findIndex(t => t.id === editingId);
                   if (tradeIndex > -1) {
-                      const originalTrade = activeAccount.trades[tradeIndex];
+                      const originalTrade = activeTrades[tradeIndex];
                       let exitTimestamp = originalTrade.exitTimestamp;
                       if (originalTrade.exitPrice === null && exitPrice !== null) exitTimestamp = new Date().toISOString();
                       if (originalTrade.exitPrice !== null && exitPrice === null) exitTimestamp = null;
@@ -1195,7 +1120,7 @@
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML };
+                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1204,7 +1129,7 @@
                        if(profitLoss !== null) profitLoss -= fees;
                        const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                        
-                       activeAccount.trades.push({
+                       activeTrades.push({
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
@@ -1213,7 +1138,7 @@
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
              }
-             await saveAppData();
+             saveAppData();
              refreshUI();
              resetForm();
         };
@@ -1244,6 +1169,7 @@
             display.innerHTML = plText;
         };
 
+        // --- Event Listeners Setup ---
         const setupEventListeners = () => {
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
@@ -1274,17 +1200,17 @@
             dom['log-trade-btn'].addEventListener('click', handleLogTrade);
             dom['cancel-edit-btn'].addEventListener('click', resetForm);
             
-            dom['save-balance-btn'].addEventListener('click', async () => {
+            dom['save-balance-btn'].addEventListener('click', () => {
                 const newBalance = parseFloat(dom['starting-balance'].value);
                 if (isNaN(newBalance) || newBalance < 0) { showToast('Please enter a valid starting balance.', 'error'); return; }
                 getActiveAccount().startingBalance = newBalance;
-                await saveAppData();
+                saveAppData();
                 refreshUI();
                 showToast('Balance saved!', 'success');
             });
 
-            dom['save-data-btn'].addEventListener('click', async () => {
-                await saveAppData();
+            dom['save-data-btn'].addEventListener('click', () => {
+                saveAppData();
                 showToast("Data saved successfully!", "success");
             });
             
@@ -1359,23 +1285,26 @@
             dom['add-goal-btn'].addEventListener('click', handleSaveGoal);
             dom['cancel-goal-edit-btn'].addEventListener('click', resetGoalForm);
 
+            // Playbook listeners
             dom['save-play-btn'].addEventListener('click', handleSavePlay);
             dom['cancel-play-edit-btn'].addEventListener('click', resetPlayForm);
             setupImageDropzone('play-before-image', 'play-before-file');
             setupImageDropzone('play-after-image', 'play-after-file');
 
-            dom['accent-color-picker'].addEventListener('input', async (e) => {
+            // Accent color picker
+            dom['accent-color-picker'].addEventListener('input', (e) => {
                 const newColor = e.target.value;
                 appData.settings.accentColor = newColor;
                 applyAccentColor(newColor);
-                await saveAppData();
+                saveAppData();
             });
 
-            dom['breakeven-slider'].addEventListener('input', async (e) => {
+            // Breakeven slider
+            dom['breakeven-slider'].addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
                 appData.settings.breakevenThreshold = value;
                 dom['breakeven-value'].textContent = `$${value.toFixed(2)}`;
-                await saveAppData();
+                saveAppData();
                 refreshUI();
             });
         };
@@ -1416,6 +1345,8 @@
             }
         };
 
+
+        // --- UI Rendering ---
         const refreshUI = () => {
             const filteredTrades = applyFilters();
             const allTrades = getActiveTrades();
@@ -1530,11 +1461,10 @@
                     });
 
                     if (confirmed) {
-                        const activeAccount = getActiveAccount();
-                        const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
+                        const tradeIndex = getActiveTrades().findIndex(t => t.id === tradeIdToDelete);
                         if(tradeIndex > -1) {
-                            activeAccount.trades.splice(tradeIndex, 1);
-                            await saveAppData();
+                            getActiveTrades().splice(tradeIndex, 1);
+                            saveAppData();
                             refreshUI();
                             showToast("Trade deleted", "info");
                         }
@@ -1543,11 +1473,11 @@
             });
         };
         
-        const updateSummary = (trades) => {
+        const updateSummary = (allTrades) => {
              const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
              const totalTradesEl = dom['total-trades'];
-             totalTradesEl.textContent = trades.length;
-             const closedTrades = trades.filter(t => t.profitLoss !== null);
+             totalTradesEl.textContent = allTrades.length;
+             const closedTrades = allTrades.filter(t => t.profitLoss !== null);
              const totalPL = closedTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
              const winningTrades = closedTrades.filter(trade => trade.profitLoss > breakevenThreshold);
              const losingTrades = closedTrades.filter(trade => trade.profitLoss <= 0);
@@ -1616,7 +1546,7 @@
 
              const content = dom['analytics-content-for-pdf'];
              
-             await new Promise(resolve => setTimeout(resolve, 100));
+             await new Promise(resolve => setTimeout(resolve, 100)); // Wait for styles to apply
 
              try {
                  const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#111827', useCORS: true, windowWidth: 1200 });
@@ -1647,11 +1577,10 @@
              }
         };
         
-        const addAccount = async (accountName) => {
+        const addAccount = (accountName) => {
             if (!accountName.trim()) { showToast("Account name cannot be empty.", "error"); return; }
             if (appData.accounts[accountName]) { showToast("An account with this name already exists.", "error"); return; }
-            const newAccount = { 
-                name: accountName,
+            appData.accounts[accountName] = { 
                 trades: [], 
                 startingBalance: null, 
                 tags: [
@@ -1661,34 +1590,27 @@
                 goals: [],
                 playbook: []
             };
-            appData.accounts[accountName] = newAccount;
             populateAccountSwitcher();
-            await switchAccount(accountName);
+            switchAccount(accountName);
             showToast(`Account "${accountName}" created.`, "success");
         };
 
-        const deleteAccount = async (accountName) => {
+        const deleteAccount = (accountName) => {
             if (Object.keys(appData.accounts).length <= 1) { showToast("You cannot delete the only remaining account.", "error"); return; }
             delete appData.accounts[accountName];
-            await deleteAccountFromDB(accountName);
             appData.activeAccountName = Object.keys(appData.accounts)[0];
             populateAccountSwitcher();
-            await switchAccount(appData.activeAccountName);
+            switchAccount(appData.activeAccountName);
         };
         
-        const renameAccount = async (oldName, newName) => {
+        const renameAccount = (oldName, newName) => {
             if (!newName.trim()) { showToast("New name cannot be empty.", "error"); return; }
             if (appData.accounts[newName]) { showToast("An account with this name already exists.", "error"); return; }
-            
-            appData.accounts[newName] = { ...appData.accounts[oldName], name: newName };
+            appData.accounts[newName] = appData.accounts[oldName];
             delete appData.accounts[oldName];
-            await deleteAccountFromDB(oldName);
-            
-            if (appData.activeAccountName === oldName) {
-                appData.activeAccountName = newName;
-            }
+            if (appData.activeAccountName === oldName) appData.activeAccountName = newName;
             populateAccountSwitcher();
-            await saveAppData();
+            saveAppData();
         };
 
         const renderAccountsList = () => {
@@ -1713,7 +1635,7 @@
                     confirmText: 'Delete Account'
                 });
                 if (confirmed) {
-                    await deleteAccount(accountName);
+                    deleteAccount(accountName);
                     renderAccountsList();
                 }
             }));
@@ -1728,7 +1650,7 @@
                     confirmText: 'Rename'
                 });
                 if(newName && newName !== oldName) {
-                    await renameAccount(oldName, newName);
+                    renameAccount(oldName, newName);
                     renderAccountsList();
                 }
             }));
@@ -1765,6 +1687,7 @@
 
             const chartOptions = getChartColors();
             
+            // Daily performance chart
             const dailyStats = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
             const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             closedTrades.forEach(t => dailyStats[days[new Date(t.timestamp).getDay()]] += t.profitLoss);
@@ -1783,6 +1706,7 @@
                 options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
             });
 
+            // Hourly performance chart
             const hourlyStats = Array(24).fill(0);
             closedTrades.forEach(t => hourlyStats[new Date(t.timestamp).getHours()] += t.profitLoss);
             if(hourlyPerfChart) hourlyPerfChart.destroy();
@@ -2031,6 +1955,7 @@
             const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
             const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
 
+            // MAE calculations
             const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
             let totalMAE = 0;
             maeTrades.forEach(trade => {
@@ -2039,19 +1964,22 @@
             });
             const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
             
+            // MFE calculations
             const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
-            let totalMFE = 0;
+            let totalMFE = 0; // This is Total Slipped Profit
             mfeTrades.forEach(trade => {
                 const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
                 if(peakProfit > 0) totalMFE += peakProfit;
             });
             const avgMFE = mfeTrades.length > 0 ? totalMFE / mfeTrades.length : 0;
 
+            // Update DOM
             dom['avg-mae-winners'].textContent = `$${avgMAE.toFixed(2)}`;
             dom['total-mae-winners'].textContent = `$${totalMAE.toFixed(2)}`;
             dom['avg-mfe-losers'].textContent = `$${avgMFE.toFixed(2)}`;
             dom['total-mfe-losers'].textContent = `$${totalMFE.toFixed(2)}`;
 
+            // Update Bars
             const maeRatio = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
             dom['mae-comparison-bar'].style.width = `${Math.min(100, maeRatio)}%`;
 
@@ -2060,7 +1988,7 @@
         };
         const runMonteCarlo = () => {
             toggleLoader(true);
-            setTimeout(() => {
+            setTimeout(() => { // Run in next tick to allow loader to show
                 const tradesToProject = parseInt(dom['mc-trades'].value);
                 const numSimulations = parseInt(dom['mc-simulations'].value);
                 const closedTrades = getActiveTrades().filter(t => t.profitLoss !== null);
@@ -2110,7 +2038,7 @@
                 mcChart = new Chart(dom.mcChart, {
                     type: 'line',
                     data: {
-                        datasets: simulationResults.slice(0, 50).map((path, i) => ({
+                        datasets: simulationResults.slice(0, 50).map((path, i) => ({ // Only draw 50 paths for performance
                             label: `Sim ${i + 1}`,
                             data: path,
                             borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -2143,43 +2071,29 @@
             linkElement.click();
             showToast("Data exported successfully!", "success");
         };
-        
         const importData = (event) => {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = async (e) => {
+            reader.onload = (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.activeAccountName && importedData.accounts) {
-                        
-                        if (importedData.settings && !importedData.settings.id) {
-                            importedData.settings.id = 'appSettings';
-                        }
-
-                        for (const accountKey in importedData.accounts) {
-                            if (!importedData.accounts[accountKey].name) {
-                                importedData.accounts[accountKey].name = accountKey;
-                            }
-                        }
-
                         appData = importedData;
-                        await saveAppData();
+                        saveAppData();
                         populateAccountSwitcher();
-                        await switchAccount(appData.activeAccountName);
+                        switchAccount(appData.activeAccountName);
                         showToast("Data imported successfully!", "success");
                     } else {
                         showToast("Invalid backup file format.", "error");
                     }
                 } catch (err) {
                     showToast("Could not parse backup file.", "error");
-                    console.error("Import error:", err);
                 }
                 event.target.value = ''; 
             };
             reader.readAsText(file);
         };
-
         const applyFilters = () => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const allTrades = getActiveTrades();
@@ -2237,13 +2151,13 @@
         const setupManager = (modal, listContainer, btn, closeBtn, addBtn, nameInput, type) => {
             btn.addEventListener('click', () => { renderList(listContainer, type); modal.classList.remove('hidden'); });
             closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-            addBtn.addEventListener('click', async () => {
+            addBtn.addEventListener('click', () => {
                 const newName = nameInput.value.trim();
                 const newColor = document.getElementById('new-tag-color').value;
                 const collection = getActiveAccount()[type];
                 if (newName && !collection.find(t => t.name === newName)) {
                     collection.push({ name: newName, color: newColor });
-                    await saveAppData();
+                    saveAppData();
                     renderList(listContainer, type);
                     renderTagsChecklist();
                     nameInput.value = '';
@@ -2264,10 +2178,10 @@
                                 <button class="delete-item-btn p-1 text-gray-400 hover:text-red-500" data-index="${index}" data-type="${type}">Delete</button>`;
                  container.appendChild(div);
              });
-             container.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', async e => {
+             container.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', e => {
                 const {index, type} = e.currentTarget.dataset;
                 getActiveAccount()[type].splice(index, 1);
-                await saveAppData();
+                saveAppData();
                 renderList(container, type);
                 renderTagsChecklist();
              }));
@@ -2297,7 +2211,7 @@
             dom['current-balance'].textContent = `$${currentValue.toFixed(2)}`;
         };
 
-        const handleSaveGoal = async () => {
+        const handleSaveGoal = () => {
             const editingId = dom['editing-goal-id'].value;
             const title = dom['goal-title'].value.trim();
             const metric = dom['goal-metric'].value;
@@ -2323,7 +2237,7 @@
                 showToast('Goal added!', 'success');
             }
             
-            await saveAppData();
+            saveAppData();
             updateGoals();
             resetGoalForm();
         };
@@ -2396,13 +2310,13 @@
             });
 
             goalsList.querySelectorAll('.delete-goal-btn').forEach(btn => {
-                btn.addEventListener('click', async e => {
+                btn.addEventListener('click', e => {
                     const goalId = e.currentTarget.dataset.id;
                     const goals = getActiveAccount().goals;
                     const index = goals.findIndex(g => g.id === goalId);
                     if (index > -1) {
                         goals.splice(index, 1);
-                        await saveAppData();
+                        saveAppData();
                         updateGoals();
                         showToast('Goal removed.', 'info');
                     }
@@ -2526,7 +2440,8 @@
             });
         };
         
-        const handleSavePlay = async () => {
+        // --- Full implementation of previously missing functions ---
+        const handleSavePlay = () => {
              const editingId = dom['editing-play-id'].value;
              const title = dom['play-title'].value.trim();
              const instruments = Array.from(dom['play-instruments'].selectedOptions).map(opt => opt.value);
@@ -2558,7 +2473,7 @@
                  showToast('New play added to your playbook!', 'success');
              }
 
-             await saveAppData();
+             saveAppData();
              updatePlaybook();
              resetPlayForm();
              populatePlaybookSelect();
@@ -2695,7 +2610,7 @@
                         const index = playbook.findIndex(p => p.id === playId);
                         if (index > -1) {
                             playbook.splice(index, 1);
-                            await saveAppData();
+                            saveAppData();
                             updatePlaybook();
                             populatePlaybookSelect();
                             showToast('Play removed from playbook.', 'info');
