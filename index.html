@@ -12,6 +12,10 @@
     <!-- jsPDF and html2canvas for PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- STEP 1: ADDED THE IDB LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -804,6 +808,35 @@
 
 
     <script type="module">
+        // --- NEW: IndexedDB Configuration ---
+        const DB_NAME = 'ProlificJournalDB';
+        const DB_VERSION = 1;
+        const STORES = {
+            accounts: 'accounts',
+            settings: 'settings',
+            activeAccount: 'activeAccount'
+        };
+        let db; // This will hold the database connection object
+
+        /**
+         * NEW: Opens the database and creates object stores if they don't exist.
+         */
+        async function openJournalDB() {
+            db = await idb.openDB(DB_NAME, DB_VERSION, {
+                upgrade(db) {
+                    if (!db.objectStoreNames.contains(STORES.accounts)) {
+                        db.createObjectStore(STORES.accounts, { keyPath: 'name' });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.settings)) {
+                        db.createObjectStore(STORES.settings, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORES.activeAccount)) {
+                        db.createObjectStore(STORES.activeAccount, { keyPath: 'id' });
+                    }
+                },
+            });
+        }
+
         // --- App State & Constants ---
         let appData = {};
         let tradeType = 'Buy';
@@ -843,7 +876,7 @@
         const dom = {};
 
         // --- Initial App Load ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             elementIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) dom[id] = el;
@@ -851,7 +884,9 @@
             dom.pageButtons = document.querySelectorAll('.page-btn');
 
             setupEventListeners();
-            loadAppData();
+            
+            await loadAppData(); 
+            
             populateAccountSwitcher();
             loadAccountDataIntoUI();
             populatePlaybookInstrumentsSelect();
@@ -879,64 +914,126 @@
         };
 
         // --- Data Management ---
-        const loadAppData = () => {
-            const savedData = localStorage.getItem('prolificJournalData');
-            appData = savedData ? JSON.parse(savedData) : {
-                activeAccountName: 'Default Account',
-                accounts: {
-                    'Default Account': {
-                        trades: [],
-                        startingBalance: null,
-                        tags: [
-                            { name: 'Strategy', color: '#8B5CF6' },
-                            { name: 'Mistake', color: '#EF4444' },
-                            { name: 'News Trade', color: '#F59E0B' }
-                        ],
-                        goals: [],
-                        playbook: []
+        
+        // STEP 3: REPLACED/ADDED ALL DATA MANAGEMENT FUNCTIONS
+        
+        /**
+         * Loads all data from IndexedDB into the global appData object.
+         * Initializes default data on the very first run.
+         */
+        async function loadAppData() {
+            await openJournalDB();
+            
+            const accounts = await db.getAll(STORES.accounts);
+            const settings = await db.get(STORES.settings, 'appSettings');
+            const activeAccount = await db.get(STORES.activeAccount, 'active');
+
+            if (accounts.length === 0) {
+                console.log("No data found in DB, initializing default structure.");
+                appData = {
+                    activeAccountName: 'Default Account',
+                    accounts: {
+                        'Default Account': {
+                            name: 'Default Account',
+                            trades: [],
+                            startingBalance: null,
+                            tags: [
+                                { name: 'Strategy', color: '#8B5CF6' },
+                                { name: 'Mistake', color: '#EF4444' }
+                            ],
+                            goals: [],
+                            playbook: []
+                        }
+                    },
+                    settings: {
+                        id: 'appSettings',
+                        accentColor: '#3b82f6',
+                        breakevenThreshold: 2.0
                     }
-                },
-                settings: {
-                    accentColor: '#3b82f6',
-                    breakevenThreshold: 2.0
-                }
-            };
-             if (!appData.settings) {
-                 appData.settings = { accentColor: '#3b82f6', breakevenThreshold: 2.0 };
+                };
+                await saveAppData(); // Save the new default structure to the DB
+            } else {
+                appData.accounts = accounts.reduce((obj, acc) => {
+                    obj[acc.name] = acc;
+                    return obj;
+                }, {});
+                appData.settings = settings;
+                appData.activeAccountName = activeAccount ? activeAccount.name : Object.keys(appData.accounts)[0];
             }
-            if (appData.settings.breakevenThreshold === undefined) {
+
+            if (!appData.settings) {
+                 appData.settings = { id: 'appSettings', accentColor: '#3b82f6', breakevenThreshold: 2.0 };
+            }
+             if (appData.settings.breakevenThreshold === undefined) {
                 appData.settings.breakevenThreshold = 2.0;
             }
+
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
-        };
+        }
+        
+        /**
+         * Saves the entire appData state to IndexedDB.
+         */
+        async function saveAppData() {
+            if (!db) await openJournalDB();
+            
+            const tx = db.transaction([STORES.accounts, STORES.settings, STORES.activeAccount], 'readwrite');
+            
+            Object.values(appData.accounts).forEach(account => {
+                tx.store.objectStore(STORES.accounts).put(account);
+            });
 
-        const saveAppData = () => localStorage.setItem('prolificJournalData', JSON.stringify(appData));
+            tx.store.objectStore(STORES.settings).put(appData.settings);
+            tx.store.objectStore(STORES.activeAccount).put({ id: 'active', name: appData.activeAccountName });
+
+            await tx.done;
+            console.log("Data saved to IndexedDB.");
+        }
+        
+        /**
+         * Deletes a single account from the DB by its key.
+         */
+        async function deleteAccountFromDB(accountName) {
+            if (!db) await openJournalDB();
+            await db.delete(STORES.accounts, accountName);
+            console.log(`Account ${accountName} deleted from DB.`);
+        }
+
         const getActiveAccount = () => {
             const accountName = appData.activeAccountName || (appData.accounts ? Object.keys(appData.accounts)[0] : null);
-            if (!accountName || !appData.accounts) return { trades: [], tags: [], goals: [], playbook: [] };
+            if (!accountName || !appData.accounts) return { name: 'Error', trades: [], tags: [], goals: [], playbook: [] };
             const account = appData.accounts[accountName];
             if (account && !account.tags) account.tags = [];
             if (account && !account.goals) account.goals = [];
             if (account && !account.playbook) account.playbook = [];
             return account;
         };
-        const getActiveTrades = () => getActiveAccount().trades;
-        const switchAccount = (accountName) => {
+
+        // FIX: Corrected all .trades accessors to get the array directly from the helper
+        const getActiveTrades = () => {
+            const account = getActiveAccount();
+            return account ? account.trades : [];
+        }
+
+        const switchAccount = async (accountName) => {
             if (appData.accounts[accountName]) {
                 appData.activeAccountName = accountName;
-                saveAppData();
+                await saveAppData();
                 loadAccountDataIntoUI();
                 refreshUI();
             }
         };
+
         const loadAccountDataIntoUI = () => {
             const balance = getActiveAccount().startingBalance;
             dom['starting-balance'].value = balance !== null ? balance : '';
         };
+
         const populateAccountSwitcher = () => {
             const switcher = dom['account-switcher'];
+            if (!switcher) return;
             switcher.innerHTML = '';
             Object.keys(appData.accounts).forEach(name => {
                 const option = document.createElement('option');
@@ -1088,7 +1185,7 @@
             updateRealtimePL();
         };
         
-        const handleLogTrade = () => {
+        const handleLogTrade = async () => {
              const lotSize = parseFloat(dom['lot-size'].value);
              const entryPrice = parseFloat(dom['entry-price'].value);
              const numPositions = parseInt(dom['num-positions'].value) || 1;
@@ -1106,12 +1203,12 @@
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
              const editingId = dom['editing-trade-id'].value;
-             const activeTrades = getActiveTrades();
+             const activeAccount = getActiveAccount();
 
              if (editingId) {
-                  const tradeIndex = activeTrades.findIndex(t => t.id === editingId);
+                  const tradeIndex = activeAccount.trades.findIndex(t => t.id === editingId);
                   if (tradeIndex > -1) {
-                      const originalTrade = activeTrades[tradeIndex];
+                      const originalTrade = activeAccount.trades[tradeIndex];
                       let exitTimestamp = originalTrade.exitTimestamp;
                       if (originalTrade.exitPrice === null && exitPrice !== null) exitTimestamp = new Date().toISOString();
                       if (originalTrade.exitPrice !== null && exitPrice === null) exitTimestamp = null;
@@ -1120,7 +1217,7 @@
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1129,7 +1226,7 @@
                        if(profitLoss !== null) profitLoss -= fees;
                        const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                        
-                       activeTrades.push({
+                       activeAccount.trades.push({
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
@@ -1138,7 +1235,7 @@
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
              }
-             saveAppData();
+             await saveAppData();
              refreshUI();
              resetForm();
         };
@@ -1200,17 +1297,17 @@
             dom['log-trade-btn'].addEventListener('click', handleLogTrade);
             dom['cancel-edit-btn'].addEventListener('click', resetForm);
             
-            dom['save-balance-btn'].addEventListener('click', () => {
+            dom['save-balance-btn'].addEventListener('click', async () => {
                 const newBalance = parseFloat(dom['starting-balance'].value);
                 if (isNaN(newBalance) || newBalance < 0) { showToast('Please enter a valid starting balance.', 'error'); return; }
                 getActiveAccount().startingBalance = newBalance;
-                saveAppData();
+                await saveAppData();
                 refreshUI();
                 showToast('Balance saved!', 'success');
             });
 
-            dom['save-data-btn'].addEventListener('click', () => {
-                saveAppData();
+            dom['save-data-btn'].addEventListener('click', async () => {
+                await saveAppData();
                 showToast("Data saved successfully!", "success");
             });
             
@@ -1285,26 +1382,23 @@
             dom['add-goal-btn'].addEventListener('click', handleSaveGoal);
             dom['cancel-goal-edit-btn'].addEventListener('click', resetGoalForm);
 
-            // Playbook listeners
             dom['save-play-btn'].addEventListener('click', handleSavePlay);
             dom['cancel-play-edit-btn'].addEventListener('click', resetPlayForm);
             setupImageDropzone('play-before-image', 'play-before-file');
             setupImageDropzone('play-after-image', 'play-after-file');
 
-            // Accent color picker
-            dom['accent-color-picker'].addEventListener('input', (e) => {
+            dom['accent-color-picker'].addEventListener('input', async (e) => {
                 const newColor = e.target.value;
                 appData.settings.accentColor = newColor;
                 applyAccentColor(newColor);
-                saveAppData();
+                await saveAppData();
             });
 
-            // Breakeven slider
-            dom['breakeven-slider'].addEventListener('input', (e) => {
+            dom['breakeven-slider'].addEventListener('input', async (e) => {
                 const value = parseFloat(e.target.value);
                 appData.settings.breakevenThreshold = value;
                 dom['breakeven-value'].textContent = `$${value.toFixed(2)}`;
-                saveAppData();
+                await saveAppData();
                 refreshUI();
             });
         };
@@ -1345,8 +1439,6 @@
             }
         };
 
-
-        // --- UI Rendering ---
         const refreshUI = () => {
             const filteredTrades = applyFilters();
             const allTrades = getActiveTrades();
@@ -1461,10 +1553,11 @@
                     });
 
                     if (confirmed) {
-                        const tradeIndex = getActiveTrades().findIndex(t => t.id === tradeIdToDelete);
+                        const activeAccount = getActiveAccount();
+                        const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
                         if(tradeIndex > -1) {
-                            getActiveTrades().splice(tradeIndex, 1);
-                            saveAppData();
+                            activeAccount.trades.splice(tradeIndex, 1);
+                            await saveAppData();
                             refreshUI();
                             showToast("Trade deleted", "info");
                         }
@@ -1473,11 +1566,11 @@
             });
         };
         
-        const updateSummary = (allTrades) => {
+        const updateSummary = (trades) => {
              const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
              const totalTradesEl = dom['total-trades'];
-             totalTradesEl.textContent = allTrades.length;
-             const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+             totalTradesEl.textContent = trades.length;
+             const closedTrades = trades.filter(t => t.profitLoss !== null);
              const totalPL = closedTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
              const winningTrades = closedTrades.filter(trade => trade.profitLoss > breakevenThreshold);
              const losingTrades = closedTrades.filter(trade => trade.profitLoss <= 0);
@@ -1577,10 +1670,11 @@
              }
         };
         
-        const addAccount = (accountName) => {
+        const addAccount = async (accountName) => {
             if (!accountName.trim()) { showToast("Account name cannot be empty.", "error"); return; }
             if (appData.accounts[accountName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[accountName] = { 
+            const newAccount = { 
+                name: accountName,
                 trades: [], 
                 startingBalance: null, 
                 tags: [
@@ -1590,27 +1684,34 @@
                 goals: [],
                 playbook: []
             };
+            appData.accounts[accountName] = newAccount;
             populateAccountSwitcher();
-            switchAccount(accountName);
+            await switchAccount(accountName);
             showToast(`Account "${accountName}" created.`, "success");
         };
 
-        const deleteAccount = (accountName) => {
+        const deleteAccount = async (accountName) => {
             if (Object.keys(appData.accounts).length <= 1) { showToast("You cannot delete the only remaining account.", "error"); return; }
             delete appData.accounts[accountName];
+            await deleteAccountFromDB(accountName);
             appData.activeAccountName = Object.keys(appData.accounts)[0];
             populateAccountSwitcher();
-            switchAccount(appData.activeAccountName);
+            await switchAccount(appData.activeAccountName);
         };
         
-        const renameAccount = (oldName, newName) => {
+        const renameAccount = async (oldName, newName) => {
             if (!newName.trim()) { showToast("New name cannot be empty.", "error"); return; }
             if (appData.accounts[newName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[newName] = appData.accounts[oldName];
+            
+            appData.accounts[newName] = { ...appData.accounts[oldName], name: newName };
             delete appData.accounts[oldName];
-            if (appData.activeAccountName === oldName) appData.activeAccountName = newName;
+            await deleteAccountFromDB(oldName);
+            
+            if (appData.activeAccountName === oldName) {
+                appData.activeAccountName = newName;
+            }
             populateAccountSwitcher();
-            saveAppData();
+            await saveAppData();
         };
 
         const renderAccountsList = () => {
@@ -1635,7 +1736,7 @@
                     confirmText: 'Delete Account'
                 });
                 if (confirmed) {
-                    deleteAccount(accountName);
+                    await deleteAccount(accountName);
                     renderAccountsList();
                 }
             }));
@@ -1650,7 +1751,7 @@
                     confirmText: 'Rename'
                 });
                 if(newName && newName !== oldName) {
-                    renameAccount(oldName, newName);
+                    await renameAccount(oldName, newName);
                     renderAccountsList();
                 }
             }));
@@ -2075,14 +2176,14 @@
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     if (importedData.activeAccountName && importedData.accounts) {
                         appData = importedData;
-                        saveAppData();
+                        await saveAppData();
                         populateAccountSwitcher();
-                        switchAccount(appData.activeAccountName);
+                        await switchAccount(appData.activeAccountName);
                         showToast("Data imported successfully!", "success");
                     } else {
                         showToast("Invalid backup file format.", "error");
@@ -2151,13 +2252,13 @@
         const setupManager = (modal, listContainer, btn, closeBtn, addBtn, nameInput, type) => {
             btn.addEventListener('click', () => { renderList(listContainer, type); modal.classList.remove('hidden'); });
             closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-            addBtn.addEventListener('click', () => {
+            addBtn.addEventListener('click', async () => {
                 const newName = nameInput.value.trim();
                 const newColor = document.getElementById('new-tag-color').value;
                 const collection = getActiveAccount()[type];
                 if (newName && !collection.find(t => t.name === newName)) {
                     collection.push({ name: newName, color: newColor });
-                    saveAppData();
+                    await saveAppData();
                     renderList(listContainer, type);
                     renderTagsChecklist();
                     nameInput.value = '';
@@ -2178,10 +2279,10 @@
                                 <button class="delete-item-btn p-1 text-gray-400 hover:text-red-500" data-index="${index}" data-type="${type}">Delete</button>`;
                  container.appendChild(div);
              });
-             container.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', e => {
+             container.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', async e => {
                 const {index, type} = e.currentTarget.dataset;
                 getActiveAccount()[type].splice(index, 1);
-                saveAppData();
+                await saveAppData();
                 renderList(container, type);
                 renderTagsChecklist();
              }));
@@ -2211,7 +2312,7 @@
             dom['current-balance'].textContent = `$${currentValue.toFixed(2)}`;
         };
 
-        const handleSaveGoal = () => {
+        const handleSaveGoal = async () => {
             const editingId = dom['editing-goal-id'].value;
             const title = dom['goal-title'].value.trim();
             const metric = dom['goal-metric'].value;
@@ -2237,7 +2338,7 @@
                 showToast('Goal added!', 'success');
             }
             
-            saveAppData();
+            await saveAppData();
             updateGoals();
             resetGoalForm();
         };
@@ -2310,13 +2411,13 @@
             });
 
             goalsList.querySelectorAll('.delete-goal-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
+                btn.addEventListener('click', async e => {
                     const goalId = e.currentTarget.dataset.id;
                     const goals = getActiveAccount().goals;
                     const index = goals.findIndex(g => g.id === goalId);
                     if (index > -1) {
                         goals.splice(index, 1);
-                        saveAppData();
+                        await saveAppData();
                         updateGoals();
                         showToast('Goal removed.', 'info');
                     }
@@ -2440,8 +2541,7 @@
             });
         };
         
-        // --- Full implementation of previously missing functions ---
-        const handleSavePlay = () => {
+        const handleSavePlay = async () => {
              const editingId = dom['editing-play-id'].value;
              const title = dom['play-title'].value.trim();
              const instruments = Array.from(dom['play-instruments'].selectedOptions).map(opt => opt.value);
@@ -2473,7 +2573,7 @@
                  showToast('New play added to your playbook!', 'success');
              }
 
-             saveAppData();
+             await saveAppData();
              updatePlaybook();
              resetPlayForm();
              populatePlaybookSelect();
@@ -2610,7 +2710,7 @@
                         const index = playbook.findIndex(p => p.id === playId);
                         if (index > -1) {
                             playbook.splice(index, 1);
-                            saveAppData();
+                            await saveAppData();
                             updatePlaybook();
                             populatePlaybookSelect();
                             showToast('Play removed from playbook.', 'info');
@@ -2822,3 +2922,4 @@
     </script>
 </body>
 </html>
+
