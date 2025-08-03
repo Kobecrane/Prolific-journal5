@@ -352,10 +352,17 @@
                             </div>
                             <div>
                                 <div class="flex justify-between items-center">
-                                    <label class="block text-sm font-medium text-text-secondary">Tags</label>
+                                    <label class="block text-sm font-medium text-text-secondary">Strategy Tags</label>
                                     <button id="manage-tags-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage Tags</button>
                                 </div>
                                 <div id="tags-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between items-center">
+                                    <label class="block text-sm font-medium text-text-secondary">Psychology Tags</label>
+                                    <button id="manage-psychology-tags-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage Psychology Tags</button>
+                                </div>
+                                <div id="psychology-tags-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-text-secondary">Trade Type</label>
@@ -427,6 +434,7 @@
                             <div id="filter-bar" class="flex flex-wrap items-center gap-2 text-sm">
                                 <select id="filter-instrument" class="form-input rounded-lg p-1.5"><option value="">All Instruments</option></select>
                                 <select id="filter-tag" class="form-input rounded-lg p-1.5"><option value="">All Tags</option></select>
+                                <select id="filter-psychology-tag" class="form-input rounded-lg p-1.5"><option value="">All Psychology</option></select>
                                 <select id="filter-type" class="form-input rounded-lg p-1.5"><option value="">All Types</option><option value="Buy">Buy</option><option value="Sell">Sell</option></select>
                                 <select id="filter-outcome" class="form-input rounded-lg p-1.5"><option value="">All Outcomes</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option><option value="open">Open</option></select>
                                 <input type="date" id="filter-start-date" class="form-input rounded-lg p-1.5 text-sm" title="Start Date">
@@ -671,9 +679,14 @@
                         </div>
                     </div>
                      <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Tag</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom tags.</p>
+                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Strategy Tag</h2>
+                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom strategy tags.</p>
                         <div id="tag-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    </div>
+                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Psychology & Performance Analysis</h2>
+                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p>
+                        <div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                     </div>
                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2>
@@ -776,7 +789,7 @@
     <div id="tags-modal" class="modal-overlay">
         <div class="modal-content max-w-md">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-text-primary">Manage Tags</h2>
+                <h2 class="text-xl font-semibold text-text-primary">Manage Strategy Tags</h2>
                 <button id="close-tags-modal-btn" class="text-text-secondary hover:text-text-primary">&times;</button>
             </div>
             <div id="tags-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
@@ -784,6 +797,20 @@
                 <input type="text" id="new-tag-name" placeholder="New tag name..." class="flex-1 p-2 form-input rounded-lg">
                 <input type="color" id="new-tag-color" value="#8B5CF6" class="p-1 h-10 w-10 bg-tertiary rounded-lg cursor-pointer">
                 <button id="add-tag-btn" class="bg-accent-color text-white font-semibold py-2 px-4 rounded-lg hover:bg-opacity-80">Add</button>
+            </div>
+        </div>
+    </div>
+    <div id="psychology-tags-modal" class="modal-overlay">
+        <div class="modal-content max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-text-primary">Manage Psychology Tags</h2>
+                <button id="close-psychology-tags-modal-btn" class="text-text-secondary hover:text-text-primary">&times;</button>
+            </div>
+            <div id="psychology-tags-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+            <div class="flex items-center gap-2">
+                <input type="text" id="new-psychology-tag-name" placeholder="New psychology tag..." class="flex-1 p-2 form-input rounded-lg">
+                <input type="color" id="new-psychology-tag-color" value="#EC4899" class="p-1 h-10 w-10 bg-tertiary rounded-lg cursor-pointer">
+                <button id="add-psychology-tag-btn" class="bg-accent-color text-white font-semibold py-2 px-4 rounded-lg hover:bg-opacity-80">Add</button>
             </div>
         </div>
     </div>
@@ -834,11 +861,12 @@
             'peak-price', 'fees', 'realtime-pl-display', 'form-title', 'editing-trade-id', 'num-positions-container',
             'tags-checklist', 'accounts-modal', 'tags-modal', 'calendar-day-modal',
             'manage-tags-btn', 'close-tags-modal-btn', 'add-tag-btn', 'new-tag-name', 'new-tag-color', 'tags-list',
-            'accounts-list', 'new-account-name', 'filter-instrument', 'filter-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date',
+            'manage-psychology-tags-btn', 'psychology-tags-modal', 'close-psychology-tags-modal-btn', 'add-psychology-tag-btn', 'new-psychology-tag-name', 'new-psychology-tag-color', 'psychology-tags-list', 'psychology-tags-checklist',
+            'accounts-list', 'new-account-name', 'filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date',
             'filter-status', 'journal-page', 'analytics-page', 'goals-page', 'playbook-page', 'trade-history-body', 'total-pl', 'win-rate',
             'realized-rr', 'total-trades', 'avg-profit', 'avg-loss', 'account-growth', 'current-balance',
             'profit-factor', 'expectancy', 'win-streak', 'loss-streak',
-            'dailyPerformanceChart', 'hourlyPerformanceChart', 'tag-performance-body',
+            'dailyPerformanceChart', 'hourlyPerformanceChart', 'tag-performance-body', 'psychology-performance-body',
             'index-performance-body', 'rr-analysis-body', 'calendar-body', 'calendar-month-year',
             'mcChart', 'mc-stats', 'reversal-analysis-body', 'calendar-day-title', 'calendar-day-trades',
             'mc-trades', 'mc-simulations', 'add-goal-form', 'add-goal-btn', 'goals-list', 'goal-title', 'goal-metric', 'goal-target', 'goal-timeframe',
@@ -868,8 +896,7 @@
             loadAccountDataIntoUI();
             populatePlaybookInstrumentsSelect();
             refreshUI();
-            setupManager(dom['tags-modal'], dom['tags-list'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], 'tags');
-        
+            
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
@@ -908,6 +935,12 @@
                             { name: 'Mistake', color: '#EF4444' },
                             { name: 'News Trade', color: '#F59E0B' }
                         ],
+                        psychologyTags: [
+                            { name: 'FOMO', color: '#EC4899' },
+                            { name: 'Revenge Trading', color: '#F43F5E' },
+                            { name: 'Overconfident', color: '#FCD34D' },
+                            { name: 'Anxious', color: '#60A5FA' },
+                        ],
                         goals: [],
                         playbook: []
                     }
@@ -917,6 +950,23 @@
                     breakevenThreshold: 2.0
                 }
             };
+            // --- Data Migration for existing users ---
+            Object.values(appData.accounts).forEach(account => {
+                if (!account.psychologyTags) {
+                    account.psychologyTags = [
+                        { name: 'FOMO', color: '#EC4899' },
+                        { name: 'Revenge Trading', color: '#F43F5E' },
+                        { name: 'Overconfident', color: '#FCD34D' },
+                        { name: 'Anxious', color: '#60A5FA' },
+                    ];
+                }
+                account.trades.forEach(trade => {
+                    if (!trade.psychologyTags) {
+                        trade.psychologyTags = [];
+                    }
+                });
+            });
+
              if (!appData.settings) {
                  appData.settings = { accentColor: '#4f46e5', breakevenThreshold: 2.0 };
             }
@@ -931,9 +981,10 @@
         const saveAppData = () => localStorage.setItem('prolificJournalData', JSON.stringify(appData));
         const getActiveAccount = () => {
             const accountName = appData.activeAccountName || (appData.accounts ? Object.keys(appData.accounts)[0] : null);
-            if (!accountName || !appData.accounts) return { trades: [], tags: [], goals: [], playbook: [] };
+            if (!accountName || !appData.accounts) return { trades: [], tags: [], psychologyTags: [], goals: [], playbook: [] };
             const account = appData.accounts[accountName];
             if (account && !account.tags) account.tags = [];
+            if (account && !account.psychologyTags) account.psychologyTags = [];
             if (account && !account.goals) account.goals = [];
             if (account && !account.playbook) account.playbook = [];
             return account;
@@ -1072,7 +1123,7 @@
             dom['num-positions-container'].classList.remove('hidden');
             dom['realtime-pl-display'].innerHTML = '';
             dom['realtime-pl-display'].className = 'p-2 text-center rounded-lg h-10 transition-all';
-            renderTagsChecklist();
+            renderChecklists();
         };
 
         const enterEditMode = (tradeId) => {
@@ -1096,7 +1147,7 @@
             dom['trade-comments-editor'].innerHTML = tradeToEdit.notesHTML || '';
             dom['playbook-select'].value = tradeToEdit.playId || '';
             if (tradeToEdit.tradeType === 'Buy') dom['buy-btn'].click(); else dom['sell-btn'].click();
-            renderTagsChecklist(tradeToEdit.tags || []);
+            renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
             updateRealtimePL();
         };
         
@@ -1114,6 +1165,7 @@
              const playId = dom['playbook-select'].value || null;
 
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+             const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
 
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
@@ -1132,7 +1184,7 @@
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML };
+                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1145,7 +1197,7 @@
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, playId, notesHTML
+                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML
                        });
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
@@ -1287,11 +1339,11 @@
             dom['import-file'].addEventListener('change', importData);
             dom['export-pdf-btn'].addEventListener('click', generatePDF);
 
-            ['filter-instrument', 'filter-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => {
+            ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => {
                if(dom[id]) dom[id].addEventListener('change', refreshUI);
             });
             dom['reset-filters-btn'].addEventListener('click', () => {
-                ['filter-instrument', 'filter-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => dom[id].value = '');
+                ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => dom[id].value = '');
                 refreshUI();
             });
             
@@ -1325,6 +1377,10 @@
                 saveAppData();
                 refreshUI();
             });
+
+            // Tag Management Event Listeners
+            setupTagManager('tags', dom['tags-modal'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], dom['new-tag-color'], dom['tags-list']);
+            setupTagManager('psychologyTags', dom['psychology-tags-modal'], dom['manage-psychology-tags-btn'], dom['close-psychology-tags-modal-btn'], dom['add-psychology-tag-btn'], dom['new-psychology-tag-name'], dom['new-psychology-tag-color'], dom['psychology-tags-list']);
         };
         
         const handleImageDrop = (e) => {
@@ -1370,7 +1426,7 @@
             const allTrades = getActiveTrades();
             
             renderTrades(filteredTrades);
-            renderTagsChecklist();
+            renderChecklists();
             updateFilterDropdowns();
             populatePlaybookSelect();
 
@@ -1382,7 +1438,8 @@
                     if (!dom['analytics-page'].classList.contains('hidden')) {
                         updateDrawdownAnalysis(allTrades);
                         updateAdvancedAnalytics(allTrades);
-                        updateTagAnalysis(allTrades);
+                        updateTagAnalysis(allTrades, 'tags', dom['tag-performance-body']);
+                        updateTagAnalysis(allTrades, 'psychologyTags', dom['psychology-performance-body']);
                         updateIndexSummary(allTrades);
                         updateRRAnalysis(allTrades);
                         updateRRPerformanceAnalysis(allTrades);
@@ -1433,9 +1490,17 @@
                 const tradeDate = new Date(trade.timestamp).toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'medium', timeStyle: 'short' });
                 
                 const allTags = getActiveAccount().tags || [];
+                const allPsychologyTags = getActiveAccount().psychologyTags || [];
+
                 const tagSpans = (trade.tags && trade.tags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.tags.map(tagName => {
                     const tagInfo = allTags.find(t => t.name === tagName);
                     const color = tagInfo ? tagInfo.color : '#8B5CF6';
+                    return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
+                }).join('')}</div>` : '';
+
+                const psychologyTagSpans = (trade.psychologyTags && trade.psychologyTags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.psychologyTags.map(tagName => {
+                    const tagInfo = allPsychologyTags.find(t => t.name === tagName);
+                    const color = tagInfo ? tagInfo.color : '#EC4899';
                     return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
                 }).join('')}</div>` : '';
 
@@ -1445,6 +1510,7 @@
                         <div class="font-medium text-text-primary">${trade.indexName}</div>
                         <div class="text-xs text-text-secondary">${tradeDate}</div>
                         ${tagSpans}
+                        ${psychologyTagSpans}
                     </td>
                     <td class="px-4 py-3 align-top"><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeClass}">${trade.tradeType}</span></td>
                     <td class="px-4 py-3 font-medium align-top text-text-secondary">${rrText}</td>
@@ -1605,6 +1671,10 @@
                     { name: 'Strategy', color: '#8B5CF6' },
                     { name: 'Mistake', color: '#EF4444' }
                 ],
+                psychologyTags: [
+                    { name: 'FOMO', color: '#EC4899' },
+                    { name: 'Revenge Trading', color: '#F43F5E' }
+                ],
                 goals: [],
                 playbook: []
             };
@@ -1740,15 +1810,14 @@
             });
         };
         
-        const updateTagAnalysis = (allTrades) => {
+        const updateTagAnalysis = (allTrades, tagType, bodyElement) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-            const body = dom['tag-performance-body'];
-            body.innerHTML = '';
-            const tradesWithTags = allTrades.filter(t => t.profitLoss !== null && t.tags && t.tags.length > 0);
-            if(tradesWithTags.length === 0) { body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No trades with tags to analyze.</p>'; return; }
+            bodyElement.innerHTML = '';
+            const tradesWithTags = allTrades.filter(t => t.profitLoss !== null && t[tagType] && t[tagType].length > 0);
+            if(tradesWithTags.length === 0) { bodyElement.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">No trades with these tags to analyze.</p>`; return; }
 
             const stats = tradesWithTags.reduce((acc, trade) => {
-                trade.tags.forEach(tag => {
+                trade[tagType].forEach(tag => {
                     if(!acc[tag]) acc[tag] = { trades: 0, totalPL: 0, wins: 0, losses: 0 };
                     acc[tag].trades++;
                     acc[tag].totalPL += trade.profitLoss;
@@ -1758,11 +1827,11 @@
                 return acc;
             }, {});
             
-            const allTags = getActiveAccount().tags || [];
+            const allAccountTags = getActiveAccount()[tagType] || [];
             Object.entries(stats).sort((a,b) => b[1].totalPL - a[1].totalPL).forEach(([tag, data]) => {
                 const plClass = data.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
                 const winRate = (data.wins + data.losses) > 0 ? (data.wins / (data.wins + data.losses)) * 100 : 0;
-                const tagInfo = allTags.find(t => t.name === tag);
+                const tagInfo = allAccountTags.find(t => t.name === tag);
                 const color = tagInfo ? tagInfo.color : '#8B5CF6';
                 const statCard = document.createElement('div');
                 statCard.className = 'bg-tertiary/50 p-4 rounded-lg border border-border-color';
@@ -1773,7 +1842,7 @@
                         <div class="flex justify-between"><span class="text-text-secondary">Win Rate:</span><span class="font-semibold text-text-primary">${winRate.toFixed(1)}%</span></div>
                         <div class="flex justify-between"><span class="text-text-secondary">Trades:</span><span class="font-semibold text-text-primary">${data.trades}</span></div>
                     </div>`;
-                body.appendChild(statCard);
+                bodyElement.appendChild(statCard);
             });
         };
 
@@ -2111,6 +2180,7 @@
             const allTrades = getActiveTrades();
             const instrument = dom['filter-instrument'].value;
             const tag = dom['filter-tag'].value;
+            const psychologyTag = dom['filter-psychology-tag'].value;
             const type = dom['filter-type'].value;
             const outcome = dom['filter-outcome'].value;
             const startDateString = dom['filter-start-date'].value;
@@ -2119,7 +2189,7 @@
             const startDate = startDateString ? new Date(startDateString + 'T00:00:00') : null;
             const endDate = endDateString ? new Date(endDateString + 'T23:59:59') : null;
 
-            let activeFilterCount = [instrument, tag, type, outcome, startDateString, endDateString].filter(Boolean).length;
+            let activeFilterCount = [instrument, tag, psychologyTag, type, outcome, startDateString, endDateString].filter(Boolean).length;
 
             dom['filter-status'].classList.toggle('hidden', activeFilterCount === 0);
             if(activeFilterCount > 0) dom['filter-status'].textContent = `${activeFilterCount} filter(s) active. Dashboard stats reflect filtered data.`;
@@ -2127,6 +2197,7 @@
             return allTrades.filter(trade => {
                 if (instrument && trade.indexName !== instrument) return false;
                 if (tag && (!trade.tags || !trade.tags.includes(tag))) return false;
+                if (psychologyTag && (!trade.psychologyTags || !trade.psychologyTags.includes(psychologyTag))) return false;
                 if (type && trade.tradeType !== type) return false;
                 if (outcome) {
                     const isWin = trade.profitLoss > breakevenThreshold;
@@ -2148,6 +2219,7 @@
             const allTrades = getActiveTrades();
             const instruments = [...new Set(allTrades.map(t => t.indexName))].sort();
             const tags = getActiveAccount().tags.map(t => t.name).sort();
+            const psychologyTags = getActiveAccount().psychologyTags.map(t => t.name).sort();
             
             const updateSelect = (selectEl, options, label) => {
                 const currentValue = selectEl.value;
@@ -2158,53 +2230,66 @@
 
             updateSelect(dom['filter-instrument'], instruments, 'Instruments');
             updateSelect(dom['filter-tag'], tags, 'Tags');
+            updateSelect(dom['filter-psychology-tag'], psychologyTags, 'Psychology');
         };
         
-        const setupManager = (modal, listContainer, btn, closeBtn, addBtn, nameInput, type) => {
-            btn.addEventListener('click', () => { renderList(listContainer, type); modal.classList.add('open'); });
+        const setupTagManager = (tagType, modal, openBtn, closeBtn, addBtn, nameInput, colorInput, listContainer) => {
+            openBtn.addEventListener('click', () => { renderTagList(listContainer, tagType); modal.classList.add('open'); });
             closeBtn.addEventListener('click', () => modal.classList.remove('open'));
             addBtn.addEventListener('click', () => {
                 const newName = nameInput.value.trim();
-                const newColor = document.getElementById('new-tag-color').value;
-                const collection = getActiveAccount()[type];
+                const newColor = colorInput.value;
+                const collection = getActiveAccount()[tagType];
                 if (newName && !collection.find(t => t.name === newName)) {
                     collection.push({ name: newName, color: newColor });
                     saveAppData();
-                    renderList(listContainer, type);
-                    renderTagsChecklist();
+                    renderTagList(listContainer, tagType);
+                    renderChecklists();
                     nameInput.value = '';
                 } else {
                     showToast(`Tag name cannot be empty or a duplicate.`, "error");
                 }
             });
         };
-        const renderList = (container, type) => {
+        const renderTagList = (container, tagType) => {
              container.innerHTML = '';
-             getActiveAccount()[type].forEach((item, index) => {
+             getActiveAccount()[tagType].forEach((item, index) => {
                  const div = document.createElement('div');
                  div.className = 'flex items-center justify-between p-2 bg-tertiary rounded-md';
                  div.innerHTML = `<div class="flex items-center gap-2">
                                      <span class="w-4 h-4 rounded-full" style="background-color: ${item.color};"></span>
                                      <span class="font-semibold">${item.name}</span>
                                  </div>
-                                <button class="delete-item-btn p-1 text-text-secondary hover:text-red-500" data-index="${index}" data-type="${type}">Delete</button>`;
+                                <button class="delete-item-btn p-1 text-text-secondary hover:text-red-500" data-index="${index}" data-type="${tagType}">Delete</button>`;
                  container.appendChild(div);
              });
              container.querySelectorAll('.delete-item-btn').forEach(btn => btn.addEventListener('click', e => {
                 const {index, type} = e.currentTarget.dataset;
                 getActiveAccount()[type].splice(index, 1);
                 saveAppData();
-                renderList(container, type);
-                renderTagsChecklist();
+                renderTagList(container, type);
+                renderChecklists();
              }));
         };
-        const renderTagsChecklist = (selected = []) => { 
-            const container = dom['tags-checklist'];
+
+        const renderChecklists = (selectedTags = [], selectedPsychologyTags = []) => {
+            renderAChecklist(dom['tags-checklist'], getActiveAccount().tags, selectedTags, 'Manage Tags');
+            renderAChecklist(dom['psychology-tags-checklist'], getActiveAccount().psychologyTags, selectedPsychologyTags, 'Manage Psychology Tags');
+        };
+
+        const renderAChecklist = (container, tags, selected, manageText) => { 
             container.innerHTML = '';
-            const tags = getActiveAccount().tags;
-            if (tags.length === 0) { container.innerHTML = `<p class="text-xs text-center text-text-secondary">No tags. Click "Manage Tags".</p>`; return; }
+            if (tags.length === 0) { 
+                container.innerHTML = `<p class="text-xs text-center text-text-secondary">No tags. Click "${manageText}".</p>`; 
+                return; 
+            }
             tags.forEach(tag => {
-                container.innerHTML += `<div class="flex items-center"><input type="checkbox" id="tag-${tag.name}" value="${tag.name}" ${selected.includes(tag.name)?'checked':''} class="w-4 h-4 text-accent-color bg-tertiary border-border-color rounded focus:ring-accent-color ring-offset-bg-secondary focus:ring-2"><label for="tag-${tag.name}" class="ml-2 text-sm font-medium">${tag.name}</label></div>`;
+                const isChecked = selected.includes(tag.name);
+                container.innerHTML += `
+                    <div class="flex items-center">
+                        <input type="checkbox" id="tag-${tag.name.replace(/\s+/g, '-')}" value="${tag.name}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-accent-color bg-tertiary border-border-color rounded focus:ring-accent-color ring-offset-bg-secondary focus:ring-2">
+                        <label for="tag-${tag.name.replace(/\s+/g, '-')}" class="ml-2 text-sm font-medium">${tag.name}</label>
+                    </div>`;
             });
         };
         
