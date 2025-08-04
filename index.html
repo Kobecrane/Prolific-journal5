@@ -750,7 +750,7 @@
         <div>
             <h3 class="text-sm font-semibold text-text-secondary mb-2">Data & Reports</h3>
             <div class="space-y-2">
-                <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to Browser</button>
+                <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to DB</button>
                 <label for="import-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors block">Import Data</label>
                 <input type="file" id="import-file" class="hidden" accept=".json">
                 <button id="export-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Export Data</button>
@@ -845,7 +845,11 @@
 
     <script type="module">
         // --- App State & Constants ---
-        let appData = {};
+        let appData = {
+             activeAccountName: 'Default Account',
+             accounts: {},
+             settings: {}
+        };
         let tradeType = 'Buy';
         let calendarDate = new Date();
         let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
@@ -883,7 +887,84 @@
         
         const dom = {};
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- IndexedDB Setup ---
+        const DB_NAME = 'ProlificJournalDB';
+        const DB_VERSION = 1;
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = (event) => {
+                    console.error("Database error:", event.target.error);
+                    reject("Database error");
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const dbInstance = event.target.result;
+                    if (!dbInstance.objectStoreNames.contains('accounts')) {
+                        dbInstance.createObjectStore('accounts', { keyPath: 'accountName' });
+                    }
+                    if (!dbInstance.objectStoreNames.contains('settings')) {
+                         dbInstance.createObjectStore('settings', { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log("Database opened successfully.");
+                    resolve(db);
+                };
+            });
+        }
+
+        function saveData(storeName, data) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(data);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error saving to ${storeName}: ${event.target.error}`);
+            });
+        }
+
+        function getData(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error getting from ${storeName}: ${event.target.error}`);
+            });
+        }
+        
+        function getAllData(storeName) {
+             return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error getting all from ${storeName}: ${event.target.error}`);
+            });
+        }
+        
+        function deleteData(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => reject(`Error deleting from ${storeName}: ${event.target.error}`);
+            });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
             elementIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) dom[id] = el;
@@ -891,7 +972,7 @@
             dom.sidebarLinks = document.querySelectorAll('nav .sidebar-link');
 
             setupEventListeners();
-            loadAppData();
+            await loadAppData(); // Now async
             populateAccountSwitcher();
             loadAccountDataIntoUI();
             populatePlaybookInstrumentsSelect();
@@ -907,7 +988,6 @@
 
             document.querySelectorAll('.animate-fade-in-up').forEach(el => observer.observe(el));
             
-            // Sidebar hover effect
             dom.sidebar.addEventListener('mouseenter', () => dom.sidebar.classList.add('group'));
             dom.sidebar.addEventListener('mouseleave', () => dom.sidebar.classList.remove('group'));
         });
@@ -922,86 +1002,137 @@
         };
 
         // --- Data Management ---
-        const loadAppData = () => {
-            const savedData = localStorage.getItem('prolificJournalData');
-            appData = savedData ? JSON.parse(savedData) : {
-                activeAccountName: 'Default Account',
-                accounts: {
-                    'Default Account': {
-                        trades: [],
-                        startingBalance: null,
-                        tags: [
-                            { name: 'Strategy', color: '#8B5CF6' },
-                            { name: 'Mistake', color: '#EF4444' },
-                            { name: 'News Trade', color: '#F59E0B' }
-                        ],
-                        psychologyTags: [
-                            { name: 'FOMO', color: '#EC4899' },
-                            { name: 'Revenge Trading', color: '#F43F5E' },
-                            { name: 'Overconfident', color: '#FCD34D' },
-                            { name: 'Anxious', color: '#60A5FA' },
-                        ],
-                        goals: [],
-                        playbook: []
+        const loadAppData = async () => {
+            await initDB();
+            
+            // One-time migration from localStorage
+            const oldData = localStorage.getItem('prolificJournalData');
+            if (oldData) {
+                try {
+                    console.log("Found old localStorage data, migrating...");
+                    const parsedOldData = JSON.parse(oldData);
+                    
+                    // Migrate accounts
+                    for (const accountName in parsedOldData.accounts) {
+                        const accountData = parsedOldData.accounts[accountName];
+                        await saveData('accounts', { accountName, ...accountData });
                     }
-                },
-                settings: {
+                    
+                    // Migrate settings
+                    if (parsedOldData.settings) {
+                        await saveData('settings', { id: 'appSettings', ...parsedOldData.settings });
+                    }
+                    
+                    // Store active account name
+                    localStorage.setItem('activeAccountName', parsedOldData.activeAccountName);
+                    
+                    localStorage.removeItem('prolificJournalData');
+                    showToast("Data successfully migrated to the new database!", "success");
+                } catch (e) {
+                    console.error("Migration failed:", e);
+                    showToast("Could not migrate old data.", "error");
+                }
+            }
+            
+            // Load settings
+            let settings = await getData('settings', 'appSettings');
+            if (!settings) {
+                settings = {
+                    id: 'appSettings',
                     accentColor: '#4f46e5',
                     breakevenThreshold: 2.0
-                }
-            };
-            // --- Data Migration for existing users ---
-            Object.values(appData.accounts).forEach(account => {
-                if (!account.psychologyTags) {
-                    account.psychologyTags = [
+                };
+                await saveData('settings', settings);
+            }
+            appData.settings = settings;
+            
+            // Load accounts
+            const allAccounts = await getAllData('accounts');
+            if (allAccounts.length === 0) {
+                 const defaultAccount = {
+                    accountName: 'Default Account',
+                    trades: [],
+                    startingBalance: null,
+                    tags: [
+                        { name: 'Strategy', color: '#8B5CF6' },
+                        { name: 'Mistake', color: '#EF4444' },
+                        { name: 'News Trade', color: '#F59E0B' }
+                    ],
+                    psychologyTags: [
                         { name: 'FOMO', color: '#EC4899' },
                         { name: 'Revenge Trading', color: '#F43F5E' },
                         { name: 'Overconfident', color: '#FCD34D' },
                         { name: 'Anxious', color: '#60A5FA' },
-                    ];
-                }
-                account.trades.forEach(trade => {
-                    if (!trade.psychologyTags) {
-                        trade.psychologyTags = [];
-                    }
-                });
-            });
+                    ],
+                    goals: [],
+                    playbook: []
+                };
+                await saveData('accounts', defaultAccount);
+                appData.accounts = { [defaultAccount.accountName]: defaultAccount };
+            } else {
+                 appData.accounts = allAccounts.reduce((acc, account) => {
+                    acc[account.accountName] = account;
+                    return acc;
+                }, {});
+            }
 
-             if (!appData.settings) {
-                 appData.settings = { accentColor: '#4f46e5', breakevenThreshold: 2.0 };
+            // Set active account
+            const savedActiveAccount = localStorage.getItem('activeAccountName');
+            if (savedActiveAccount && appData.accounts[savedActiveAccount]) {
+                appData.activeAccountName = savedActiveAccount;
+            } else {
+                appData.activeAccountName = Object.keys(appData.accounts)[0];
+                localStorage.setItem('activeAccountName', appData.activeAccountName);
             }
-            if (appData.settings.breakevenThreshold === undefined) {
-                appData.settings.breakevenThreshold = 2.0;
-            }
+
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
         };
 
-        const saveAppData = () => localStorage.setItem('prolificJournalData', JSON.stringify(appData));
+        const saveAppData = () => {
+            const activeAccount = getActiveAccount();
+            if (activeAccount) {
+                saveData('accounts', activeAccount).catch(err => console.error("Failed to save account data:", err));
+            }
+            saveData('settings', appData.settings).catch(err => console.error("Failed to save settings:", err));
+        };
+
         const getActiveAccount = () => {
-            const accountName = appData.activeAccountName || (appData.accounts ? Object.keys(appData.accounts)[0] : null);
-            if (!accountName || !appData.accounts) return { trades: [], tags: [], psychologyTags: [], goals: [], playbook: [] };
-            const account = appData.accounts[accountName];
-            if (account && !account.tags) account.tags = [];
-            if (account && !account.psychologyTags) account.psychologyTags = [];
-            if (account && !account.goals) account.goals = [];
-            if (account && !account.playbook) account.playbook = [];
+            if (!appData.activeAccountName || !appData.accounts) return null;
+            const account = appData.accounts[appData.activeAccountName];
+            // Ensure nested arrays exist to prevent errors
+            if (account) {
+                if (!account.tags) account.tags = [];
+                if (!account.psychologyTags) account.psychologyTags = [];
+                if (!account.goals) account.goals = [];
+                if (!account.playbook) account.playbook = [];
+            }
             return account;
         };
-        const getActiveTrades = () => getActiveAccount().trades;
+
+        const getActiveTrades = () => {
+            const account = getActiveAccount();
+            return account ? account.trades : [];
+        }
+
         const switchAccount = (accountName) => {
             if (appData.accounts[accountName]) {
                 appData.activeAccountName = accountName;
-                saveAppData();
+                localStorage.setItem('activeAccountName', accountName); // Persist active account choice
                 loadAccountDataIntoUI();
                 refreshUI();
             }
         };
+
         const loadAccountDataIntoUI = () => {
-            const balance = getActiveAccount().startingBalance;
-            dom['starting-balance'].value = balance !== null ? balance : '';
+            const account = getActiveAccount();
+            if (account) {
+                const balance = account.startingBalance;
+                dom['starting-balance'].value = balance !== null ? balance : '';
+            }
         };
+
         const populateAccountSwitcher = () => {
             const switcher = dom['account-switcher'];
             switcher.innerHTML = '';
@@ -1170,12 +1301,12 @@
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
              const editingId = dom['editing-trade-id'].value;
-             const activeTrades = getActiveTrades();
+             const activeAccount = getActiveAccount();
 
              if (editingId) {
-                  const tradeIndex = activeTrades.findIndex(t => t.id === editingId);
+                  const tradeIndex = activeAccount.trades.findIndex(t => t.id === editingId);
                   if (tradeIndex > -1) {
-                      const originalTrade = activeTrades[tradeIndex];
+                      const originalTrade = activeAccount.trades[tradeIndex];
                       let exitTimestamp = originalTrade.exitTimestamp;
                       if (originalTrade.exitPrice === null && exitPrice !== null) exitTimestamp = new Date().toISOString();
                       if (originalTrade.exitPrice !== null && exitPrice === null) exitTimestamp = null;
@@ -1184,7 +1315,7 @@
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1193,7 +1324,7 @@
                        if(profitLoss !== null) profitLoss -= fees;
                        const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                        
-                       activeTrades.push({
+                       activeAccount.trades.push({
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
@@ -1545,9 +1676,10 @@
                     });
 
                     if (confirmed) {
-                        const tradeIndex = getActiveTrades().findIndex(t => t.id === tradeIdToDelete);
+                        const activeAccount = getActiveAccount();
+                        const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
                         if(tradeIndex > -1) {
-                            getActiveTrades().splice(tradeIndex, 1);
+                            activeAccount.trades.splice(tradeIndex, 1);
                             saveAppData();
                             refreshUI();
                             showToast("Trade deleted", "info");
@@ -1661,10 +1793,13 @@
              }
         };
         
-        const addAccount = (accountName) => {
-            if (!accountName.trim()) { showToast("Account name cannot be empty.", "error"); return; }
+        const addAccount = async (accountName) => {
+            accountName = accountName.trim();
+            if (!accountName) { showToast("Account name cannot be empty.", "error"); return; }
             if (appData.accounts[accountName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[accountName] = { 
+            
+            const newAccount = { 
+                accountName,
                 trades: [], 
                 startingBalance: null, 
                 tags: [
@@ -1678,27 +1813,48 @@
                 goals: [],
                 playbook: []
             };
+            
+            await saveData('accounts', newAccount);
+            appData.accounts[accountName] = newAccount; // Update in-memory state
             populateAccountSwitcher();
             switchAccount(accountName);
             showToast(`Account "${accountName}" created.`, "success");
         };
 
-        const deleteAccount = (accountName) => {
+        const deleteAccount = async (accountName) => {
             if (Object.keys(appData.accounts).length <= 1) { showToast("You cannot delete the only remaining account.", "error"); return; }
-            delete appData.accounts[accountName];
-            appData.activeAccountName = Object.keys(appData.accounts)[0];
+            
+            await deleteData('accounts', accountName);
+            delete appData.accounts[accountName]; // Update in-memory state
+            
+            const newActiveAccount = Object.keys(appData.accounts)[0];
+            appData.activeAccountName = newActiveAccount;
+            localStorage.setItem('activeAccountName', newActiveAccount);
+            
             populateAccountSwitcher();
             switchAccount(appData.activeAccountName);
         };
         
-        const renameAccount = (oldName, newName) => {
-            if (!newName.trim()) { showToast("New name cannot be empty.", "error"); return; }
+        const renameAccount = async (oldName, newName) => {
+            newName = newName.trim();
+            if (!newName) { showToast("New name cannot be empty.", "error"); return; }
             if (appData.accounts[newName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[newName] = appData.accounts[oldName];
+            
+            const accountData = appData.accounts[oldName];
+            accountData.accountName = newName;
+            
+            await saveData('accounts', accountData);
+            await deleteData('accounts', oldName);
+            
             delete appData.accounts[oldName];
-            if (appData.activeAccountName === oldName) appData.activeAccountName = newName;
+            appData.accounts[newName] = accountData;
+            
+            if (appData.activeAccountName === oldName) {
+                appData.activeAccountName = newName;
+                localStorage.setItem('activeAccountName', newName);
+            }
+            
             populateAccountSwitcher();
-            saveAppData();
         };
 
         const renderAccountsList = () => {
@@ -1723,7 +1879,7 @@
                     confirmText: 'Delete Account'
                 });
                 if (confirmed) {
-                    deleteAccount(accountName);
+                    await deleteAccount(accountName);
                     renderAccountsList();
                 }
             }));
@@ -1738,7 +1894,7 @@
                     confirmText: 'Rename'
                 });
                 if(newName && newName !== oldName) {
-                    renameAccount(oldName, newName);
+                    await renameAccount(oldName, newName);
                     renderAccountsList();
                 }
             }));
@@ -2140,38 +2296,75 @@
                 toggleLoader(false);
             }, 50);
         };
-        const exportData = () => {
-            const dataStr = JSON.stringify(appData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = `prolific-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-            showToast("Data exported successfully!", "success");
+        const exportData = async () => {
+            try {
+                const allAccounts = await getAllData('accounts');
+                const settings = await getData('settings', 'appSettings');
+                
+                const dataToExport = {
+                    accounts: allAccounts.reduce((acc, account) => {
+                        const { accountName, ...rest } = account;
+                        acc[accountName] = rest;
+                        return acc;
+                    }, {}),
+                    settings: settings,
+                    activeAccountName: appData.activeAccountName
+                };
+
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `prolific-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                showToast("Data exported successfully!", "success");
+            } catch (e) {
+                showToast("Error exporting data.", "error");
+                console.error(e);
+            }
         };
         const importData = (event) => {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (importedData.activeAccountName && importedData.accounts) {
-                        appData = importedData;
-                        saveAppData();
+                    if (importedData.accounts && importedData.settings) {
+                        toggleLoader(true);
+                        // Clear existing data
+                        // This is a simplification. A more robust import might merge data.
+                        const accountsTransaction = db.transaction('accounts', 'readwrite');
+                        await accountsTransaction.objectStore('accounts').clear();
+                        const settingsTransaction = db.transaction('settings', 'readwrite');
+                        await settingsTransaction.objectStore('settings').clear();
+
+                        // Import new data
+                        for (const accountName in importedData.accounts) {
+                             await saveData('accounts', { accountName, ...importedData.accounts[accountName] });
+                        }
+                        await saveData('settings', importedData.settings);
+                        
+                        localStorage.setItem('activeAccountName', importedData.activeAccountName);
+                        
+                        await loadAppData(); // Reload all data from DB
                         populateAccountSwitcher();
-                        switchAccount(appData.activeAccountName);
+                        refreshUI();
+                        
                         showToast("Data imported successfully!", "success");
                     } else {
                         showToast("Invalid backup file format.", "error");
                     }
                 } catch (err) {
                     showToast("Could not parse backup file.", "error");
+                    console.error(err);
+                } finally {
+                    toggleLoader(false);
+                    event.target.value = ''; 
                 }
-                event.target.value = ''; 
             };
             reader.readAsText(file);
         };
@@ -2239,7 +2432,8 @@
             addBtn.addEventListener('click', () => {
                 const newName = nameInput.value.trim();
                 const newColor = colorInput.value;
-                const collection = getActiveAccount()[tagType];
+                const activeAccount = getActiveAccount();
+                const collection = activeAccount[tagType];
                 if (newName && !collection.find(t => t.name === newName)) {
                     collection.push({ name: newName, color: newColor });
                     saveAppData();
@@ -2320,7 +2514,8 @@
                 return;
             }
 
-            const goals = getActiveAccount().goals;
+            const activeAccount = getActiveAccount();
+            const goals = activeAccount.goals;
 
             if (editingId) {
                 const goalIndex = goals.findIndex(g => g.id === editingId);
@@ -2554,8 +2749,9 @@
                  showToast('Play title is required.', 'error');
                  return;
              }
-
-             const playbook = getActiveAccount().playbook;
+             
+             const activeAccount = getActiveAccount();
+             const playbook = activeAccount.playbook;
 
              if (editingId) {
                  const playIndex = playbook.findIndex(p => p.id === editingId);
@@ -2749,9 +2945,12 @@
             const select = dom['playbook-select'];
             const currentVal = select.value;
             select.innerHTML = '<option value="">None</option>';
-            getActiveAccount().playbook.forEach(play => {
-                select.innerHTML += `<option value="${play.id}">${play.title}</option>`;
-            });
+            const activeAccount = getActiveAccount();
+            if (activeAccount && activeAccount.playbook) {
+                activeAccount.playbook.forEach(play => {
+                    select.innerHTML += `<option value="${play.id}">${play.title}</option>`;
+                });
+            }
             select.value = currentVal;
         };
         
