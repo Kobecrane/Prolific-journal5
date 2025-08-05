@@ -712,6 +712,14 @@
                     </div>
                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
+                        <div class="flex justify-center items-center gap-2 mb-4">
+    <button id="calendar-toggle-monthly" class="btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm">Monthly</button>
+    <button id="calendar-toggle-yearly" class="btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm">Yearly</button>
+</div>
+<div id="calendar-summary-card" class="bg-bg-tertiary p-3 rounded-lg text-center mb-4">
+    <p id="calendar-summary-label" class="text-sm font-medium text-text-secondary">Monthly P/L</p>
+    <p id="calendar-summary-value" class="text-xl font-bold text-text-primary">$0.00</p>
+</div>
                          <div class="flex items-center justify-between mb-4">
                             <button id="prev-month-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
                             <div class="flex items-center gap-2">
@@ -895,7 +903,11 @@
             'avg-mfe-losers', 'total-mfe-losers', 'mfe-comparison-bar',
             'custom-modal-overlay', 'custom-modal-title', 'custom-modal-text', 'custom-modal-cancel-btn', 'custom-modal-confirm-btn', 'custom-modal-input-container', 'custom-modal-input',
             'accent-color-picker', 'sl-pips', 'tp-pips', 'riskConsistencyChart', 'rr-performance-body',
-            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body'
+            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body', 'calendar-toggle-monthly',   // ADD THIS
+    'calendar-toggle-yearly',    // ADD THIS
+    'calendar-summary-card',     // ADD THIS
+    'calendar-summary-label',    // ADD THIS
+    'calendar-summary-value'    
         ];
         
         const dom = {};
@@ -1053,7 +1065,8 @@
                 settings = {
                     id: 'appSettings',
                     accentColor: '#4f46e5',
-                    breakevenThreshold: 2.0
+                    breakevenThreshold: 2.0,
+                    calendarSummaryMode: 'monthly'
                 };
                 await saveData('settings', settings);
             }
@@ -1578,6 +1591,17 @@
                 saveAppData();
                 refreshUI();
             });
+            // Calendar P/L Toggle Buttons
+        dom['calendar-toggle-monthly'].addEventListener('click', () => {
+            appData.settings.calendarSummaryMode = 'monthly';
+            saveAppData();
+            updateTradeCalendar();
+        });
+        dom['calendar-toggle-yearly'].addEventListener('click', () => {
+            appData.settings.calendarSummaryMode = 'yearly';
+            saveAppData();
+            updateTradeCalendar();
+        });
 
             // Tag Management Event Listeners
             setupTagManager('tags', dom['tags-modal'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], dom['new-tag-color'], dom['tags-list']);
@@ -1788,44 +1812,81 @@
              dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
         };
         
-        const updateTradeCalendar = () => {
-             const allTrades = getActiveTrades();
-             const year = calendarDate.getFullYear();
-             const month = calendarDate.getMonth();
+       const updateTradeCalendar = () => {
+    const allTrades = getActiveTrades();
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
 
-             dom['calendar-month-year'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric'});
-             dom['calendar-date-picker'].value = calendarDate.toISOString().split('T')[0];
-             const calendarBody = dom['calendar-body'];
-             calendarBody.innerHTML = '';
+    dom['calendar-month-year'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric'});
+    dom['calendar-date-picker'].value = calendarDate.toISOString().split('T')[0];
+    const calendarBody = dom['calendar-body'];
+    calendarBody.innerHTML = '';
 
-             const firstDay = new Date(year, month, 1).getDay();
-             const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-             const dailyPL = allTrades.filter(t => t.profitLoss !== null).reduce((acc, trade) => {
-                  const tradeDate = new Date(trade.timestamp);
-                  if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
-                      const day = tradeDate.getDate();
-                      acc[day] = (acc[day] || 0) + trade.profitLoss;
-                  }
-                  return acc;
-             }, {});
-             
-             for(let i = 0; i < firstDay; i++) { calendarBody.innerHTML += `<div></div>`; }
+    const dailyPL = allTrades.filter(t => t.profitLoss !== null).reduce((acc, trade) => {
+        const tradeDate = new Date(trade.timestamp);
+        if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
+            const day = tradeDate.getDate();
+            acc[day] = (acc[day] || 0) + trade.profitLoss;
+        }
+        return acc;
+    }, {});
 
-             for(let day = 1; day <= daysInMonth; day++) {
-                 const pl = dailyPL[day];
-                 let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-                 if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-                 else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+    // Calculate Monthly P/L
+    const monthlyPL = allTrades.filter(t => {
+        const tradeDate = new Date(t.timestamp);
+        return tradeDate.getFullYear() === year && tradeDate.getMonth() === month && t.profitLoss !== null;
+    }).reduce((sum, trade) => sum + trade.profitLoss, 0);
 
-                 const dayDiv = document.createElement('div');
-                 dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-                 dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
-                 
-                 dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
-                 calendarBody.appendChild(dayDiv);
-             }
-        };
+    // Calculate Yearly P/L
+    const yearlyPL = allTrades.filter(t => {
+        const tradeDate = new Date(t.timestamp);
+        return tradeDate.getFullYear() === year && t.profitLoss !== null;
+    }).reduce((sum, trade) => sum + trade.profitLoss, 0);
+
+    // Update the dynamic summary card based on selected mode
+    const currentMode = appData.settings.calendarSummaryMode;
+    let summaryValue = 0;
+    let summaryLabel = '';
+
+    // Reset button styles
+    dom['calendar-toggle-monthly'].className = 'btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm';
+    dom['calendar-toggle-yearly'].className = 'btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm';
+
+    if (currentMode === 'monthly') {
+        summaryValue = monthlyPL;
+        summaryLabel = 'Monthly P/L';
+        dom['calendar-toggle-monthly'].className = 'btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm';
+    } else if (currentMode === 'yearly') {
+        summaryValue = yearlyPL;
+        summaryLabel = 'Yearly P/L';
+        dom['calendar-toggle-yearly'].className = 'btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm';
+    }
+    // You could add a 'daily' summary mode here if you wanted to explicitly show the current day's P/L in the summary card.
+    // For now, the daily P/L is shown in the calendar cells.
+
+    dom['calendar-summary-label'].textContent = summaryLabel;
+    dom['calendar-summary-value'].textContent = `$${summaryValue.toFixed(2)}`;
+    dom['calendar-summary-value'].className = `text-xl font-bold ${summaryValue >= 0 ? 'text-green-500' : 'text-red-500'}`;
+    
+    for(let i = 0; i < firstDay; i++) { calendarBody.innerHTML += `<div></div>`; }
+
+    for(let day = 1; day <= daysInMonth; day++) {
+        const pl = dailyPL[day];
+        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
+        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
+        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+
+        const dayDiv = document.createElement('div');
+        dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
+        dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
+        
+        dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
+        calendarBody.appendChild(dayDiv);
+    }
+};
 
         const generatePDF = async () => {
              toggleLoader(true);
