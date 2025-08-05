@@ -620,6 +620,12 @@
                             <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
                         </div>
                     </div>
+                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Average Win vs. Average Loss</h2>
+                        <div id="avg-win-loss-comparison" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                             <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Day of Week</h2>
@@ -697,34 +703,27 @@
                         <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p>
                         <div id="rr-analysis-body"></div>
                     </div>
-                   <!-- PASTE THIS ENTIRE BLOCK TO REPLACE THE OLD CALENDAR CARD -->
-<div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
-    
-    <!-- Calendar Header -->
-    <div class="flex items-center justify-between mb-4">
-        <button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
-        <h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3>
-        <button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
+                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
+                        <div class="flex items-center justify-between mb-4">
+    <button id="prev-month-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
+    <div class="flex items-center gap-2">
+        <h3 id="calendar-month-year" class="text-lg font-semibold"></h3>
+        <input type="date" id="calendar-date-picker" class="form-input text-sm rounded-lg p-1">
     </div>
-
-    <!-- View Toggle -->
-    <div class="flex justify-center mb-4">
-        <div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg">
-            <button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button>
-            <button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button>
-            <button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button>
-        </div>
+    <div id="calendar-toggle" class="flex bg-tertiary rounded-lg p-1 text-sm">
+        <button id="monthly-view-btn" class="px-3 py-1 rounded-md bg-accent-color text-white">Month</button>
+        <button id="yearly-view-btn" class="px-3 py-1 rounded-md text-text-secondary">Year</button>
     </div>
-
-    <!-- Day Headers (for Day View only) -->
-    <div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2">
-        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-    </div>
-
-    <!-- Calendar Body (dynamically filled) -->
-    <div id="calendar-body" class="grid gap-2"></div>
+    <button id="next-month-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
 </div>
+                            <button id="next-month-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
+                        </div>
+                         <div class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                         <div id="calendar-body" class="grid grid-cols-7 gap-1"></div>
+                    </div>
                      <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Monte Carlo Simulation</h2>
                          <div class="flex flex-wrap items-end gap-4 mb-4">
@@ -763,7 +762,7 @@
         <div>
             <h3 class="text-sm font-semibold text-text-secondary mb-2">Data & Reports</h3>
             <div class="space-y-2">
-                <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to Browser</button>
+                <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to DB</button>
                 <label for="import-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors block">Import Data</label>
                 <input type="file" id="import-file" class="hidden" accept=".json">
                 <button id="export-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Export Data</button>
@@ -858,10 +857,13 @@
 
     <script type="module">
         // --- App State & Constants ---
-        let appData = {};
+        let appData = {
+             activeAccountName: 'Default Account',
+             accounts: {},
+             settings: {}
+        };
         let tradeType = 'Buy';
         let calendarDate = new Date();
-        let calendarViewMode = 'day'; // can be 'day', 'month', or 'year'
         let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
         
         // --- All DOM Element IDs used in the script ---
@@ -869,8 +871,7 @@
             'sidebar', 'main-content', 'page-title',
             'buy-btn', 'sell-btn', 'log-trade-btn', 'cancel-edit-btn', 'save-balance-btn', 'save-data-btn',
             'settings-menu-btn', 'settings-menu-panel', 'manage-accounts-btn', 'close-accounts-modal-btn', 'add-account-btn', 'account-switcher',
-           // Add these to the elementIds array
-'calendar-prev-btn', 'calendar-next-btn', 'calendar-title', 'calendar-view-toggle', 'calendar-day-headers', 'close-day-modal-btn', 'export-btn', 'import-file',
+            'prev-month-btn', 'next-month-btn', 'calendar-date-picker', 'close-day-modal-btn', 'export-btn', 'import-file',
             'export-pdf-btn', 'reset-filters-btn', 'run-mc-btn', 'trade-comments-editor', 'lot-size', 'entry-price',
             'exit-price', 'index-selector', 'starting-balance', 'num-positions', 'stop-loss', 'take-profit',
             'peak-price', 'fees', 'realtime-pl-display', 'form-title', 'editing-trade-id', 'num-positions-container',
@@ -893,12 +894,89 @@
             'avg-mfe-losers', 'total-mfe-losers', 'mfe-comparison-bar',
             'custom-modal-overlay', 'custom-modal-title', 'custom-modal-text', 'custom-modal-cancel-btn', 'custom-modal-confirm-btn', 'custom-modal-input-container', 'custom-modal-input',
             'accent-color-picker', 'sl-pips', 'tp-pips', 'riskConsistencyChart', 'rr-performance-body',
-            'breakeven-slider', 'breakeven-value','calendar-monthly-pl'
+            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison'
         ];
         
         const dom = {};
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- IndexedDB Setup ---
+        const DB_NAME = 'ProlificJournalDB';
+        const DB_VERSION = 1;
+        let db;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onerror = (event) => {
+                    console.error("Database error:", event.target.error);
+                    reject("Database error");
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const dbInstance = event.target.result;
+                    if (!dbInstance.objectStoreNames.contains('accounts')) {
+                        dbInstance.createObjectStore('accounts', { keyPath: 'accountName' });
+                    }
+                    if (!dbInstance.objectStoreNames.contains('settings')) {
+                         dbInstance.createObjectStore('settings', { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    console.log("Database opened successfully.");
+                    resolve(db);
+                };
+            });
+        }
+
+        function saveData(storeName, data) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(data);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error saving to ${storeName}: ${event.target.error}`);
+            });
+        }
+
+        function getData(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(key);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error getting from ${storeName}: ${event.target.error}`);
+            });
+        }
+        
+        function getAllData(storeName) {
+             return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (event) => reject(`Error getting all from ${storeName}: ${event.target.error}`);
+            });
+        }
+        
+        function deleteData(storeName, key) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject("DB not initialized"); return; }
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(key);
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => reject(`Error deleting from ${storeName}: ${event.target.error}`);
+            });
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
             elementIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) dom[id] = el;
@@ -906,7 +984,7 @@
             dom.sidebarLinks = document.querySelectorAll('nav .sidebar-link');
 
             setupEventListeners();
-            loadAppData();
+            await loadAppData(); // Now async
             populateAccountSwitcher();
             loadAccountDataIntoUI();
             populatePlaybookInstrumentsSelect();
@@ -922,7 +1000,6 @@
 
             document.querySelectorAll('.animate-fade-in-up').forEach(el => observer.observe(el));
             
-            // Sidebar hover effect
             dom.sidebar.addEventListener('mouseenter', () => dom.sidebar.classList.add('group'));
             dom.sidebar.addEventListener('mouseleave', () => dom.sidebar.classList.remove('group'));
         });
@@ -937,86 +1014,137 @@
         };
 
         // --- Data Management ---
-        const loadAppData = () => {
-            const savedData = localStorage.getItem('prolificJournalData');
-            appData = savedData ? JSON.parse(savedData) : {
-                activeAccountName: 'Default Account',
-                accounts: {
-                    'Default Account': {
-                        trades: [],
-                        startingBalance: null,
-                        tags: [
-                            { name: 'Strategy', color: '#8B5CF6' },
-                            { name: 'Mistake', color: '#EF4444' },
-                            { name: 'News Trade', color: '#F59E0B' }
-                        ],
-                        psychologyTags: [
-                            { name: 'FOMO', color: '#EC4899' },
-                            { name: 'Revenge Trading', color: '#F43F5E' },
-                            { name: 'Overconfident', color: '#FCD34D' },
-                            { name: 'Anxious', color: '#60A5FA' },
-                        ],
-                        goals: [],
-                        playbook: []
+        const loadAppData = async () => {
+            await initDB();
+            
+            // One-time migration from localStorage
+            const oldData = localStorage.getItem('prolificJournalData');
+            if (oldData) {
+                try {
+                    console.log("Found old localStorage data, migrating...");
+                    const parsedOldData = JSON.parse(oldData);
+                    
+                    // Migrate accounts
+                    for (const accountName in parsedOldData.accounts) {
+                        const accountData = parsedOldData.accounts[accountName];
+                        await saveData('accounts', { accountName, ...accountData });
                     }
-                },
-                settings: {
+                    
+                    // Migrate settings
+                    if (parsedOldData.settings) {
+                        await saveData('settings', { id: 'appSettings', ...parsedOldData.settings });
+                    }
+                    
+                    // Store active account name
+                    localStorage.setItem('activeAccountName', parsedOldData.activeAccountName);
+                    
+                    localStorage.removeItem('prolificJournalData');
+                    showToast("Data successfully migrated to the new database!", "success");
+                } catch (e) {
+                    console.error("Migration failed:", e);
+                    showToast("Could not migrate old data.", "error");
+                }
+            }
+            
+            // Load settings
+            let settings = await getData('settings', 'appSettings');
+            if (!settings) {
+                settings = {
+                    id: 'appSettings',
                     accentColor: '#4f46e5',
                     breakevenThreshold: 2.0
-                }
-            };
-            // --- Data Migration for existing users ---
-            Object.values(appData.accounts).forEach(account => {
-                if (!account.psychologyTags) {
-                    account.psychologyTags = [
+                };
+                await saveData('settings', settings);
+            }
+            appData.settings = settings;
+            
+            // Load accounts
+            const allAccounts = await getAllData('accounts');
+            if (allAccounts.length === 0) {
+                 const defaultAccount = {
+                    accountName: 'Default Account',
+                    trades: [],
+                    startingBalance: null,
+                    tags: [
+                        { name: 'Strategy', color: '#8B5CF6' },
+                        { name: 'Mistake', color: '#EF4444' },
+                        { name: 'News Trade', color: '#F59E0B' }
+                    ],
+                    psychologyTags: [
                         { name: 'FOMO', color: '#EC4899' },
                         { name: 'Revenge Trading', color: '#F43F5E' },
                         { name: 'Overconfident', color: '#FCD34D' },
                         { name: 'Anxious', color: '#60A5FA' },
-                    ];
-                }
-                account.trades.forEach(trade => {
-                    if (!trade.psychologyTags) {
-                        trade.psychologyTags = [];
-                    }
-                });
-            });
+                    ],
+                    goals: [],
+                    playbook: []
+                };
+                await saveData('accounts', defaultAccount);
+                appData.accounts = { [defaultAccount.accountName]: defaultAccount };
+            } else {
+                 appData.accounts = allAccounts.reduce((acc, account) => {
+                    acc[account.accountName] = account;
+                    return acc;
+                }, {});
+            }
 
-             if (!appData.settings) {
-                 appData.settings = { accentColor: '#4f46e5', breakevenThreshold: 2.0 };
+            // Set active account
+            const savedActiveAccount = localStorage.getItem('activeAccountName');
+            if (savedActiveAccount && appData.accounts[savedActiveAccount]) {
+                appData.activeAccountName = savedActiveAccount;
+            } else {
+                appData.activeAccountName = Object.keys(appData.accounts)[0];
+                localStorage.setItem('activeAccountName', appData.activeAccountName);
             }
-            if (appData.settings.breakevenThreshold === undefined) {
-                appData.settings.breakevenThreshold = 2.0;
-            }
+
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
         };
 
-        const saveAppData = () => localStorage.setItem('prolificJournalData', JSON.stringify(appData));
+        const saveAppData = () => {
+            const activeAccount = getActiveAccount();
+            if (activeAccount) {
+                saveData('accounts', activeAccount).catch(err => console.error("Failed to save account data:", err));
+            }
+            saveData('settings', appData.settings).catch(err => console.error("Failed to save settings:", err));
+        };
+
         const getActiveAccount = () => {
-            const accountName = appData.activeAccountName || (appData.accounts ? Object.keys(appData.accounts)[0] : null);
-            if (!accountName || !appData.accounts) return { trades: [], tags: [], psychologyTags: [], goals: [], playbook: [] };
-            const account = appData.accounts[accountName];
-            if (account && !account.tags) account.tags = [];
-            if (account && !account.psychologyTags) account.psychologyTags = [];
-            if (account && !account.goals) account.goals = [];
-            if (account && !account.playbook) account.playbook = [];
+            if (!appData.activeAccountName || !appData.accounts) return null;
+            const account = appData.accounts[appData.activeAccountName];
+            // Ensure nested arrays exist to prevent errors
+            if (account) {
+                if (!account.tags) account.tags = [];
+                if (!account.psychologyTags) account.psychologyTags = [];
+                if (!account.goals) account.goals = [];
+                if (!account.playbook) account.playbook = [];
+            }
             return account;
         };
-        const getActiveTrades = () => getActiveAccount().trades;
+
+        const getActiveTrades = () => {
+            const account = getActiveAccount();
+            return account ? account.trades : [];
+        }
+
         const switchAccount = (accountName) => {
             if (appData.accounts[accountName]) {
                 appData.activeAccountName = accountName;
-                saveAppData();
+                localStorage.setItem('activeAccountName', accountName); // Persist active account choice
                 loadAccountDataIntoUI();
                 refreshUI();
             }
         };
+
         const loadAccountDataIntoUI = () => {
-            const balance = getActiveAccount().startingBalance;
-            dom['starting-balance'].value = balance !== null ? balance : '';
+            const account = getActiveAccount();
+            if (account) {
+                const balance = account.startingBalance;
+                dom['starting-balance'].value = balance !== null ? balance : '';
+            }
         };
+
         const populateAccountSwitcher = () => {
             const switcher = dom['account-switcher'];
             switcher.innerHTML = '';
@@ -1185,12 +1313,12 @@
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
              const editingId = dom['editing-trade-id'].value;
-             const activeTrades = getActiveTrades();
+             const activeAccount = getActiveAccount();
 
              if (editingId) {
-                  const tradeIndex = activeTrades.findIndex(t => t.id === editingId);
+                  const tradeIndex = activeAccount.trades.findIndex(t => t.id === editingId);
                   if (tradeIndex > -1) {
-                      const originalTrade = activeTrades[tradeIndex];
+                      const originalTrade = activeAccount.trades[tradeIndex];
                       let exitTimestamp = originalTrade.exitTimestamp;
                       if (originalTrade.exitPrice === null && exitPrice !== null) exitTimestamp = new Date().toISOString();
                       if (originalTrade.exitPrice !== null && exitPrice === null) exitTimestamp = null;
@@ -1199,7 +1327,7 @@
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeTrades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1208,7 +1336,7 @@
                        if(profitLoss !== null) profitLoss -= fees;
                        const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                        
-                       activeTrades.push({
+                       activeAccount.trades.push({
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
@@ -1340,33 +1468,14 @@
             });
             dom['account-switcher'].addEventListener('change', () => switchAccount(dom['account-switcher'].value));
             
-          // PASTE THIS NEW BLOCK OF EVENT LISTENERS
-dom['calendar-prev-btn'].addEventListener('click', () => {
-    if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() - 1);
-    else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() - 1);
-    else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() - 10);
-    updateTradeCalendar();
-});
-
-dom['calendar-next-btn'].addEventListener('click', () => {
-    if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() + 1);
-    else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() + 1);
-    else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() + 10);
-    updateTradeCalendar();
-});
-
-dom['calendar-title'].addEventListener('click', () => {
-    if (calendarViewMode === 'day') calendarViewMode = 'month';
-    else if (calendarViewMode === 'month') calendarViewMode = 'year';
-    updateTradeCalendar();
-});
-
-dom['calendar-view-toggle'].addEventListener('click', (e) => {
-    if (e.target.matches('.calendar-view-btn')) {
-        calendarViewMode = e.target.dataset.view;
-        updateTradeCalendar();
-    }
-});
+            dom['prev-month-btn'].addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() - 1); updateTradeCalendar(); });
+            dom['next-month-btn'].addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() + 1); updateTradeCalendar(); });
+            dom['calendar-date-picker'].addEventListener('change', (e) => {
+                const selected = new Date(e.target.value);
+                const tzoffset = selected.getTimezoneOffset() * 60000;
+                calendarDate = new Date(selected.getTime() + tzoffset);
+                updateTradeCalendar();
+            });
             dom['close-day-modal-btn'].addEventListener('click', () => dom['calendar-day-modal'].classList.remove('open'));
 
             dom['export-btn'].addEventListener('click', exportData);
@@ -1481,6 +1590,7 @@ dom['calendar-view-toggle'].addEventListener('click', (e) => {
                         updateReversalAnalysis(allTrades);
                         updateExcursionAnalysis(allTrades);
                         updateRiskConsistencyTracker(allTrades);
+                        updateAvgWinLossComparison(allTrades);
                     }
                 }, 0); 
             } else {
@@ -1579,9 +1689,10 @@ dom['calendar-view-toggle'].addEventListener('click', (e) => {
                     });
 
                     if (confirmed) {
-                        const tradeIndex = getActiveTrades().findIndex(t => t.id === tradeIdToDelete);
+                        const activeAccount = getActiveAccount();
+                        const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
                         if(tradeIndex > -1) {
-                            getActiveTrades().splice(tradeIndex, 1);
+                            activeAccount.trades.splice(tradeIndex, 1);
                             saveAppData();
                             refreshUI();
                             showToast("Trade deleted", "info");
@@ -1618,130 +1729,45 @@ dom['calendar-view-toggle'].addEventListener('click', (e) => {
              dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
         };
         
-       // REPLACE YOUR OLD FUNCTION WITH THIS ONE
-// REPLACE YOUR ENTIRE OLD updateTradeCalendar FUNCTION WITH THIS NEW ONE
-const updateTradeCalendar = () => {
-    const allTrades = getActiveTrades().filter(t => t.profitLoss !== null);
-    const calendarBody = dom['calendar-body'];
-    calendarBody.innerHTML = '';
+        const updateTradeCalendar = () => {
+             const allTrades = getActiveTrades();
+             const year = calendarDate.getFullYear();
+             const month = calendarDate.getMonth();
 
-    // Update view toggle button styles
-    dom['calendar-view-toggle'].querySelectorAll('.calendar-view-btn').forEach(btn => {
-        const isSelected = btn.dataset.view === calendarViewMode;
-        btn.classList.toggle('bg-accent-color', isSelected);
-        btn.classList.toggle('text-white', isSelected);
-        btn.classList.toggle('text-text-secondary', !isSelected);
-    });
+             dom['calendar-month-year'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric'});
+             dom['calendar-date-picker'].value = calendarDate.toISOString().split('T')[0];
+             const calendarBody = dom['calendar-body'];
+             calendarBody.innerHTML = '';
 
-    // --- VIEW-SPECIFIC RENDERING ---
-    if (calendarViewMode === 'day') {
-        renderDayView(allTrades, calendarBody);
-    } else if (calendarViewMode === 'month') {
-        renderMonthView(allTrades, calendarBody);
-    } else if (calendarViewMode === 'year') {
-        renderYearView(allTrades, calendarBody);
-    }
-};
+             const firstDay = new Date(year, month, 1).getDay();
+             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-const renderDayView = (allTrades, container) => {
-    dom['calendar-title'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    dom['calendar-day-headers'].style.display = 'grid';
-    container.className = 'grid grid-cols-7 gap-2';
+             const dailyPL = allTrades.filter(t => t.profitLoss !== null).reduce((acc, trade) => {
+                  const tradeDate = new Date(trade.timestamp);
+                  if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
+                      const day = tradeDate.getDate();
+                      acc[day] = (acc[day] || 0) + trade.profitLoss;
+                  }
+                  return acc;
+             }, {});
+             
+             for(let i = 0; i < firstDay; i++) { calendarBody.innerHTML += `<div></div>`; }
 
-    const year = calendarDate.getFullYear();
-    const month = calendarDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+             for(let day = 1; day <= daysInMonth; day++) {
+                 const pl = dailyPL[day];
+                 let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
+                 if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
+                 else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
 
-    const dailyPL = allTrades.reduce((acc, trade) => {
-        const tradeDate = new Date(trade.timestamp);
-        if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
-            const day = tradeDate.getDate();
-            acc[day] = (acc[day] || 0) + trade.profitLoss;
-        }
-        return acc;
-    }, {});
-
-    for (let i = 0; i < firstDay; i++) { container.innerHTML += `<div></div>`; }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const pl = dailyPL[day];
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
-
-        const dayDiv = document.createElement('div');
-        dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
-        dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
-        container.appendChild(dayDiv);
-    }
-};
-
-const renderMonthView = (allTrades, container) => {
-    const year = calendarDate.getFullYear();
-    dom['calendar-title'].textContent = year;
-    dom['calendar-day-headers'].style.display = 'none';
-    container.className = 'grid grid-cols-3 md:grid-cols-4 gap-2';
-    
-    const monthlyPL = allTrades.reduce((acc, trade) => {
-        const tradeDate = new Date(trade.timestamp);
-        if (tradeDate.getFullYear() === year) {
-            const month = tradeDate.getMonth();
-            acc[month] = (acc[month] || 0) + trade.profitLoss;
-        }
-        return acc;
-    }, {});
-
-    for (let month = 0; month < 12; month++) {
-        const pl = monthlyPL[month];
-        const monthName = new Date(year, month).toLocaleString('en-US', { month: 'short' });
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
-
-        const monthDiv = document.createElement('div');
-        monthDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        monthDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${monthName}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
-        monthDiv.onclick = () => {
-            calendarDate.setMonth(month);
-            calendarViewMode = 'day';
-            updateTradeCalendar();
+                 const dayDiv = document.createElement('div');
+                 dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
+                 dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
+                 
+                 dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
+                 calendarBody.appendChild(dayDiv);
+             }
         };
-        container.appendChild(monthDiv);
-    }
-};
 
-const renderYearView = (allTrades, container) => {
-    const startYear = Math.floor(calendarDate.getFullYear() / 10) * 10;
-    dom['calendar-title'].textContent = `${startYear} - ${startYear + 9}`;
-    dom['calendar-day-headers'].style.display = 'none';
-    container.className = 'grid grid-cols-2 md:grid-cols-5 gap-2';
-
-    const yearlyPL = allTrades.reduce((acc, trade) => {
-        const year = new Date(trade.timestamp).getFullYear();
-        acc[year] = (acc[year] || 0) + trade.profitLoss;
-        return acc;
-    }, {});
-
-    for (let i = 0; i < 10; i++) {
-        const year = startYear + i;
-        const pl = yearlyPL[year];
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
-
-        const yearDiv = document.createElement('div');
-        yearDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        yearDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${year}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
-        yearDiv.onclick = () => {
-            calendarDate.setFullYear(year);
-            calendarViewMode = 'month';
-            updateTradeCalendar();
-        };
-        container.appendChild(yearDiv);
-    }
-};
         const generatePDF = async () => {
              toggleLoader(true);
              const { jsPDF } = window.jspdf;
@@ -1780,10 +1806,13 @@ const renderYearView = (allTrades, container) => {
              }
         };
         
-        const addAccount = (accountName) => {
-            if (!accountName.trim()) { showToast("Account name cannot be empty.", "error"); return; }
+        const addAccount = async (accountName) => {
+            accountName = accountName.trim();
+            if (!accountName) { showToast("Account name cannot be empty.", "error"); return; }
             if (appData.accounts[accountName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[accountName] = { 
+            
+            const newAccount = { 
+                accountName,
                 trades: [], 
                 startingBalance: null, 
                 tags: [
@@ -1797,27 +1826,48 @@ const renderYearView = (allTrades, container) => {
                 goals: [],
                 playbook: []
             };
+            
+            await saveData('accounts', newAccount);
+            appData.accounts[accountName] = newAccount; // Update in-memory state
             populateAccountSwitcher();
             switchAccount(accountName);
             showToast(`Account "${accountName}" created.`, "success");
         };
 
-        const deleteAccount = (accountName) => {
+        const deleteAccount = async (accountName) => {
             if (Object.keys(appData.accounts).length <= 1) { showToast("You cannot delete the only remaining account.", "error"); return; }
-            delete appData.accounts[accountName];
-            appData.activeAccountName = Object.keys(appData.accounts)[0];
+            
+            await deleteData('accounts', accountName);
+            delete appData.accounts[accountName]; // Update in-memory state
+            
+            const newActiveAccount = Object.keys(appData.accounts)[0];
+            appData.activeAccountName = newActiveAccount;
+            localStorage.setItem('activeAccountName', newActiveAccount);
+            
             populateAccountSwitcher();
             switchAccount(appData.activeAccountName);
         };
         
-        const renameAccount = (oldName, newName) => {
-            if (!newName.trim()) { showToast("New name cannot be empty.", "error"); return; }
+        const renameAccount = async (oldName, newName) => {
+            newName = newName.trim();
+            if (!newName) { showToast("New name cannot be empty.", "error"); return; }
             if (appData.accounts[newName]) { showToast("An account with this name already exists.", "error"); return; }
-            appData.accounts[newName] = appData.accounts[oldName];
+            
+            const accountData = appData.accounts[oldName];
+            accountData.accountName = newName;
+            
+            await saveData('accounts', accountData);
+            await deleteData('accounts', oldName);
+            
             delete appData.accounts[oldName];
-            if (appData.activeAccountName === oldName) appData.activeAccountName = newName;
+            appData.accounts[newName] = accountData;
+            
+            if (appData.activeAccountName === oldName) {
+                appData.activeAccountName = newName;
+                localStorage.setItem('activeAccountName', newName);
+            }
+            
             populateAccountSwitcher();
-            saveAppData();
         };
 
         const renderAccountsList = () => {
@@ -1842,7 +1892,7 @@ const renderYearView = (allTrades, container) => {
                     confirmText: 'Delete Account'
                 });
                 if (confirmed) {
-                    deleteAccount(accountName);
+                    await deleteAccount(accountName);
                     renderAccountsList();
                 }
             }));
@@ -1857,7 +1907,7 @@ const renderYearView = (allTrades, container) => {
                     confirmText: 'Rename'
                 });
                 if(newName && newName !== oldName) {
-                    renameAccount(oldName, newName);
+                    await renameAccount(oldName, newName);
                     renderAccountsList();
                 }
             }));
@@ -2259,38 +2309,75 @@ const renderYearView = (allTrades, container) => {
                 toggleLoader(false);
             }, 50);
         };
-        const exportData = () => {
-            const dataStr = JSON.stringify(appData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = `prolific-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-            showToast("Data exported successfully!", "success");
+        const exportData = async () => {
+            try {
+                const allAccounts = await getAllData('accounts');
+                const settings = await getData('settings', 'appSettings');
+                
+                const dataToExport = {
+                    accounts: allAccounts.reduce((acc, account) => {
+                        const { accountName, ...rest } = account;
+                        acc[accountName] = rest;
+                        return acc;
+                    }, {}),
+                    settings: settings,
+                    activeAccountName: appData.activeAccountName
+                };
+
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `prolific-journal-backup-${new Date().toISOString().split('T')[0]}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                showToast("Data exported successfully!", "success");
+            } catch (e) {
+                showToast("Error exporting data.", "error");
+                console.error(e);
+            }
         };
         const importData = (event) => {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (importedData.activeAccountName && importedData.accounts) {
-                        appData = importedData;
-                        saveAppData();
+                    if (importedData.accounts && importedData.settings) {
+                        toggleLoader(true);
+                        // Clear existing data
+                        // This is a simplification. A more robust import might merge data.
+                        const accountsTransaction = db.transaction('accounts', 'readwrite');
+                        await accountsTransaction.objectStore('accounts').clear();
+                        const settingsTransaction = db.transaction('settings', 'readwrite');
+                        await settingsTransaction.objectStore('settings').clear();
+
+                        // Import new data
+                        for (const accountName in importedData.accounts) {
+                             await saveData('accounts', { accountName, ...importedData.accounts[accountName] });
+                        }
+                        await saveData('settings', importedData.settings);
+                        
+                        localStorage.setItem('activeAccountName', importedData.activeAccountName);
+                        
+                        await loadAppData(); // Reload all data from DB
                         populateAccountSwitcher();
-                        switchAccount(appData.activeAccountName);
+                        refreshUI();
+                        
                         showToast("Data imported successfully!", "success");
                     } else {
                         showToast("Invalid backup file format.", "error");
                     }
                 } catch (err) {
                     showToast("Could not parse backup file.", "error");
+                    console.error(err);
+                } finally {
+                    toggleLoader(false);
+                    event.target.value = ''; 
                 }
-                event.target.value = ''; 
             };
             reader.readAsText(file);
         };
@@ -2358,7 +2445,8 @@ const renderYearView = (allTrades, container) => {
             addBtn.addEventListener('click', () => {
                 const newName = nameInput.value.trim();
                 const newColor = colorInput.value;
-                const collection = getActiveAccount()[tagType];
+                const activeAccount = getActiveAccount();
+                const collection = activeAccount[tagType];
                 if (newName && !collection.find(t => t.name === newName)) {
                     collection.push({ name: newName, color: newColor });
                     saveAppData();
@@ -2439,7 +2527,8 @@ const renderYearView = (allTrades, container) => {
                 return;
             }
 
-            const goals = getActiveAccount().goals;
+            const activeAccount = getActiveAccount();
+            const goals = activeAccount.goals;
 
             if (editingId) {
                 const goalIndex = goals.findIndex(g => g.id === editingId);
@@ -2673,8 +2762,9 @@ const renderYearView = (allTrades, container) => {
                  showToast('Play title is required.', 'error');
                  return;
              }
-
-             const playbook = getActiveAccount().playbook;
+             
+             const activeAccount = getActiveAccount();
+             const playbook = activeAccount.playbook;
 
              if (editingId) {
                  const playIndex = playbook.findIndex(p => p.id === editingId);
@@ -2868,9 +2958,12 @@ const renderYearView = (allTrades, container) => {
             const select = dom['playbook-select'];
             const currentVal = select.value;
             select.innerHTML = '<option value="">None</option>';
-            getActiveAccount().playbook.forEach(play => {
-                select.innerHTML += `<option value="${play.id}">${play.title}</option>`;
-            });
+            const activeAccount = getActiveAccount();
+            if (activeAccount && activeAccount.playbook) {
+                activeAccount.playbook.forEach(play => {
+                    select.innerHTML += `<option value="${play.id}">${play.title}</option>`;
+                });
+            }
             select.value = currentVal;
         };
         
@@ -3028,6 +3121,48 @@ const renderYearView = (allTrades, container) => {
                 fragment.appendChild(bucketEl);
             }
             body.appendChild(fragment);
+        };
+
+        const updateAvgWinLossComparison = (allTrades) => {
+            const container = dom['avg-win-loss-comparison'];
+            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+            const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+            
+            const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
+            const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
+
+            const avgWin = winningTrades.length > 0 ? winningTrades.reduce((sum, t) => sum + t.profitLoss, 0) / winningTrades.length : 0;
+            const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0) / losingTrades.length) : 0;
+
+            if (avgWin === 0 && avgLoss === 0) {
+                container.innerHTML = '<p class="text-center text-text-secondary">Not enough data to compare average win and loss.</p>';
+                return;
+            }
+            
+            const maxVal = Math.max(avgWin, avgLoss);
+            const winPercentage = maxVal > 0 ? (avgWin / maxVal) * 100 : 0;
+            const lossPercentage = maxVal > 0 ? (avgLoss / maxVal) * 100 : 0;
+
+            container.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-baseline mb-1">
+                        <span class="text-sm font-medium text-green-400">Average Win</span>
+                        <span class="text-lg font-bold text-green-400">$${avgWin.toFixed(2)}</span>
+                    </div>
+                    <div class="w-full bg-bg-tertiary rounded-full h-4">
+                        <div class="bg-green-500 h-4 rounded-full" style="width: ${winPercentage}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-baseline mb-1">
+                        <span class="text-sm font-medium text-red-400">Average Loss</span>
+                        <span class="text-lg font-bold text-red-400">$${avgLoss.toFixed(2)}</span>
+                    </div>
+                    <div class="w-full bg-bg-tertiary rounded-full h-4">
+                        <div class="bg-red-500 h-4 rounded-full" style="width: ${lossPercentage}%"></div>
+                    </div>
+                </div>
+            `;
         };
 
     </script>
