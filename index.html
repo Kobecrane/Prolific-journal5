@@ -2040,7 +2040,7 @@
                 body.appendChild(statCard);
             });
            };
-        const updateRRAnalysis = (allTrades) => {
+       const updateRRAnalysis = (allTrades) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const rrAnalysisBody = dom['rr-analysis-body'];
             rrAnalysisBody.innerHTML = '';
@@ -2057,9 +2057,9 @@
             const winningTrades = rrTrades.filter(t => t.profitLoss > breakevenThreshold);
             const losingTrades = rrTrades.filter(t => t.profitLoss <= 0);
             const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
-            const totalLoss = losingTrades.reduce((acc, t) => t.profitLoss, 0);
+            const totalLoss = losingTrades.reduce((acc, t) => acc + Math.abs(t.profitLoss), 0); // Corrected line
             const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
-            const avgLoss = losingTrades.length > 0 ? Math.abs(totalLoss / losingTrades.length) : 0;
+            const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
             const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
 
 
@@ -3016,9 +3016,13 @@
            }
 
            const riskData = riskTrades.map(trade => {
-               const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
-               const positiveRisk = riskInDollars !== null ? Math.abs(riskInDollars) : 0;
-               return { x: new Date(trade.timestamp), y: positiveRisk };
+               let priceDiff = Math.abs(trade.entryPrice - trade.stopLoss);
+               let multiplier = 1;
+               if (trade.indexName.includes('/')) {
+                   multiplier = trade.indexName.includes('JPY') ? 100000 : 10000;
+               }
+               const riskInDollars = priceDiff * trade.lotSize * multiplier;
+               return { x: new Date(trade.timestamp), y: riskInDollars };
            });
 
            const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
