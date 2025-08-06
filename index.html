@@ -1708,44 +1708,36 @@ dom['analytics-page'].addEventListener('click', (e) => {
             updateAccountGrowth(allTrades);
             
           // Replace the entire 'analytics-page' block in your refreshUI function with this
-if (!dom['analytics-page'].classList.contains('hidden')) {
-    let tradesForAnalytics = applyFilters(); // Start with the main filtered trades from the top bar
+// PASTE THIS CORRECTED BLOCK IN ITS PLACE
 
-    // Check if a drill-down is active
+if (!dom['analytics-page'].classList.contains('hidden')) {
+    let tradesForAnalytics = applyFilters(); 
+
     if (analyticsDrillDownFilter) {
-        // If a drill-down is active, filter the trades AGAIN based on that specific criterion
         tradesForAnalytics = tradesForAnalytics.filter(trade => {
-            // This handles different properties like 'indexName', 'session', etc.
             const tradeValue = trade[analyticsDrillDownFilter.type];
-            // This handles properties that are arrays, like tags
             if (Array.isArray(tradeValue)) {
                 return tradeValue.includes(analyticsDrillDownFilter.value);
             }
             return tradeValue === analyticsDrillDownFilter.value;
         });
 
-        // Show the status bar and display the active filter's name
         dom['drilldown-status-bar'].classList.remove('hidden');
         dom['drilldown-status-bar'].classList.add('flex');
         dom['drilldown-filter-name'].textContent = analyticsDrillDownFilter.value;
     } else {
-        // If no drill-down is active, hide the status bar
         dom['drilldown-status-bar'].classList.add('hidden');
         dom['drilldown-status-bar'].classList.remove('flex');
     }
 
     setTimeout(() => {
         if (!dom['analytics-page'].classList.contains('hidden')) {
-            // Now, pass the final, potentially drill-down-filtered trades to all analytics functions
-            updateEquityCurveChart(tradesForAnalytics);
+            // updateEquityCurveChart(tradesForAnalytics); // Commented out until we build it
             updateDrawdownAnalysis(tradesForAnalytics);
             updateAdvancedAnalytics(tradesForAnalytics);
             updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
             updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
             updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
-            // Add these new lines if you implemented the Session/Timeframe suggestion
-            // updateGenericBreakdownAnalysis(tradesForAnalytics, 'session', dom['session-performance-body'], 'Session');
-            // updateGenericBreakdownAnalysis(tradesForAnalytics, 'timeframe', dom['timeframe-performance-body'], 'Timeframe');
             updateRRAnalysis(tradesForAnalytics);
             updateRRPerformanceAnalysis(tradesForAnalytics);
             updateTradeCalendar(); 
@@ -1754,14 +1746,10 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
-            updateMistakeAnalysis(tradesForAnalytics);
+            // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
         }
     }, 0);
-} else {
-                if (drawdownChart) { drawdownChart.destroy(); drawdownChart = null; }
-                if (riskConsistencyChart) { riskConsistencyChart.destroy(); riskConsistencyChart = null; }
-            }
-
+}
             if (!dom['goals-page'].classList.contains('hidden')) {
                 updateGoals();
             }
