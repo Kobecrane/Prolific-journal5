@@ -710,29 +710,29 @@
                         <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p>
                         <div id="rr-analysis-body"></div>
                     </div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
-                        <div class="flex justify-center items-center gap-2 mb-4">
-    <button id="calendar-toggle-monthly" class="btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm">Monthly</button>
-    <button id="calendar-toggle-yearly" class="btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm">Yearly</button>
+                   <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
+    
+    <div class="flex items-center justify-between mb-4">
+        <button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
+        <h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3>
+        <button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
+    </div>
+
+    <div class="flex justify-center mb-4">
+        <div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg">
+            <button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button>
+            <button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button>
+            <button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button>
+        </div>
+    </div>
+
+    <div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+    </div>
+
+    <div id="calendar-body" class="grid gap-2"></div>
 </div>
-<div id="calendar-summary-card" class="bg-bg-tertiary p-3 rounded-lg text-center mb-4">
-    <p id="calendar-summary-label" class="text-sm font-medium text-text-secondary">Monthly P/L</p>
-    <p id="calendar-summary-value" class="text-xl font-bold text-text-primary">$0.00</p>
-</div>
-                         <div class="flex items-center justify-between mb-4">
-                            <button id="prev-month-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
-                            <div class="flex items-center gap-2">
-                                <h3 id="calendar-month-year" class="text-lg font-semibold"></h3>
-                                <input type="date" id="calendar-date-picker" class="form-input text-sm rounded-lg p-1">
-                            </div>
-                            <button id="next-month-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
-                        </div>
-                         <div class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2">
-                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                        </div>
-                         <div id="calendar-body" class="grid grid-cols-7 gap-1"></div>
-                    </div>
                      <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Monte Carlo Simulation</h2>
                          <div class="flex flex-wrap items-end gap-4 mb-4">
@@ -873,14 +873,14 @@
         };
         let tradeType = 'Buy';
         let calendarDate = new Date();
+        let calendarViewMode = 'day';
         let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
         
         // --- All DOM Element IDs used in the script ---
         const elementIds = [
             'sidebar', 'main-content', 'page-title',
             'buy-btn', 'sell-btn', 'log-trade-btn', 'cancel-edit-btn', 'save-balance-btn', 'save-data-btn',
-            'settings-menu-btn', 'settings-menu-panel', 'manage-accounts-btn', 'close-accounts-modal-btn', 'add-account-btn', 'account-switcher',
-            'prev-month-btn', 'next-month-btn', 'calendar-date-picker', 'close-day-modal-btn', 'export-btn', 'import-file',
+            'settings-menu-btn', 'settings-menu-panel', 'manage-accounts-btn', 'close-accounts-modal-btn', 'add-account-btn', 'account-switcher', 'close-day-modal-btn', 'export-btn', 'import-file',
             'export-pdf-btn', 'reset-filters-btn', 'run-mc-btn', 'trade-comments-editor', 'lot-size', 'entry-price',
             'exit-price', 'index-selector', 'starting-balance', 'num-positions', 'stop-loss', 'take-profit',
             'peak-price', 'fees', 'realtime-pl-display', 'form-title', 'editing-trade-id', 'num-positions-container',
@@ -903,11 +903,11 @@
             'avg-mfe-losers', 'total-mfe-losers', 'mfe-comparison-bar',
             'custom-modal-overlay', 'custom-modal-title', 'custom-modal-text', 'custom-modal-cancel-btn', 'custom-modal-confirm-btn', 'custom-modal-input-container', 'custom-modal-input',
             'accent-color-picker', 'sl-pips', 'tp-pips', 'riskConsistencyChart', 'rr-performance-body',
-            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body', 'calendar-toggle-monthly',   // ADD THIS
-    'calendar-toggle-yearly',    // ADD THIS
-    'calendar-summary-card',     // ADD THIS
-    'calendar-summary-label',    // ADD THIS
-    'calendar-summary-value'    
+            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body', 'calendar-prev-btn', 
+'calendar-next-btn', 
+'calendar-title', 
+'calendar-view-toggle', 
+'calendar-day-headers',
         ];
         
         const dom = {};
@@ -1539,16 +1539,7 @@
             });
             dom['account-switcher'].addEventListener('change', () => switchAccount(dom['account-switcher'].value));
             
-            dom['prev-month-btn'].addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() - 1); updateTradeCalendar(); });
-            dom['next-month-btn'].addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() + 1); updateTradeCalendar(); });
-            dom['calendar-date-picker'].addEventListener('change', (e) => {
-                const selected = new Date(e.target.value);
-                const tzoffset = selected.getTimezoneOffset() * 60000;
-                calendarDate = new Date(selected.getTime() + tzoffset);
-                updateTradeCalendar();
-            });
-            dom['close-day-modal-btn'].addEventListener('click', () => dom['calendar-day-modal'].classList.remove('open'));
-
+           
             dom['export-btn'].addEventListener('click', exportData);
             dom['import-file'].addEventListener('change', importData);
             dom['export-pdf-btn'].addEventListener('click', generatePDF);
@@ -1591,17 +1582,35 @@
                 saveAppData();
                 refreshUI();
             });
-            // Calendar P/L Toggle Buttons
-        dom['calendar-toggle-monthly'].addEventListener('click', () => {
-            appData.settings.calendarSummaryMode = 'monthly';
-            saveAppData();
-            updateTradeCalendar();
-        });
-        dom['calendar-toggle-yearly'].addEventListener('click', () => {
-            appData.settings.calendarSummaryMode = 'yearly';
-            saveAppData();
-            updateTradeCalendar();
-        });
+          // New Calendar Event Listeners
+            dom['close-day-modal-btn'].addEventListener('click', () => dom['calendar-day-modal'].classList.remove('open'));
+
+            dom['calendar-prev-btn'].addEventListener('click', () => {
+                if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() - 1);
+                else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() - 1);
+                else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() - 10);
+                updateTradeCalendar();
+            });
+
+            dom['calendar-next-btn'].addEventListener('click', () => {
+                if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() + 1);
+                else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() + 1);
+                else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() + 10);
+                updateTradeCalendar();
+            });
+
+            dom['calendar-title'].addEventListener('click', () => {
+                if (calendarViewMode === 'day') calendarViewMode = 'month';
+                else if (calendarViewMode === 'month') calendarViewMode = 'year';
+                updateTradeCalendar();
+            });
+
+            dom['calendar-view-toggle'].addEventListener('click', (e) => {
+                if (e.target.matches('.calendar-view-btn')) {
+                    calendarViewMode = e.target.dataset.view;
+                    updateTradeCalendar();
+                }
+            });
 
             // Tag Management Event Listeners
             setupTagManager('tags', dom['tags-modal'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], dom['new-tag-color'], dom['tags-list']);
@@ -1812,20 +1821,41 @@
              dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
         };
         
-       const updateTradeCalendar = () => {
-    const allTrades = getActiveTrades();
-    const year = calendarDate.getFullYear();
-    const month = calendarDate.getMonth();
-
-    dom['calendar-month-year'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric'});
-    dom['calendar-date-picker'].value = calendarDate.toISOString().split('T')[0];
+       // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
+const updateTradeCalendar = () => {
+    const allTrades = getActiveTrades().filter(t => t.profitLoss !== null);
     const calendarBody = dom['calendar-body'];
     calendarBody.innerHTML = '';
 
+    // Update view toggle button styles
+    dom['calendar-view-toggle'].querySelectorAll('.calendar-view-btn').forEach(btn => {
+        const isSelected = btn.dataset.view === calendarViewMode;
+        btn.classList.toggle('bg-accent-color', isSelected);
+        btn.classList.toggle('text-white', isSelected);
+        btn.classList.toggle('text-text-secondary', !isSelected);
+    });
+
+    // --- VIEW-SPECIFIC RENDERING ---
+    if (calendarViewMode === 'day') {
+        renderDayView(allTrades, calendarBody);
+    } else if (calendarViewMode === 'month') {
+        renderMonthView(allTrades, calendarBody);
+    } else if (calendarViewMode === 'year') {
+        renderYearView(allTrades, calendarBody);
+    }
+};
+
+const renderDayView = (allTrades, container) => {
+    dom['calendar-title'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    dom['calendar-day-headers'].style.display = 'grid';
+    container.className = 'grid grid-cols-7 gap-2';
+
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const dailyPL = allTrades.filter(t => t.profitLoss !== null).reduce((acc, trade) => {
+    const dailyPL = allTrades.reduce((acc, trade) => {
         const tradeDate = new Date(trade.timestamp);
         if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
             const day = tradeDate.getDate();
@@ -1834,46 +1864,9 @@
         return acc;
     }, {});
 
-    // Calculate Monthly P/L
-    const monthlyPL = allTrades.filter(t => {
-        const tradeDate = new Date(t.timestamp);
-        return tradeDate.getFullYear() === year && tradeDate.getMonth() === month && t.profitLoss !== null;
-    }).reduce((sum, trade) => sum + trade.profitLoss, 0);
+    for (let i = 0; i < firstDay; i++) { container.innerHTML += `<div></div>`; }
 
-    // Calculate Yearly P/L
-    const yearlyPL = allTrades.filter(t => {
-        const tradeDate = new Date(t.timestamp);
-        return tradeDate.getFullYear() === year && t.profitLoss !== null;
-    }).reduce((sum, trade) => sum + trade.profitLoss, 0);
-
-    // Update the dynamic summary card based on selected mode
-    const currentMode = appData.settings.calendarSummaryMode;
-    let summaryValue = 0;
-    let summaryLabel = '';
-
-    // Reset button styles
-    dom['calendar-toggle-monthly'].className = 'btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm';
-    dom['calendar-toggle-yearly'].className = 'btn bg-tertiary text-text-secondary font-semibold py-2 px-4 rounded-lg text-sm';
-
-    if (currentMode === 'monthly') {
-        summaryValue = monthlyPL;
-        summaryLabel = 'Monthly P/L';
-        dom['calendar-toggle-monthly'].className = 'btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm';
-    } else if (currentMode === 'yearly') {
-        summaryValue = yearlyPL;
-        summaryLabel = 'Yearly P/L';
-        dom['calendar-toggle-yearly'].className = 'btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg text-sm';
-    }
-    // You could add a 'daily' summary mode here if you wanted to explicitly show the current day's P/L in the summary card.
-    // For now, the daily P/L is shown in the calendar cells.
-
-    dom['calendar-summary-label'].textContent = summaryLabel;
-    dom['calendar-summary-value'].textContent = `$${summaryValue.toFixed(2)}`;
-    dom['calendar-summary-value'].className = `text-xl font-bold ${summaryValue >= 0 ? 'text-green-500' : 'text-red-500'}`;
-    
-    for(let i = 0; i < firstDay; i++) { calendarBody.innerHTML += `<div></div>`; }
-
-    for(let day = 1; day <= daysInMonth; day++) {
+    for (let day = 1; day <= daysInMonth; day++) {
         const pl = dailyPL[day];
         let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
         if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
@@ -1882,9 +1875,73 @@
         const dayDiv = document.createElement('div');
         dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
         dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
-        
         dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
-        calendarBody.appendChild(dayDiv);
+        container.appendChild(dayDiv);
+    }
+};
+
+const renderMonthView = (allTrades, container) => {
+    const year = calendarDate.getFullYear();
+    dom['calendar-title'].textContent = year;
+    dom['calendar-day-headers'].style.display = 'none';
+    container.className = 'grid grid-cols-3 md:grid-cols-4 gap-2';
+
+    const monthlyPL = allTrades.reduce((acc, trade) => {
+        const tradeDate = new Date(trade.timestamp);
+        if (tradeDate.getFullYear() === year) {
+            const month = tradeDate.getMonth();
+            acc[month] = (acc[month] || 0) + trade.profitLoss;
+        }
+        return acc;
+    }, {});
+
+    for (let month = 0; month < 12; month++) {
+        const pl = monthlyPL[month];
+        const monthName = new Date(year, month).toLocaleString('en-US', { month: 'short' });
+        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
+        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
+        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+
+        const monthDiv = document.createElement('div');
+        monthDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
+        monthDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${monthName}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
+        monthDiv.onclick = () => {
+            calendarDate.setMonth(month);
+            calendarViewMode = 'day';
+            updateTradeCalendar();
+        };
+        container.appendChild(monthDiv);
+    }
+};
+
+const renderYearView = (allTrades, container) => {
+    const startYear = Math.floor(calendarDate.getFullYear() / 10) * 10;
+    dom['calendar-title'].textContent = `${startYear} - ${startYear + 9}`;
+    dom['calendar-day-headers'].style.display = 'none';
+    container.className = 'grid grid-cols-2 md:grid-cols-5 gap-2';
+
+    const yearlyPL = allTrades.reduce((acc, trade) => {
+        const year = new Date(trade.timestamp).getFullYear();
+        acc[year] = (acc[year] || 0) + trade.profitLoss;
+        return acc;
+    }, {});
+
+    for (let i = 0; i < 10; i++) {
+        const year = startYear + i;
+        const pl = yearlyPL[year];
+        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
+        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
+        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+
+        const yearDiv = document.createElement('div');
+        yearDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
+        yearDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${year}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
+        yearDiv.onclick = () => {
+            calendarDate.setFullYear(year);
+            calendarViewMode = 'month';
+            updateTradeCalendar();
+        };
+        container.appendChild(yearDiv);
     }
 };
 
