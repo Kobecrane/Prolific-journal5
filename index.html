@@ -581,6 +581,10 @@
 
             <!-- Analytics Page -->
             <div id="analytics-page" class="hidden">
+             <div id="drilldown-status-bar" class="hidden items-center justify-between bg-accent-color/20 text-accent-color p-3 rounded-lg mb-4">
+        <p class="font-semibold">Showing analytics for: <span id="drilldown-filter-name" class="font-bold underline"></span></p>
+        <button id="clear-drilldown-btn" class="font-bold text-lg hover:text/white">&times;</button>
+    </div>
                  <div class="space-y-6" id="analytics-content-for-pdf">
                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Drawdown Analysis</h2>
@@ -874,6 +878,7 @@
         let tradeType = 'Buy';
         let calendarDate = new Date();
         let calendarViewMode = 'day';
+        let analyticsDrillDownFilter = null;
         let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
         
         // --- All DOM Element IDs used in the script ---
@@ -908,7 +913,10 @@
 'calendar-title', 
 'calendar-view-toggle', 
 'calendar-day-headers',
-        ];
+'drilldown-status-bar',
+'drilldown-filter-name',
+'clear-drilldown-btn',
+];
         
         const dom = {};
 
@@ -1448,6 +1456,24 @@
         };
 
         // --- Event Listeners Setup ---
+        const applyDrillDown = (filterType, filterValue) => {
+    // This function sets the global filter variable
+    analyticsDrillDownFilter = { type: filterType, value: filterValue };
+    
+    // Scroll to the top of the content area to see the status bar
+    dom['main-content'].scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Refresh the UI to apply the new filter
+    refreshUI();
+};
+
+const clearDrillDown = () => {
+    // This function resets the filter to null
+    analyticsDrillDownFilter = null;
+    
+    // Refresh the UI to show all data again
+    refreshUI();
+};
         const setupEventListeners = () => {
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
@@ -1615,7 +1641,21 @@
             // Tag Management Event Listeners
             setupTagManager('tags', dom['tags-modal'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], dom['new-tag-color'], dom['tags-list']);
             setupTagManager('psychologyTags', dom['psychology-tags-modal'], dom['manage-psychology-tags-btn'], dom['close-psychology-tags-modal-btn'], dom['add-psychology-tag-btn'], dom['new-psychology-tag-name'], dom['new-psychology-tag-color'], dom['psychology-tags-list']);
-        };
+       // Add these listeners inside the setupEventListeners function
+
+dom['clear-drilldown-btn'].addEventListener('click', clearDrillDown);
+
+// Use event delegation for the dynamically created drill-down links.
+// This one listener on the parent element efficiently handles clicks on any link inside it.
+dom['analytics-page'].addEventListener('click', (e) => {
+    const link = e.target.closest('.drill-down-link');
+    if (link) {
+        e.preventDefault(); // Stop the link from trying to navigate
+        const filterType = link.dataset.filterType;
+        const filterValue = link.dataset.filterValue;
+        applyDrillDown(filterType, filterValue);
+    }
+}); }; 
         
         const handleImageDrop = (e) => {
             e.preventDefault();
@@ -1667,25 +1707,57 @@
             updateSummary(filteredTrades);
             updateAccountGrowth(allTrades);
             
-            if (!dom['analytics-page'].classList.contains('hidden')) {
-                setTimeout(() => {
-                    if (!dom['analytics-page'].classList.contains('hidden')) {
-                        updateDrawdownAnalysis(allTrades);
-                        updateAdvancedAnalytics(allTrades);
-                        updateTagAnalysis(allTrades, 'tags', dom['tag-performance-body']);
-                        updateTagAnalysis(allTrades, 'psychologyTags', dom['psychology-performance-body']);
-                        updateIndexSummary(allTrades);
-                        updateRRAnalysis(allTrades);
-                        updateRRPerformanceAnalysis(allTrades);
-                        updateTradeCalendar();
-                        updateReversalAnalysis(allTrades);
-                        updateExcursionAnalysis(allTrades);
-                        updateRiskConsistencyTracker(allTrades);
-                        updateAvgWinLossComparison(allTrades);
-                        updateTradeDurationPerformance(allTrades);
-                    }
-                }, 0); 
-            } else {
+          // Replace the entire 'analytics-page' block in your refreshUI function with this
+if (!dom['analytics-page'].classList.contains('hidden')) {
+    let tradesForAnalytics = applyFilters(); // Start with the main filtered trades from the top bar
+
+    // Check if a drill-down is active
+    if (analyticsDrillDownFilter) {
+        // If a drill-down is active, filter the trades AGAIN based on that specific criterion
+        tradesForAnalytics = tradesForAnalytics.filter(trade => {
+            // This handles different properties like 'indexName', 'session', etc.
+            const tradeValue = trade[analyticsDrillDownFilter.type];
+            // This handles properties that are arrays, like tags
+            if (Array.isArray(tradeValue)) {
+                return tradeValue.includes(analyticsDrillDownFilter.value);
+            }
+            return tradeValue === analyticsDrillDownFilter.value;
+        });
+
+        // Show the status bar and display the active filter's name
+        dom['drilldown-status-bar'].classList.remove('hidden');
+        dom['drilldown-status-bar'].classList.add('flex');
+        dom['drilldown-filter-name'].textContent = analyticsDrillDownFilter.value;
+    } else {
+        // If no drill-down is active, hide the status bar
+        dom['drilldown-status-bar'].classList.add('hidden');
+        dom['drilldown-status-bar'].classList.remove('flex');
+    }
+
+    setTimeout(() => {
+        if (!dom['analytics-page'].classList.contains('hidden')) {
+            // Now, pass the final, potentially drill-down-filtered trades to all analytics functions
+            updateEquityCurveChart(tradesForAnalytics);
+            updateDrawdownAnalysis(tradesForAnalytics);
+            updateAdvancedAnalytics(tradesForAnalytics);
+            updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
+            updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
+            updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
+            // Add these new lines if you implemented the Session/Timeframe suggestion
+            // updateGenericBreakdownAnalysis(tradesForAnalytics, 'session', dom['session-performance-body'], 'Session');
+            // updateGenericBreakdownAnalysis(tradesForAnalytics, 'timeframe', dom['timeframe-performance-body'], 'Timeframe');
+            updateRRAnalysis(tradesForAnalytics);
+            updateRRPerformanceAnalysis(tradesForAnalytics);
+            updateTradeCalendar(); 
+            updateReversalAnalysis(tradesForAnalytics);
+            updateExcursionAnalysis(tradesForAnalytics);
+            updateRiskConsistencyTracker(tradesForAnalytics);
+            updateAvgWinLossComparison(tradesForAnalytics);
+            updateTradeDurationPerformance(tradesForAnalytics);
+            updateMistakeAnalysis(tradesForAnalytics);
+        }
+    }, 0);
+} else {
                 if (drawdownChart) { drawdownChart.destroy(); drawdownChart = null; }
                 if (riskConsistencyChart) { riskConsistencyChart.destroy(); riskConsistencyChart = null; }
             }
@@ -2192,37 +2264,45 @@ const renderYearView = (allTrades, container) => {
             });
         };
 
-        const updateIndexSummary = (allTrades) => {
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-            const body = dom['index-performance-body'];
-            body.innerHTML = '';
-            const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-            if(closedTrades.length === 0) { body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No closed trades to analyze.</p>'; return; }
+       // ADD this new function where the old one was
+const updateGenericBreakdownAnalysis = (trades, property, bodyElement, title) => {
+    bodyElement.innerHTML = '';
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const closedTrades = trades.filter(t => t.profitLoss !== null && t[property]);
 
-            const stats = closedTrades.reduce((acc, trade) => {
-                if(!acc[trade.indexName]) acc[trade.indexName] = { trades: 0, totalPL: 0, wins: 0, losses: 0 };
-                acc[trade.indexName].trades++;
-                acc[trade.indexName].totalPL += trade.profitLoss;
-                if(trade.profitLoss > breakevenThreshold) acc[trade.indexName].wins++;
-                else if (trade.profitLoss <= 0) acc[trade.indexName].losses++;
-                return acc;
-            }, {});
+    if (closedTrades.length === 0) {
+        bodyElement.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">No closed trades with ${title} data to analyze.</p>`;
+        return;
+    }
 
-            Object.entries(stats).sort((a,b) => b[1].totalPL - a[1].totalPL).forEach(([instrument, data]) => {
-                const plClass = data.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
-                const winRate = (data.wins + data.losses) > 0 ? (data.wins / (data.wins + data.losses)) * 100 : 0;
-                const statCard = document.createElement('div');
-                statCard.className = 'bg-tertiary/50 p-4 rounded-lg border border-border-color';
-                statCard.innerHTML = `
-                    <h3 class="font-bold text-text-primary">${instrument}</h3>
-                    <div class="mt-2 space-y-1 text-sm">
-                        <div class="flex justify-between"><span class="text-text-secondary">Total P/L:</span><span class="font-semibold ${plClass}">$${data.totalPL.toFixed(2)}</span></div>
-                        <div class="flex justify-between"><span class="text-text-secondary">Win Rate:</span><span class="font-semibold text-text-primary">${winRate.toFixed(1)}%</span></div>
-                        <div class="flex justify-between"><span class="text-text-secondary">Trades:</span><span class="font-semibold text-text-primary">${data.trades}</span></div>
-                    </div>`;
-                body.appendChild(statCard);
-            });
-           };
+    const stats = closedTrades.reduce((acc, trade) => {
+        const key = trade[property];
+        if (!acc[key]) acc[key] = { trades: 0, totalPL: 0, wins: 0, losses: 0 };
+        acc[key].trades++;
+        acc[key].totalPL += trade.profitLoss;
+        if (trade.profitLoss > breakevenThreshold) acc[key].wins++;
+        else if (trade.profitLoss <= 0) acc[key].losses++;
+        return acc;
+    }, {});
+
+    Object.entries(stats).sort((a, b) => b[1].totalPL - a[1].totalPL).forEach(([item, data]) => {
+        const plClass = data.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
+        const winRate = (data.wins + data.losses) > 0 ? (data.wins / (data.wins + data.losses)) * 100 : 0;
+        const statCard = document.createElement('div');
+        statCard.className = 'bg-tertiary/50 p-4 rounded-lg border border-border-color';
+
+        statCard.innerHTML = `
+            <h3 class="font-bold text-text-primary">
+                <a href="#" class="drill-down-link hover:underline" data-filter-type="${property}" data-filter-value="${item}">${item}</a>
+            </h3>
+            <div class="mt-2 space-y-1 text-sm">
+                <div class="flex justify-between"><span class="text-text-secondary">Total P/L:</span><span class="font-semibold ${plClass}">$${data.totalPL.toFixed(2)}</span></div>
+                <div class="flex justify-between"><span class="text-text-secondary">Win Rate:</span><span class="font-semibold text-text-primary">${winRate.toFixed(1)}%</span></div>
+                <div class="flex justify-between"><span class="text-text-secondary">Trades:</span><span class="font-semibold text-text-primary">${data.trades}</span></div>
+            </div>`;
+        bodyElement.appendChild(statCard);
+    });
+};
        const updateRRAnalysis = (allTrades) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const rrAnalysisBody = dom['rr-analysis-body'];
@@ -3198,15 +3278,14 @@ const renderYearView = (allTrades, container) => {
                return;
            }
 
-           const riskData = riskTrades.map(trade => {
-               let priceDiff = Math.abs(trade.entryPrice - trade.stopLoss);
-               let multiplier = 1;
-               if (trade.indexName.includes('/')) {
-                   multiplier = trade.indexName.includes('JPY') ? 100000 : 10000;
-               }
-               const riskInDollars = priceDiff * trade.lotSize * multiplier;
-               return { x: new Date(trade.timestamp), y: riskInDollars };
-           });
+          // This is the new, more accurate calculation
+const riskData = riskTrades.map(trade => {
+    // We can reuse our main P/L function to accurately find the potential loss (our risk)
+    const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
+    
+    // We use Math.abs because a loss is negative, but risk is a positive value.
+    return { x: new Date(trade.timestamp), y: Math.abs(riskInDollars || 0) };
+});
 
            const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
            const avgRisk = totalRisk / riskData.length;
