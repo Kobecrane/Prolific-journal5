@@ -236,15 +236,14 @@
             <!-- Journal Page -->
             <div id="journal-page">
                 <!-- Performance Dashboard -->
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up col-span-2 lg:col-span-1">
+               <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-medium text-text-secondary">Total P/L</p>
                 <p id="total-pl" class="text-2xl font-bold text-text-primary">$0.00</p>
             </div>
-            <div id="pl-sparkline" class="w-24 h-10">
-                </div>
+            <div id="pl-sparkline" class="w-24 h-10"></div>
         </div>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
@@ -253,8 +252,7 @@
                 <p class="text-sm font-medium text-text-secondary">Win Rate</p>
                 <p id="win-rate" class="text-2xl font-bold text-text-primary">0%</p>
             </div>
-            <div id="winrate-donut" class="w-10 h-10">
-                </div>
+            <div id="winrate-donut" class="w-10 h-10"></div>
         </div>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
@@ -263,18 +261,24 @@
                 <p class="text-sm font-medium text-text-secondary">Realized R:R</p>
                 <p id="realized-rr" class="text-2xl font-bold text-text-primary">1 : 0.00</p>
             </div>
-            <div id="rr-barchart" class="w-12 h-10">
-                </div>
+            <div id="rr-barchart" class="w-12 h-10"></div>
         </div>
     </div>
+
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
-        <p class="text-sm font-medium text-text-secondary">Avg. Profit</p>
-        <p id="avg-profit" class="text-2xl font-bold text-green-500">$0.00</p>
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm font-medium text-text-secondary">Avg. Win</p>
+            <p id="avg-profit" class="text-xl font-bold text-green-500">$0.00</p>
+        </div>
+        <div id="avg-win-loss-bars" class="w-12 h-10"></div>
+        <div>
+            <p class="text-sm font-medium text-text-secondary">Avg. Loss</p>
+            <p id="avg-loss" class="text-xl font-bold text-red-500">$0.00</p>
+        </div>
     </div>
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
-        <p class="text-sm font-medium text-text-secondary">Avg. Loss</p>
-        <p id="avg-loss" class="text-2xl font-bold text-red-500">$0.00</p>
-    </div>
+</div>
+    
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
         <p class="text-sm font-medium text-text-secondary">Total Trades</p>
         <p id="total-trades" class="text-2xl font-bold text-text-primary">0</p>
@@ -924,7 +928,7 @@
 'clear-drilldown-btn',
 'pl-sparkline',
 'winrate-donut',
-'rr-barchart',
+'rr-barchart', 'avg-win-loss-bars', 
 ];
         
         const dom = {};
@@ -1330,6 +1334,22 @@ const renderRRBarChart = (avgWin, avgLoss) => {
     const maxVal = Math.max(avgWin, avgLoss);
     const winHeight = (avgWin / maxVal) * 100;
     const lossHeight = (avgLoss / maxVal) * 100;
+
+    container.innerHTML = `
+        <svg viewBox="0 0 48 40" class="w-full h-full">
+            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="#22c55e" rx="2"></rect>
+            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="#ef4444" rx="2"></rect>
+        </svg>
+    `;
+}; const renderAvgWinLossBars = (avgWin, avgLoss) => {
+    const container = dom['avg-win-loss-bars'];
+    if (avgWin <= 0 && avgLoss <= 0) {
+        container.innerHTML = '';
+        return;
+    }
+    const maxVal = Math.max(avgWin, avgLoss);
+    const winHeight = maxVal > 0 ? (avgWin / maxVal) * 100 : 0;
+    const lossHeight = maxVal > 0 ? (avgLoss / maxVal) * 100 : 0;
 
     container.innerHTML = `
         <svg viewBox="0 0 48 40" class="w-full h-full">
@@ -1975,6 +1995,7 @@ const updateSummary = (allTrades) => {
     renderTotalPLSparkline(allTrades);
     renderWinRateDonut(winRate);
     renderRRBarChart(avgProfit, avgLoss);
+     renderAvgWinLossBars(avgProfit, avgLoss); 
 };
         
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
