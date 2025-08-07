@@ -432,6 +432,14 @@
                                 </select>
                             </div>
                             <div>
+                  <div class="flex justify-between items-center">
+                      <label class="block text-sm font-medium text-text-secondary">Pre-Trade Checklist</label>
+                      <button id="manage-checklist-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage</button>
+                  </div>
+                  <div id="trade-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto">
+                      </div>
+              </div>
+                            <div>
                                 <div class="flex justify-between items-center">
                                     <label class="block text-sm font-medium text-text-secondary">Strategy Tags</label>
                                     <button id="manage-tags-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage Tags</button>
@@ -705,12 +713,7 @@
                             <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
                         </div>
                     </div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Average Win vs. Average Loss</h2>
-                        <div id="avg-win-loss-comparison" class="space-y-4">
-                            <!-- Populated by JS -->
-                        </div>
-                        <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+                         <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
     <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Trade Duration</h2>
     <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on how long trades were held.</p>
     <div id="trade-duration-performance-body" class="space-y-4">
@@ -786,6 +789,12 @@
                         <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p>
                         <div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                     </div>
+                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Checklist Adherence</h2>
+    <p class="text-xs text-text-secondary mb-4 -mt-3">Compares performance of disciplined vs. undisciplined trades.</p>
+    <div id="checklist-analysis-body" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+</div>
                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2>
                         <div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -947,6 +956,19 @@
             </div>
         </div>
     </div>
+     <div id="checklist-modal" class="modal-overlay">
+    <div class="modal-content max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-text-primary">Manage Checklist Items</h2>
+            <button id="close-checklist-modal-btn" class="text-text-secondary hover:text-text-primary">&times;</button>
+        </div>
+        <div id="checklist-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+        <div class="flex items-center gap-2">
+            <input type="text" id="new-checklist-item-name" placeholder="e.g., R:R is at least 2:1" class="flex-1 p-2 form-input rounded-lg">
+            <button id="add-checklist-item-btn" class="bg-accent-color text-white font-semibold py-2 px-4 rounded-lg hover:bg-opacity-80">Add</button>
+        </div>
+    </div>
+</div>
 
 
     <script type="module">
@@ -999,7 +1021,14 @@
 'clear-drilldown-btn',
 'pl-sparkline',
 'winrate-donut',
-'rr-barchart', 'avg-win-loss-bars', 'theme-toggle',
+'rr-barchart', 'avg-win-loss-bars', 'theme-toggle', 'manage-checklist-btn',
+'trade-checklist',
+'checklist-modal',
+'close-checklist-modal-btn',
+'checklist-list',
+'new-checklist-item-name',
+'add-checklist-item-btn',
+'checklist-analysis-body',
 ];
         
         const dom = {};
@@ -1543,7 +1572,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
             dom['num-positions-container'].classList.remove('hidden');
             dom['realtime-pl-display'].innerHTML = '';
             dom['realtime-pl-display'].className = 'p-2 text-center rounded-lg h-10 transition-all';
-            renderChecklists();
+            renderChecklists(); renderChecklistOnForm();
         };
 
         const enterEditMode = (tradeId) => {
@@ -1568,6 +1597,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
             dom['playbook-select'].value = tradeToEdit.playId || '';
             if (tradeToEdit.tradeType === 'Buy') dom['buy-btn'].click(); else dom['sell-btn'].click();
             renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
+            renderChecklistOnForm(tradeToEdit.checklistMet || []);
             updateRealtimePL();
         };
         
@@ -1586,6 +1616,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
 
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
              const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+              const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value); // Add this
 
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
@@ -1604,7 +1635,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems  };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -1617,7 +1648,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML
+                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems // Add this line
                        });
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
@@ -1672,7 +1703,106 @@ const clearDrillDown = () => {
     // Refresh the UI to show all data again
     refreshUI();
 };
-        const setupEventListeners = () => {
+        // ADD THESE FOUR FUNCTIONS HERE
+
+// REPLACE THE EMPTY FUNCTIONS WITH THIS COMPLETE BLOCK
+
+const setupChecklistManager = () => {
+    dom['manage-checklist-btn'].addEventListener('click', () => {
+        renderChecklistList();
+        dom['checklist-modal'].classList.add('open');
+    });
+    dom['close-checklist-modal-btn'].addEventListener('click', () => dom['checklist-modal'].classList.remove('open'));
+    dom['add-checklist-item-btn'].addEventListener('click', () => {
+        const newItem = dom['new-checklist-item-name'].value.trim();
+        const activeAccount = getActiveAccount();
+        if (newItem && !activeAccount.checklist.includes(newItem)) {
+            activeAccount.checklist.push(newItem);
+            saveAppData();
+            renderChecklistList();
+            renderChecklistOnForm();
+            dom['new-checklist-item-name'].value = '';
+        }
+    });
+};
+
+const renderChecklistList = () => {
+    const container = dom['checklist-list'];
+    const checklist = getActiveAccount()?.checklist || [];
+    container.innerHTML = '';
+    checklist.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 bg-tertiary rounded-md';
+        div.innerHTML = `<span class="font-semibold">${item}</span>
+                         <button class="delete-checklist-item-btn p-1 text-text-secondary hover:text-red-500" data-index="${index}">&times;</button>`;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.delete-checklist-item-btn').forEach(btn => btn.addEventListener('click', e => {
+        const index = e.currentTarget.dataset.index;
+        getActiveAccount().checklist.splice(index, 1);
+        saveAppData();
+        renderChecklistList();
+        renderChecklistOnForm();
+    }));
+};
+
+const renderChecklistOnForm = (checkedItems = []) => {
+    const container = dom['trade-checklist'];
+    const checklist = getActiveAccount()?.checklist || [];
+    container.innerHTML = '';
+    if (checklist.length === 0) {
+        container.innerHTML = `<p class="text-xs text-center text-text-secondary">No checklist items. Click "Manage" to add some.</p>`;
+        return;
+    }
+    checklist.forEach(item => {
+        const isChecked = checkedItems.includes(item);
+        const id = `checklist-${item.replace(/\s+/g, '-')}`;
+        container.innerHTML += `
+            <div class="flex items-center">
+                <input type="checkbox" id="${id}" value="${item}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-accent-color bg-tertiary border-border-color rounded focus:ring-accent-color ring-offset-bg-secondary focus:ring-2">
+                <label for="${id}" class="ml-2 text-sm font-medium">${item}</label>
+            </div>`;
+    });
+};
+
+const updateChecklistAnalysis = (trades) => {
+    const body = dom['checklist-analysis-body'];
+    const checklist = getActiveAccount()?.checklist || [];
+    body.innerHTML = '';
+
+    if (checklist.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist items defined to perform analysis.</p>';
+        return;
+    }
+
+    const compliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length === checklist.length);
+    const nonCompliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length !== checklist.length);
+
+    const createStatCard = (title, tradeSet, bgColor) => {
+        const totalPL = tradeSet.reduce((sum, t) => sum + t.profitLoss, 0);
+        const wins = tradeSet.filter(t => t.profitLoss > (appData.settings.breakevenThreshold || 2.0)).length;
+        const winRate = tradeSet.length > 0 ? (wins / tradeSet.length) * 100 : 0;
+        const plClass = totalPL >= 0 ? 'text-green-500' : 'text-red-500';
+
+        return `
+            <div class="${bgColor} p-4 rounded-lg border border-border-color">
+                <h3 class="font-bold text-lg text-text-primary">${title}</h3>
+                <p class="text-xs text-text-secondary mb-2">${tradeSet.length} Trades</p>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between"><span>Total P/L:</span><span class="font-semibold ${plClass}">$${totalPL.toFixed(2)}</span></div>
+                    <div class="flex justify-between"><span>Win Rate:</span><span class="font-semibold">${winRate.toFixed(1)}%</span></div>
+                </div>
+            </div>
+        `;
+    };
+
+    body.innerHTML = `
+        ${createStatCard('Compliant Trades', compliantTrades, 'bg-green-900/20')}
+        ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
+    `;
+};        const setupEventListeners = () => {
+            setupChecklistManager(); // Add this line
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
                 dom['buy-btn'].className = 'trade-type-btn bg-blue-500 text-white p-2 rounded-lg btn'; 
@@ -1907,7 +2037,8 @@ dom['analytics-page'].addEventListener('click', (e) => {
             renderChecklists();
             updateFilterDropdowns();
             populatePlaybookSelect();
-
+            renderChecklistOnForm();    
+        
             updateSummary(filteredTrades);
             updateAccountGrowth(allTrades);
             
@@ -1950,6 +2081,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
+             updateChecklistAnalysis(tradesForAnalytics);
             // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
         }
     }, 0);
@@ -2276,7 +2408,13 @@ const renderYearView = (allTrades, container) => {
                     { name: 'Revenge Trading', color: '#F43F5E' }
                 ],
                 goals: [],
-                playbook: []
+                playbook: [],
+                checklist: [ // Add this array
+        'Setup is in my Playbook',
+        'Risk/Reward is at least 2:1',
+        'Trading during my session',
+        'Not an impulsive entry'
+    ]
             };
             
             await saveData('accounts', newAccount);
@@ -2523,7 +2661,8 @@ const updateGenericBreakdownAnalysis = (trades, property, bodyElement, title) =>
             const winningTrades = rrTrades.filter(t => t.profitLoss > breakevenThreshold);
             const losingTrades = rrTrades.filter(t => t.profitLoss <= 0);
             const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
-            const totalLoss = losingTrades.reduce((acc, t) => acc + Math.abs(t.profitLoss), 0); // Corrected line
+            // Replace it with this line
+const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0));
             const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
             const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
             const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
