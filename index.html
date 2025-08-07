@@ -236,44 +236,50 @@
             <!-- Journal Page -->
             <div id="journal-page">
                 <!-- Performance Dashboard -->
-                <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-                     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Total P/L</p>
-                            <p id="total-pl" class="text-2xl font-bold text-text-primary">$0.00</p>
-                        </div>
-                    </div>
-                     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Win Rate</p>
-                            <p id="win-rate" class="text-2xl font-bold text-text-primary">0%</p>
-                        </div>
-                    </div>
-                     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Realized R:R</p>
-                            <p id="realized-rr" class="text-2xl font-bold text-text-primary">1 : 0.00</p>
-                        </div>
-                    </div>
-                    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 200ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Avg. Profit</p>
-                            <p id="avg-profit" class="text-2xl font-bold text-green-500">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 250ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Avg. Loss</p>
-                            <p id="avg-loss" class="text-2xl font-bold text-red-500">$0.00</p>
-                        </div>
-                    </div>
-                    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 300ms;">
-                        <div>
-                            <p class="text-sm font-medium text-text-secondary">Total Trades</p>
-                            <p id="total-trades" class="text-2xl font-bold text-text-primary">0</p>
-                        </div>
-                    </div>
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up col-span-2 lg:col-span-1">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-secondary">Total P/L</p>
+                <p id="total-pl" class="text-2xl font-bold text-text-primary">$0.00</p>
+            </div>
+            <div id="pl-sparkline" class="w-24 h-10">
                 </div>
+        </div>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-secondary">Win Rate</p>
+                <p id="win-rate" class="text-2xl font-bold text-text-primary">0%</p>
+            </div>
+            <div id="winrate-donut" class="w-10 h-10">
+                </div>
+        </div>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-secondary">Realized R:R</p>
+                <p id="realized-rr" class="text-2xl font-bold text-text-primary">1 : 0.00</p>
+            </div>
+            <div id="rr-barchart" class="w-12 h-10">
+                </div>
+        </div>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <p class="text-sm font-medium text-text-secondary">Avg. Profit</p>
+        <p id="avg-profit" class="text-2xl font-bold text-green-500">$0.00</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <p class="text-sm font-medium text-text-secondary">Avg. Loss</p>
+        <p id="avg-loss" class="text-2xl font-bold text-red-500">$0.00</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <p class="text-sm font-medium text-text-secondary">Total Trades</p>
+        <p id="total-trades" class="text-2xl font-bold text-text-primary">0</p>
+    </div>
+</div>
                 
                  <!-- Account Overview -->
                 <div class="mb-6 card p-6 rounded-xl shadow-sm animate-fade-in-up">
@@ -916,6 +922,9 @@
 'drilldown-status-bar',
 'drilldown-filter-name',
 'clear-drilldown-btn',
+'pl-sparkline',
+'winrate-donut',
+'rr-barchart',
 ];
         
         const dom = {};
@@ -1251,7 +1260,84 @@
             }
 
             return { profit, movement };
-        };
+        }; 
+        // ADD THESE THREE NEW FUNCTIONS TO YOUR SCRIPT
+
+const renderTotalPLSparkline = (trades) => {
+    const container = dom['pl-sparkline'];
+    const closedTrades = trades.filter(t => t.profitLoss !== null).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).slice(-20);
+    if (closedTrades.length < 2) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let cumulativePl = [0];
+    closedTrades.forEach(t => cumulativePl.push(cumulativePl[cumulativePl.length - 1] + t.profitLoss));
+    
+    const max = Math.max(...cumulativePl);
+    const min = Math.min(...cumulativePl);
+    const range = max - min || 1;
+    
+    const width = 96;
+    const height = 40;
+    const points = cumulativePl.map((p, i) => {
+        const x = (i / (cumulativePl.length - 1)) * width;
+        const y = height - ((p - min) / range) * height;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(' ');
+
+    const lastPoint = cumulativePl[cumulativePl.length - 1];
+    const firstPoint = cumulativePl[0];
+    const color = lastPoint >= firstPoint ? '#22c55e' : '#ef4444';
+
+    container.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" class="w-full h-full" preserveAspectRatio="none">
+            <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+};
+
+const renderWinRateDonut = (winRate) => {
+    const container = dom['winrate-donut'];
+    const percentage = winRate || 0;
+    const circumference = 2 * Math.PI * 15.9155; // 2 * PI * r
+    const strokeOffset = circumference - (percentage / 100) * circumference;
+    const color = percentage >= 50 ? 'text-green-500' : 'text-red-500';
+
+    container.innerHTML = `
+        <svg viewBox="0 0 36 36" class="w-full h-full">
+            <circle class="text-gray-700" stroke-width="4" stroke="currentColor" fill="transparent" r="15.9155" cx="18" cy="18"></circle>
+            <circle class="${color}"
+                stroke-width="4"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${strokeOffset}"
+                stroke-linecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="15.9155" cx="18" cy="18"
+                transform="rotate(-90 18 18)"
+            ></circle>
+        </svg>
+    `;
+};
+
+const renderRRBarChart = (avgWin, avgLoss) => {
+    const container = dom['rr-barchart'];
+    if (avgWin <= 0 || avgLoss <= 0) {
+        container.innerHTML = '';
+        return;
+    }
+    const maxVal = Math.max(avgWin, avgLoss);
+    const winHeight = (avgWin / maxVal) * 100;
+    const lossHeight = (avgLoss / maxVal) * 100;
+
+    container.innerHTML = `
+        <svg viewBox="0 0 48 40" class="w-full h-full">
+            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="#22c55e" rx="2"></rect>
+            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="#ef4444" rx="2"></rect>
+        </svg>
+    `;
+};
         const updateTradeDurationPerformance = (allTrades) => {
     const body = dom['trade-duration-performance-body'];
     body.innerHTML = '';
@@ -1854,32 +1940,42 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             });
         };
         
-        const updateSummary = (allTrades) => {
-             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-             const totalTradesEl = dom['total-trades'];
-             totalTradesEl.textContent = allTrades.length;
-             const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-             const totalPL = closedTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
-             const winningTrades = closedTrades.filter(trade => trade.profitLoss > breakevenThreshold);
-             const losingTrades = closedTrades.filter(trade => trade.profitLoss <= 0);
-             const totalProfit = winningTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
-             const totalLoss = losingTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
-             const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
-             const avgLoss = losingTrades.length > 0 ? Math.abs(totalLoss / losingTrades.length) : 0;
-             const countableTrades = winningTrades.length + losingTrades.length;
-             const winRate = countableTrades > 0 ? (winningTrades.length / countableTrades) * 100 : 0;
-             const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
+      // REPLACE your old updateSummary function with this one
+const updateSummary = (allTrades) => {
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    dom['total-trades'].textContent = allTrades.length;
+    
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+    const totalPL = closedTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
+    const winningTrades = closedTrades.filter(trade => trade.profitLoss > breakevenThreshold);
+    const losingTrades = closedTrades.filter(trade => trade.profitLoss <= 0);
+    
+    const totalProfit = winningTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
+    const totalLoss = losingTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
+    
+    const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
+    const avgLoss = losingTrades.length > 0 ? Math.abs(totalLoss / losingTrades.length) : 0;
+    
+    const countableTrades = winningTrades.length + losingTrades.length;
+    const winRate = countableTrades > 0 ? (winningTrades.length / countableTrades) * 100 : 0;
+    const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
 
-             const totalPlEl = dom['total-pl'];
-             totalPlEl.textContent = `$${totalPL.toFixed(2)}`;
-             totalPlEl.className = `text-2xl font-bold ${totalPL >= 0 ? 'text-green-500' : 'text-red-500'}`;
-             dom['win-rate'].textContent = `${winRate.toFixed(1)}%`;
-             const realizedRrEl = dom['realized-rr'];
-             realizedRrEl.textContent = `1 : ${realizedRR.toFixed(2)}`;
-             realizedRrEl.className = `text-2xl font-bold ${realizedRR >= 1 ? 'text-green-500' : 'text-red-500'}`;
-             dom['avg-profit'].textContent = `$${avgProfit.toFixed(2)}`;
-             dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
-        };
+    // --- Update Text Content ---
+    const totalPlEl = dom['total-pl'];
+    totalPlEl.textContent = `$${totalPL.toFixed(2)}`;
+    totalPlEl.className = `text-2xl font-bold ${totalPL >= 0 ? 'text-green-500' : 'text-red-500'}`;
+    dom['win-rate'].textContent = `${winRate.toFixed(1)}%`;
+    const realizedRrEl = dom['realized-rr'];
+    realizedRrEl.textContent = `1 : ${realizedRR.toFixed(2)}`;
+    realizedRrEl.className = `text-2xl font-bold ${realizedRR >= 1 ? 'text-green-500' : 'text-red-500'}`;
+    dom['avg-profit'].textContent = `$${avgProfit.toFixed(2)}`;
+    dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
+
+    // --- NEW: Call the SVG rendering functions ---
+    renderTotalPLSparkline(allTrades);
+    renderWinRateDonut(winRate);
+    renderRRBarChart(avgProfit, avgLoss);
+};
         
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
 const updateTradeCalendar = () => {
