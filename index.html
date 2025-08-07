@@ -26,6 +26,61 @@
             --border-color: #3a3d4a;
             --accent-color: #4f46e5; /* Default accent color */
         }
+        /* ADD THIS CSS FOR LIGHT MODE */
+        .light {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        /* Style for the toggle switch */
+        .theme-switch-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-switch {
+            display: inline-block;
+            height: 24px;
+            position: relative;
+            width: 44px;
+        }
+        .theme-switch input {
+            display:none;
+        }
+        .slider {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            background-color: var(--text-secondary);
+            bottom: 3px;
+            content: "";
+            height: 16px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 16px;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: white;
+        }
         
         html {
              color-scheme: dark;
@@ -202,7 +257,23 @@
                 <span class="sidebar-text ml-4 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">Analytics</span>
             </a>
         </nav>
-        <div class="mt-auto space-y-3">
+    <div class="mt-auto space-y-3">
+
+            <div class="sidebar-link flex items-center p-3 w-full rounded-lg justify-between">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 flex-shrink-0 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                    </svg>
+                    <span class="sidebar-text ml-4 font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">Theme</span>
+                </div>
+                <div class="theme-switch-wrapper sidebar-text opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <label class="theme-switch" for="theme-toggle">
+                        <input type="checkbox" id="theme-toggle" />
+                        <div class="slider round"></div>
+                    </label>
+                </div>
+            </div>
+
             <button id="settings-menu-btn" class="sidebar-link flex items-center p-3 w-full rounded-lg text-text-secondary hover:bg-tertiary transition-colors duration-200">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
@@ -928,7 +999,7 @@
 'clear-drilldown-btn',
 'pl-sparkline',
 'winrate-donut',
-'rr-barchart', 'avg-win-loss-bars', 
+'rr-barchart', 'avg-win-loss-bars', 'theme-toggle',
 ];
         
         const dom = {};
@@ -1046,6 +1117,23 @@
                 tooltipText: '#f9fafb'
             };
         };
+       // Replace the empty function with this one
+const setTheme = (theme) => {
+    const html = document.documentElement;
+    if (theme === 'light') {
+        html.classList.add('light');
+        html.style.colorScheme = 'light';
+        if (dom['theme-toggle']) dom['theme-toggle'].checked = true;
+    } else {
+        html.classList.remove('light');
+        html.style.colorScheme = 'dark';
+        if (dom['theme-toggle']) dom['theme-toggle'].checked = false;
+    }
+    // Redraw charts to match the new theme colors
+    if (typeof refreshUI === 'function') {
+        refreshUI();
+    }
+};
 
         // --- Data Management ---
         const loadAppData = async () => {
@@ -1087,10 +1175,13 @@
                     id: 'appSettings',
                     accentColor: '#4f46e5',
                     breakevenThreshold: 2.0,
-                    calendarSummaryMode: 'monthly'
+                    calendarSummaryMode: 'monthly',
+                    theme: 'dark', 
                 };
                 await saveData('settings', settings);
             }
+             if (!settings.theme) 
+                 settings.theme = 'dark';
             appData.settings = settings;
             
             // Load accounts
@@ -1135,6 +1226,7 @@
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
+    setTheme(appData.settings.theme);
         };
 
         const saveAppData = () => {
@@ -1714,6 +1806,12 @@ const clearDrillDown = () => {
                 saveAppData();
                 refreshUI();
             });
+              dom['theme-toggle'].addEventListener('change', (e) => {
+        const newTheme = e.target.checked ? 'light' : 'dark';
+        appData.settings.theme = newTheme;
+        setTheme(newTheme);
+        saveAppData(); // Save the new setting
+    });
           // New Calendar Event Listeners
             dom['close-day-modal-btn'].addEventListener('click', () => dom['calendar-day-modal'].classList.remove('open'));
 
