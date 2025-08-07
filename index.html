@@ -308,6 +308,15 @@
             <div id="journal-page">
                 <!-- Performance Dashboard -->
                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up col-span-2 lg:col-span-1">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm font-medium text-text-secondary">Prolific Score</p>
+            <p id="prolific-score" class="text-2xl font-bold text-text-primary">0</p>
+        </div>
+        <div id="prolific-score-gauge" class="w-16 h-16"></div>
+    </div>
+</div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
         <div class="flex items-center justify-between">
             <div>
@@ -1028,7 +1037,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body',
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge'
 ];
         
         const dom = {};
@@ -1387,7 +1396,40 @@ const setTheme = (theme) => {
             return { profit, movement };
         }; 
         // ADD THESE THREE NEW FUNCTIONS TO YOUR SCRIPT
+const renderProlificScoreGauge = (score) => {
+    const container = dom['prolific-score-gauge'];
+    const percentage = score || 0;
+    const circumference = 2 * Math.PI * 28; // r = 28
+    const strokeOffset = circumference - (percentage / 100) * circumference;
 
+    let colorClass = 'text-red-500';
+    if (percentage >= 75) {
+        colorClass = 'text-green-500';
+    } else if (percentage >= 50) {
+        colorClass = 'text-yellow-500';
+    } else if (percentage >= 25) {
+        colorClass = 'text-orange-500';
+    }
+
+    container.innerHTML = `
+        <svg viewBox="0 0 64 64" class="w-full h-full transform -rotate-90">
+            <circle class="text-gray-700" stroke-width="8" stroke="currentColor" fill="transparent" r="28" cx="32" cy="32"></circle>
+            <circle class="${colorClass}"
+                stroke-width="8"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${strokeOffset}"
+                stroke-linecap="round"
+                stroke="currentColor"
+                fill="transparent"
+                r="28" cx="32" cy="32"
+                style="transition: stroke-dashoffset 0.5s ease-out;"
+            ></circle>
+            <text class="text-lg font-bold ${colorClass}" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" transform="rotate(90 32 32)">
+                ${Math.round(percentage)}
+            </text>
+        </svg>
+    `;
+};
 const renderTotalPLSparkline = (trades) => {
     const container = dom['pl-sparkline'];
     const closedTrades = trades.filter(t => t.profitLoss !== null).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).slice(-20);
@@ -2190,25 +2232,31 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             });
         };
         
-      // REPLACE your old updateSummary function with this one
-const updateSummary = (allTrades) => {
+     const updateSummary = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     dom['total-trades'].textContent = allTrades.length;
-    
+
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
     const totalPL = closedTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
     const winningTrades = closedTrades.filter(trade => trade.profitLoss > breakevenThreshold);
     const losingTrades = closedTrades.filter(trade => trade.profitLoss <= 0);
-    
+
     const totalProfit = winningTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
     const totalLoss = losingTrades.reduce((acc, trade) => acc + trade.profitLoss, 0);
-    
+
     const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
     const avgLoss = losingTrades.length > 0 ? Math.abs(totalLoss / losingTrades.length) : 0;
-    
+
     const countableTrades = winningTrades.length + losingTrades.length;
     const winRate = countableTrades > 0 ? (winningTrades.length / countableTrades) * 100 : 0;
     const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
+    const profitFactor = Math.abs(totalLoss) > 0 ? totalProfit / Math.abs(totalLoss) : 0;
+
+    // Prolific Score Calculation
+    const winRateComponent = winRate;
+    const profitFactorComponent = Math.min(profitFactor / 5, 1) * 100; // Cap at 5 for scoring
+    const rrComponent = Math.min(realizedRR / 3, 1) * 100; // Cap at 3 for scoring
+    const prolificScore = (winRateComponent * 0.4) + (profitFactorComponent * 0.4) + (rrComponent * 0.2);
 
     // --- Update Text Content ---
     const totalPlEl = dom['total-pl'];
@@ -2220,12 +2268,14 @@ const updateSummary = (allTrades) => {
     realizedRrEl.className = `text-2xl font-bold ${realizedRR >= 1 ? 'text-green-500' : 'text-red-500'}`;
     dom['avg-profit'].textContent = `$${avgProfit.toFixed(2)}`;
     dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
+    dom['prolific-score'].textContent = Math.round(prolificScore);
 
-    // --- NEW: Call the SVG rendering functions ---
+    // --- Call the SVG rendering functions ---
     renderTotalPLSparkline(allTrades);
     renderWinRateDonut(winRate);
     renderRRBarChart(avgProfit, avgLoss);
-     renderAvgWinLossBars(avgProfit, avgLoss); 
+    renderAvgWinLossBars(avgProfit, avgLoss);
+    renderProlificScoreGauge(prolificScore);
 };
         
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
