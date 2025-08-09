@@ -2327,6 +2327,9 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
         
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
 const updateTradeCalendar = () => {
+    const isLightMode = document.documentElement.classList.contains('light');
+    const winColor = isLightMode ? 'text-green-600' : 'text-green-300';
+    const lossColor = isLightMode ? 'text-red-600' : 'text-red-300';
     const allTrades = getActiveTrades().filter(t => t.profitLoss !== null);
     const calendarBody = dom['calendar-body'];
     calendarBody.innerHTML = '';
@@ -2339,17 +2342,17 @@ const updateTradeCalendar = () => {
         btn.classList.toggle('text-text-secondary', !isSelected);
     });
 
-    // --- VIEW-SPECIFIC RENDERING ---
+   // --- VIEW-SPECIFIC RENDERING ---
     if (calendarViewMode === 'day') {
-        renderDayView(allTrades, calendarBody);
+        renderDayView(allTrades, calendarBody, winColor, lossColor);
     } else if (calendarViewMode === 'month') {
-        renderMonthView(allTrades, calendarBody);
+        renderMonthView(allTrades, calendarBody, winColor, lossColor);
     } else if (calendarViewMode === 'year') {
-        renderYearView(allTrades, calendarBody);
+        renderYearView(allTrades, calendarBody, winColor, lossColor);
     }
 };
 
-const renderDayView = (allTrades, container) => {
+const renderDayView = (allTrades, container, winColor, lossColor) => {
     dom['calendar-title'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     dom['calendar-day-headers'].style.display = 'grid';
     container.className = 'grid grid-cols-7 gap-2';
@@ -2378,13 +2381,13 @@ const renderDayView = (allTrades, container) => {
 
         const dayDiv = document.createElement('div');
         dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
+        dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
         dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
         container.appendChild(dayDiv);
     }
 };
 
-const renderMonthView = (allTrades, container) => {
+const renderMonthView = (allTrades, container, winColor, lossColor) => {
     const year = calendarDate.getFullYear();
     dom['calendar-title'].textContent = year;
     dom['calendar-day-headers'].style.display = 'none';
@@ -2408,7 +2411,7 @@ const renderMonthView = (allTrades, container) => {
 
         const monthDiv = document.createElement('div');
         monthDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        monthDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${monthName}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
+       monthDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${monthName}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
         monthDiv.onclick = () => {
             calendarDate.setMonth(month);
             calendarViewMode = 'day';
@@ -2418,7 +2421,7 @@ const renderMonthView = (allTrades, container) => {
     }
 };
 
-const renderYearView = (allTrades, container) => {
+const renderYearView = (allTrades, container, winColor, lossColor) => {
     const startYear = Math.floor(calendarDate.getFullYear() / 10) * 10;
     dom['calendar-title'].textContent = `${startYear} - ${startYear + 9}`;
     dom['calendar-day-headers'].style.display = 'none';
@@ -2439,7 +2442,7 @@ const renderYearView = (allTrades, container) => {
 
         const yearDiv = document.createElement('div');
         yearDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        yearDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${year}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? 'text-green-300' : (pl < 0 ? 'text-red-300' : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
+        yearDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${year}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
         yearDiv.onclick = () => {
             calendarDate.setFullYear(year);
             calendarViewMode = 'month';
