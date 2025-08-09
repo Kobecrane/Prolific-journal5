@@ -26,6 +26,10 @@
             --text-secondary: #a0a0a0;
             --border-color: #3a3d4a;
             --accent-color: #4f46e5; /* Default accent color */
+            --reversal-card-bg: rgba(234, 88, 12, 0.1); /* orange-600 with 10% opacity */
+            --reversal-card-border: rgba(234, 88, 12, 0.2);
+            --reversal-card-header: #fb923c; /* orange-400 */
+            --reversal-card-text: #fdba74; /* orange-300 */
         }
         /* ADD THIS CSS FOR LIGHT MODE */
         .light {
@@ -35,8 +39,26 @@
             --text-primary: #111827;
             --text-secondary: #6b7280;
             --border-color: #e5e7eb;
+            --reversal-card-bg: rgba(234, 88, 12, 0.1);
+            --reversal-card-border: rgba(234, 88, 12, 0.3);
+            --reversal-card-header: #c2410c; /* orange-700 */
+            --reversal-card-text: #9a3412; /* orange-800 */
         }
-
+         .reversal-card {
+            background-color: var(--reversal-card-bg);
+            border: 1px solid var(--reversal-card-border);
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .reversal-card-header {
+            color: var(--reversal-card-header);
+            font-weight: 700;
+            font-size: 1.125rem; /* text-lg */
+        }
+        .reversal-card-stat-value {
+            color: var(--reversal-card-text);
+            font-weight: 600;
+        }
         /* Style for the toggle switch */
         .theme-switch-wrapper {
             display: flex;
@@ -524,7 +546,7 @@
                                 <div id="trade-comments-editor" contenteditable="true" class="form-input mt-1 w-full p-2 rounded-lg max-h-[400px] overflow-y-auto" data-placeholder="Add notes, paste or drag images here..."></div>
                             </div>
                             <button id="log-trade-btn" class="w-full btn btn-primary font-bold py-3 px-4 rounded-lg shadow-md text-white">Log Trade</button>
-                            <button id="cancel-edit-btn" class="hidden w-full bg-tertiary text-white font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
+                            <button id="cancel-edit-btn" class="hidden w-full bg-tertiary text-text-primary font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
                         </div>
                     </div>
                     <div class="lg:col-span-2 card p-6 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
@@ -592,7 +614,7 @@
                                 </select>
                             </div>
                             <button type="button" id="add-goal-btn" class="w-full btn btn-primary font-bold py-3 px-4 rounded-lg shadow-md text-white">Add Goal</button>
-                            <button type="button" id="cancel-goal-edit-btn" class="hidden w-full bg-tertiary text-white font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
+                           <button type="button" id="cancel-goal-edit-btn" class="hidden w-full bg-tertiary text-text-primary font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
                         </form>
                     </div>
                      <div class="lg:col-span-2 card p-6 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
@@ -667,7 +689,7 @@
                                  <input type="file" id="play-after-file" class="hidden" accept="image/*">
                             </div>
                             <button id="save-play-btn" class="w-full btn btn-primary font-bold py-3 px-4 rounded-lg shadow-md text-white">Save Play</button>
-                            <button id="cancel-play-edit-btn" class="hidden w-full bg-tertiary text-white font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
+                           <button id="cancel-play-edit-btn" class="hidden w-full bg-tertiary text-text-primary font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
                         </div>
                     </div>
                      <div class="lg:col-span-2 card p-6 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
@@ -961,7 +983,7 @@
                 <input type="text" id="custom-modal-input" class="form-input w-full p-2 rounded-lg">
             </div>
             <div class="flex justify-end gap-3">
-                <button id="custom-modal-cancel-btn" class="btn bg-tertiary text-white font-semibold py-2 px-4 rounded-lg hover:bg-border-color">Cancel</button>
+                <button id="custom-modal-cancel-btn" class="btn bg-tertiary text-text-primary font-semibold py-2 px-4 rounded-lg hover:bg-border-color">Cancel</button>
                 <button id="custom-modal-confirm-btn" class="btn bg-accent-color text-white font-semibold py-2 px-4 rounded-lg">Confirm</button>
             </div>
         </div>
@@ -1149,8 +1171,18 @@
         });
         
         const getChartColors = () => {
+            const isLightMode = document.documentElement.classList.contains('light');
+            if (isLightMode) {
+                return {
+                    textColor: '#374151', // text-gray-700
+                    gridColor: 'rgba(0, 0, 0, 0.05)',
+                    tooltipBg: '#ffffff',
+                    tooltipText: '#111827'
+                };
+            }
+            // Return default dark mode colors
             return {
-                textColor: '#d1d5db',
+                textColor: '#d1d5db', // text-gray-300
                 gridColor: 'rgba(255, 255, 255, 0.1)',
                 tooltipBg: '#1f2937',
                 tooltipText: '#f9fafb'
@@ -2845,14 +2877,14 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 const topAsset = findTopItem(assetFreq);
                 const avgHoldTime = totalHoldTime / trades.length;
 
-                return `<div class="bg-orange-900/20 p-4 rounded-lg border border-orange-800/30">
-                            <h3 class="font-bold text-lg text-orange-300">${periodName} (${trades.length} Reversals)</h3>
+                return `<div class="reversal-card">
+                            <h3 class="reversal-card-header">${periodName} (${trades.length} Reversals)</h3>
                             <div class="mt-2 space-y-2 text-sm">
-                                <div class="flex justify-between"><span class="text-text-secondary">Profit Slipped:</span><span class="font-semibold text-orange-400">$${totalPotentialProfit.toFixed(2)}</span></div>
-                                <div class="flex justify-between"><span class="text-text-secondary">Avg. Hold Time:</span><span class="font-semibold text-orange-400">${formatDuration(avgHoldTime)}</span></div>
-                                <hr class="my-1 border-orange-800/30">
+                                <div class="flex justify-between"><span class="text-text-secondary">Profit Slipped:</span><span class="reversal-card-stat-value">$${totalPotentialProfit.toFixed(2)}</span></div>
+                                <div class="flex justify-between"><span class="text-text-secondary">Avg. Hold Time:</span><span class="reversal-card-stat-value">${formatDuration(avgHoldTime)}</span></div>
+                                <hr class="my-1 border-border-color">
                                 <div class="flex justify-between"><span class="text-text-secondary">Top Reversed Asset:</span><span class="font-semibold text-text-primary">${topAsset}</span></div>
-                                <div class="flex justify-between"><span class="text-text-secondary">Top Associated Tag:</span><span class="font-semibold text-purple-400">${topTag}</span></div>
+                                <div class="flex justify-between"><span class="text-text-secondary">Top Associated Tag:</span><span class="font-semibold" style="color: var(--accent-color);">${topTag}</span></div>
                             </div>
                         </div>`;
             };
