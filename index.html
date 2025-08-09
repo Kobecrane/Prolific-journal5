@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -1174,7 +1175,7 @@ const setTheme = (theme) => {
 };
 
         // --- Data Management ---
-        const loadAppData = async () => {
+       const loadAppData = async () => {
             await initDB();
             
             // One-time migration from localStorage
@@ -1250,6 +1251,19 @@ const setTheme = (theme) => {
                     acc[account.accountName] = account;
                     return acc;
                 }, {});
+
+                // *** THIS IS THE CORRECTED BLOCK ***
+                Object.values(appData.accounts).forEach(account => {
+                    if (!account.checklist) {
+                        console.log(`Adding default checklist to account: ${account.accountName}`);
+                        account.checklist = [
+                            'Setup is in my Playbook',
+                            'Risk/Reward is at least 2:1',
+                            'Trading during my session',
+                            'Not an impulsive entry'
+                        ];
+                    }
+                }); // <-- THIS CLOSING TAG WAS ALSO MISSING
             }
 
             // Set active account
@@ -1264,7 +1278,7 @@ const setTheme = (theme) => {
             applyAccentColor(appData.settings.accentColor);
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
-    setTheme(appData.settings.theme);
+            setTheme(appData.settings.theme);
         };
 
         const saveAppData = () => {
@@ -1638,6 +1652,7 @@ const renderRRBarChart = (avgWin, avgLoss) => {
             dom['trade-comments-editor'].innerHTML = tradeToEdit.notesHTML || '';
             dom['playbook-select'].value = tradeToEdit.playId || '';
             if (tradeToEdit.tradeType === 'Buy') dom['buy-btn'].click(); else dom['sell-btn'].click();
+            console.log('Editing trade, checklist data:', tradeToEdit.checklistMet);   
             renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
             renderChecklistOnForm(tradeToEdit.checklistMet || []);
             updateRealtimePL();
@@ -1658,8 +1673,8 @@ const renderRRBarChart = (avgWin, avgLoss) => {
 
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
              const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
-              const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value); // Add this
-
+              const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+ console.log('Items checked on save:', checkedChecklistItems); 
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
              const editingId = dom['editing-trade-id'].value;
@@ -2459,7 +2474,7 @@ const renderYearView = (allTrades, container) => {
                 ],
                 goals: [],
                 playbook: [],
-                checklist: [ // Add this array
+                checklist: [ 
         'Setup is in my Playbook',
         'Risk/Reward is at least 2:1',
         'Trading during my session',
@@ -2483,6 +2498,7 @@ const renderYearView = (allTrades, container) => {
             const newActiveAccount = Object.keys(appData.accounts)[0];
             appData.activeAccountName = newActiveAccount;
             localStorage.setItem('activeAccountName', newActiveAccount);
+            console.log('Active Account on Load:', getActiveAccount());
             
             populateAccountSwitcher();
             switchAccount(appData.activeAccountName);
