@@ -3900,14 +3900,16 @@ const riskData = riskTrades.map(trade => {
 
             new TradingView.widget({
                 "autosize": true,
-                "symbol": "DERIV:VOLATILITY_75_INDEX", // Default symbol
+                "symbol": "DERIV:VOLATILITY_75_INDEX",
                 "interval": "D",
                 "timezone": "Etc/UTC",
-                "theme": isLightMode ? "light" : "dark", // This makes it theme-aware
+                "theme": isLightMode ? "light" : "dark",
                 "style": "1",
                 "locale": "en",
-                "enable_publishing": false,
+                "enable_publishing": false, // You can set this back to false, it's not the cause
                 "allow_symbol_change": true,
+                "withdateranges": true,
+                "hide_side_toolbar": false,
                 "container_id": "tradingview-widget-container"
             });
         };
