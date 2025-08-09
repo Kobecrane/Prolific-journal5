@@ -322,6 +322,9 @@
                 <button id="manage-accounts-btn" title="Manage Accounts" class="btn p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary"><path d="M12.22 2h-4.44a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.38"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
+                <button id="manage-favorites-btn" title="Manage Favorites" class="btn p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors flex-shrink-0">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+</button>
             </div>
         </header>
 
@@ -999,7 +1002,15 @@
             <input type="text" id="new-checklist-item-name" placeholder="e.g., R:R is at least 2:1" class="flex-1 p-2 form-input rounded-lg">
             <button id="add-checklist-item-btn" class="bg-accent-color text-white font-semibold py-2 px-4 rounded-lg hover:bg-opacity-80">Add</button>
         </div>
-    </div>
+      <div id="favorites-modal" class="modal-overlay">
+    <div class="modal-content max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-text-primary">Manage Favorite Instruments</h2>
+            <button id="close-favorites-modal-btn" class="text-text-secondary hover:text-text-primary">&times;</button>
+        </div>
+        <div id="favorites-list" class="space-y-1 mb-4 max-h-80 overflow-y-auto">
+            </div>
+      </div>
 </div>
 
 
@@ -1060,7 +1071,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge'
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'manage-favorites-btn', 'favorites-modal', 'close-favorites-modal-btn', 'favorites-list'
 ];
         
         const dom = {};
@@ -1153,7 +1164,7 @@
             await loadAppData(); // Now async
             populateAccountSwitcher();
             loadAccountDataIntoUI();
-            populatePlaybookInstrumentsSelect();
+            populateInstrumentDropdowns();
             refreshUI();
             
             const observer = new IntersectionObserver((entries) => {
@@ -1295,8 +1306,10 @@ const setTheme = (theme) => {
                             'Not an impulsive entry'
                         ];
                     }
-                }); // <-- THIS CLOSING TAG WAS ALSO MISSING
-            }
+                    if (!account.favorites) {
+        account.favorites = [];
+               }
+});
 
             // Set active account
             const savedActiveAccount = localStorage.getItem('activeAccountName');
@@ -1368,11 +1381,50 @@ const setTheme = (theme) => {
             switcher.value = appData.activeAccountName;
         };
         
-        const populatePlaybookInstrumentsSelect = () => {
-            const tradeInstrumentSelector = dom['index-selector'];
-            const playbookInstrumentSelector = dom['play-instruments'];
-            playbookInstrumentSelector.innerHTML = tradeInstrumentSelector.innerHTML;
-        };
+       const populateInstrumentDropdowns = () => {
+    const activeAccount = getActiveAccount();
+    const favorites = activeAccount?.favorites || [];
+    const allInstruments = [];
+    const originalSelector = document.getElementById('index-selector'); // A stable source
+    
+    originalSelector.querySelectorAll('optgroup, option').forEach(node => {
+        if (node.tagName === 'OPTION') {
+            allInstruments.push({ value: node.value, text: node.textContent, group: node.parentElement.label });
+        }
+    });
+
+    const createOptionsHTML = (instruments) => {
+        const grouped = instruments.reduce((acc, inst) => {
+            (acc[inst.group] = acc[inst.group] || []).push(inst);
+            return acc;
+        }, {});
+
+        let html = '';
+        for (const groupName in grouped) {
+            html += `<optgroup label="${groupName}">`;
+            html += grouped[groupName].map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+            html += `</optgroup>`;
+        }
+        return html;
+    };
+
+    const favoriteInstruments = allInstruments.filter(inst => favorites.includes(inst.value));
+    const otherInstruments = allInstruments.filter(inst => !favorites.includes(inst.value));
+    
+    let finalHTML = '';
+    if (favoriteInstruments.length > 0) {
+        finalHTML += `<optgroup label="⭐ Favorites">`;
+        finalHTML += favoriteInstruments.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+        finalHTML += `</optgroup>`;
+    }
+
+    finalHTML += createOptionsHTML(otherInstruments);
+
+    // Update all relevant instrument dropdowns
+    dom['index-selector'].innerHTML = finalHTML;
+    dom['play-instruments'].innerHTML = finalHTML;
+    dom['filter-instrument'].innerHTML = '<option value="">All Instruments</option>' + finalHTML;
+};
 
         // --- UI Feedback (Toast, Loader, Custom Modal) ---
         const showToast = (message, type = 'info', duration = 3000) => {
@@ -1814,6 +1866,62 @@ const setupChecklistManager = () => {
         }
     });
 };
+const setupFavoritesManager = () => {
+    dom['manage-favorites-btn'].addEventListener('click', () => {
+        renderFavoritesList();
+        dom['favorites-modal'].classList.add('open');
+    });
+    dom['close-favorites-modal-btn'].addEventListener('click', () => {
+        dom['favorites-modal'].classList.remove('open');
+    });
+};
+
+const renderFavoritesList = () => {
+    const container = dom['favorites-list'];
+    container.innerHTML = '';
+    const activeAccount = getActiveAccount();
+    const favorites = activeAccount?.favorites || [];
+    
+    const allInstruments = Array.from(dom['index-selector'].options).map(opt => opt.value);
+
+    allInstruments.forEach(instrument => {
+        const isFavorite = favorites.includes(instrument);
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 bg-tertiary rounded-md text-sm';
+        div.innerHTML = `
+            <span class="font-semibold">${instrument}</span>
+            <button class="favorite-toggle-btn p-1" data-instrument="${instrument}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                     class="${isFavorite ? 'fill-yellow-500 text-yellow-500' : 'fill-none text-text-secondary hover:text-yellow-500'}">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </button>`;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.favorite-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const instrument = e.currentTarget.dataset.instrument;
+            toggleFavorite(instrument);
+        });
+    });
+};
+
+const toggleFavorite = (instrument) => {
+    const activeAccount = getActiveAccount();
+    const favorites = activeAccount.favorites;
+    const index = favorites.indexOf(instrument);
+
+    if (index > -1) {
+        favorites.splice(index, 1); // Remove from favorites
+    } else {
+        favorites.push(instrument); // Add to favorites
+    }
+    
+    saveAppData();
+    renderFavoritesList(); // Re-render the list in the modal
+    populateInstrumentDropdowns(); // Re-render the main dropdown
+};
 
 const renderChecklistList = () => {
     const container = dom['checklist-list'];
@@ -1891,7 +1999,8 @@ const updateChecklistAnalysis = (trades) => {
         ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
     `;
 };        const setupEventListeners = () => {
-            setupChecklistManager(); // Add this line
+            setupChecklistManager();
+            setupFavoritesManager(); // Add this line
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
                 dom['buy-btn'].className = 'trade-type-btn bg-blue-500 text-white p-2 rounded-lg btn'; 
@@ -2509,6 +2618,7 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                 ],
                 goals: [],
                 playbook: [],
+                favorites: [],
                 checklist: [ 
         'Setup is in my Playbook',
         'Risk/Reward is at least 2:1',
