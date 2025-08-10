@@ -130,7 +130,27 @@
         .sidebar-link.active svg {
             color: white !important;
         }
+        
+        .trade-insight-card {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+}
+.insight-grade {
+    font-size: 1.25rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+}
+.insight-grade.grade-a { background-color: #22c55e; color: white; }
+.insight-grade.grade-b { background-color: #84cc16; color: white; }
+.insight-grade.grade-c { background-color: #facc15; color: #422006; }
+.insight-grade.grade-d { background-color: #f97316; color: white; }
+.insight-grade.grade-f { background-color: #ef4444; color: white; }
 
+.insight-item svg {
+    flex-shrink: 0;
+    margin-top: 3px;
+}
         .card {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -574,7 +594,7 @@
                             </div>
                         </div>
                         <div id="filter-status" class="text-xs text-accent-color mb-2 hidden"></div>
-                       <div class="overflow-y-auto" style="max-height: 95vh;">
+                        <div class="overflow-y-auto" style="max-height: 85vh;">
                             <table class="w-full text-sm text-left">
                                 <thead class="text-xs text-text-secondary uppercase bg-bg-tertiary sticky top-0">
                                     <tr>
@@ -1465,6 +1485,88 @@ const setTheme = (theme) => {
 
             return { profit, movement };
         }; 
+const generateAdvancedInsights = (trade) => {
+    const insights = [];
+    if (trade.profitLoss === null) {
+        return { grade: 'N/A', insights: [{ type: 'neutral', text: 'This trade is still open. Insights will be generated once it is closed.' }] };
+    }
+
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const isWin = trade.profitLoss > breakevenThreshold;
+    const isLoss = trade.profitLoss <= 0;
+    const checklist = getActiveAccount()?.checklist || [];
+
+    // --- Data Point Calculations ---
+    const slRisk = trade.stopLoss ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName).profit) : 0;
+    const tpReward = trade.takeProfit ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.takeProfit, trade.indexName).profit) : 0;
+    const maeDrawdown = trade.maePrice ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName).profit) : 0;
+    const mfeProfit = trade.peakPrice ? calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit : 0;
+
+    // --- Insight Generation ---
+
+    // 1. Discipline: Checklist Adherence
+    if (checklist.length > 0) {
+        const adherence = (trade.checklistMet?.length || 0) / checklist.length;
+        if (adherence === 1) {
+            insights.push({ type: 'positive', text: `Excellent discipline: 100% of your pre-trade checklist was followed.` });
+        } else {
+            insights.push({ type: 'negative', text: `Discipline issue: Only ${Math.round(adherence * 100)}% of the pre-trade checklist was met. This trade did not meet all your rules.` });
+        }
+    }
+
+    // 2. Profit Taking: Reversals (MFE on Losers)
+    if (isLoss && mfeProfit > breakevenThreshold) {
+        const potentialRR = slRisk > 0 ? (mfeProfit / slRisk).toFixed(1) : 0;
+        insights.push({ type: 'negative', text: `This trade was in profit by $${mfeProfit.toFixed(2)} (a potential ${potentialRR}R gain) before reversing to a loss.` });
+    }
+
+    // 3. Profit Taking: Leaving Money on the Table (MFE on Winners)
+    if (isWin && tpReward > 0 && mfeProfit > tpReward) {
+        const extraGain = ((mfeProfit / tpReward) - 1) * 100;
+        if (extraGain > 25) { // Only show if significant
+            insights.push({ type: 'info', text: `This trade ran for an additional ${extraGain.toFixed(0)}% after hitting your planned Take Profit. You may be underestimating the potential of this setup.` });
+        }
+    }
+
+    // 4. Stop Loss Placement: SL too tight? (MAE on Winners)
+    if (isWin && slRisk > 0 && maeDrawdown > 0) {
+        const riskConsumed = (maeDrawdown / slRisk) * 100;
+        if (riskConsumed > 75) {
+            insights.push({ type: 'warning', text: `Your Stop Loss was nearly hit. The trade went into ${riskConsumed.toFixed(0)}% of its planned drawdown before becoming profitable.` });
+        } else {
+             insights.push({ type: 'positive', text: `Great SL placement. The trade only experienced ${riskConsumed.toFixed(0)}% of its planned drawdown.` });
+        }
+    }
+
+    // 5. Execution: Realized R vs Planned R
+    if (slRisk > 0) {
+        const realizedRR = Math.abs(trade.profitLoss) / slRisk;
+        if (isWin) {
+             insights.push({ type: 'info', text: `You realized a ${realizedRR.toFixed(1)}R gain from a planned risk of $${slRisk.toFixed(2)}.` });
+        } else if (trade.exitPrice !== trade.stopLoss) {
+             insights.push({ type: 'warning', text: `The trade was closed manually before hitting the planned Stop Loss of $${slRisk.toFixed(2)}.` });
+        }
+    }
+    
+    // --- Grade Calculation ---
+    let score = 100;
+    let grade = 'N/A';
+    if(insights.length > 0) {
+        insights.forEach(i => {
+            if (i.type === 'negative') score -= 35;
+            if (i.type === 'warning') score -= 15;
+        });
+        score = Math.max(0, score);
+        if (score >= 90) grade = 'A';
+        else if (score >= 80) grade = 'B';
+        else if (score >= 70) grade = 'C';
+        else if (score >= 60) grade = 'D';
+        else grade = 'F';
+    }
+
+
+    return { grade, insights };
+};
         // ADD THESE THREE NEW FUNCTIONS TO YOUR SCRIPT
 const renderProlificScoreGauge = (score) => {
     const container = dom['prolific-score-gauge'];
@@ -2271,7 +2373,41 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
                 
                 const detailsRow = document.createElement('tr');
                 detailsRow.className = 'details-row bg-bg-primary';
-                detailsRow.innerHTML = `<td colspan="5"><div class="details-content"><div class="rendered-notes prose dark:prose-invert max-w-none">${trade.notesHTML || '<p class="text-text-secondary">No notes or screenshots added.</p>'}</div></div></td>`;
+                // --- THIS IS THE REPLACEMENT CODE ---
+const { grade, insights } = generateAdvancedInsights(trade);
+
+const insightIconMap = {
+    positive: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>',
+    negative: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>',
+    warning: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>',
+    info: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>',
+    neutral: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 5.168A1 1 0 008 6v1a1 1 0 002 0V6a1 1 0 00-1-1h-.445zM10 14a1 1 0 100-2 1 1 0 000 2zM8 9a1 1 0 112 0v1a1 1 0 11-2 0V9z" clip-rule="evenodd" /></svg>'
+};
+
+const insightsHTML = insights.map(insight => `
+    <li class="flex items-start gap-2 text-sm text-text-secondary">
+        ${insightIconMap[insight.type] || insightIconMap.neutral}
+        <span>${insight.text}</span>
+    </li>
+`).join('');
+
+detailsRow.innerHTML = `
+<td colspan="5">
+    <div class="details-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="rendered-notes prose dark:prose-invert max-w-none">${trade.notesHTML || '<p class="text-text-secondary">No notes or screenshots added.</p>'}</div>
+            <div class="trade-insight-card p-4 rounded-lg">
+                <h4 class="font-bold text-base text-text-primary mb-3 flex items-center justify-between">
+                    <span>Trade Management Review</span>
+                    ${grade !== 'N/A' ? `<span class="insight-grade grade-${grade.toLowerCase()}">${grade}</span>` : ''}
+                </h4>
+                <ul class="space-y-2.5 list-none p-0">
+                    ${insightsHTML}
+                </ul>
+            </div>
+        </div>
+    </div>
+</td>`;
                 
                 fragment.appendChild(row);
                 fragment.appendChild(detailsRow);
