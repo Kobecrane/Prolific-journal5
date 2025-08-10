@@ -31,9 +31,6 @@
             --reversal-card-border: rgba(234, 88, 12, 0.2);
             --reversal-card-header: #fb923c; /* orange-400 */
             --reversal-card-text: #fdba74; /* orange-300 */
-            --win-color: #22c55e; /* green-500 */
-            --loss-color: #ef4444; /* red-500 */
-            --be-color: #3b82f6; /* blue-500 */
         }
         /* ADD THIS CSS FOR LIGHT MODE */
         .light {
@@ -48,9 +45,6 @@
             --reversal-card-border: rgba(234, 88, 12, 0.3);
             --reversal-card-header: #c2410c; /* orange-700 */
             --reversal-card-text: #9a3412; /* orange-800 */
-            --win-color: #16a34a; /* green-600 */
-            --loss-color: #dc2626; /* red-600 */
-            --be-color: #2563eb; /* blue-600 */
         }
          .reversal-card {
             background-color: var(--reversal-card-bg);
@@ -1234,6 +1228,7 @@ const setTheme = (theme) => {
         initializeTradingViewWidget();
     }
 };
+
         // --- Data Management ---
        const loadAppData = async () => {
             await initDB();
@@ -1791,12 +1786,14 @@ const renderRRBarChart = (avgWin, avgLoss) => {
 
             const plText = `P/L: $${profit.toFixed(2)}`;
             if (profit > 0) {
-    display.className = `p-2 text-center rounded-lg h-10 transition-all font-semibold ${isLightMode ? 'bg-green-100 text-green-700' : 'bg-green-900/50 text-green-400'}`;
-} else if (profit < 0) {
-    display.className = `p-2 text-center rounded-lg h-10 transition-all font-semibold ${isLightMode ? 'bg-red-100 text-red-700' : 'bg-red-900/50 text-red-400'}`;
-} else {
-    display.className = `p-2 text-center rounded-lg h-10 transition-all font-semibold ${isLightMode ? 'bg-gray-200 text-gray-800' : 'bg-gray-700'}`;
-}
+                display.className = 'p-2 text-center rounded-lg h-10 transition-all bg-green-900/50 text-green-400 font-semibold';
+            } else if (profit < 0) {
+                display.className = 'p-2 text-center rounded-lg h-10 transition-all bg-red-900/50 text-red-400 font-semibold';
+            } else {
+                display.className = 'p-2 text-center rounded-lg h-10 transition-all bg-gray-700 font-semibold';
+            }
+            display.innerHTML = plText;
+        };
 
         // --- Event Listeners Setup ---
         const applyDrillDown = (filterType, filterValue) => {
@@ -2224,7 +2221,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             const fragment = document.createDocumentFragment();
             tradesToRender.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(trade => {
                 const row = document.createElement('tr');
-                row.className = `border-b border-border-color ${rowBgClass}`;
+                row.className = 'border-b border-border-color';
                 
                 const isClosed = trade.profitLoss !== null;
                 let plText, plClass;
@@ -2233,16 +2230,8 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
                 else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
                 else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
                 
-               const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
-                
-                // Theme-aware classes
-                const isLightMode = document.documentElement.classList.contains('light');
-                const typeClass = trade.tradeType === 'Buy' 
-                    ? (isLightMode ? 'bg-blue-100 text-blue-700' : 'bg-blue-900/50 text-blue-300') 
-                    : (isLightMode ? 'bg-red-100 text-red-700' : 'bg-red-900/50 text-red-300');
-                
-                const rowBgClass = isLightMode ? 'even:bg-gray-50' : 'even:bg-bg-tertiary/50';
-
+                const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
+                const typeClass = trade.tradeType === 'Buy' ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300';
                 const tradeDate = new Date(trade.timestamp).toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'medium', timeStyle: 'short' });
                 
                 const allTags = getActiveAccount().tags || [];
@@ -2314,7 +2303,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             });
         };
         
-    const updateSummary = (allTrades) => {
+     const updateSummary = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     dom['total-trades'].textContent = allTrades.length;
 
@@ -2334,28 +2323,25 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
     const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
     const profitFactor = Math.abs(totalLoss) > 0 ? totalProfit / Math.abs(totalLoss) : 0;
 
+    // Prolific Score Calculation
     const winRateComponent = winRate;
-    const profitFactorComponent = Math.min(profitFactor / 5, 1) * 100;
-    const rrComponent = Math.min(realizedRR / 3, 1) * 100;
+    const profitFactorComponent = Math.min(profitFactor / 5, 1) * 100; // Cap at 5 for scoring
+    const rrComponent = Math.min(realizedRR / 3, 1) * 100; // Cap at 3 for scoring
     const prolificScore = (winRateComponent * 0.4) + (profitFactorComponent * 0.4) + (rrComponent * 0.2);
 
+    // --- Update Text Content ---
     const totalPlEl = dom['total-pl'];
     totalPlEl.textContent = `$${totalPL.toFixed(2)}`;
-    totalPlEl.style.color = totalPL >= 0 ? 'var(--win-color)' : 'var(--loss-color)';
-
+    totalPlEl.className = `text-2xl font-bold ${totalPL >= 0 ? 'text-green-500' : 'text-red-500'}`;
     dom['win-rate'].textContent = `${winRate.toFixed(1)}%`;
-
     const realizedRrEl = dom['realized-rr'];
     realizedRrEl.textContent = `1 : ${realizedRR.toFixed(2)}`;
-    realizedRrEl.style.color = realizedRR >= 1 ? 'var(--win-color)' : 'var(--loss-color)';
-    
+    realizedRrEl.className = `text-2xl font-bold ${realizedRR >= 1 ? 'text-green-500' : 'text-red-500'}`;
     dom['avg-profit'].textContent = `$${avgProfit.toFixed(2)}`;
-    dom['avg-profit'].style.color = 'var(--win-color)';
     dom['avg-loss'].textContent = `$${avgLoss.toFixed(2)}`;
-    dom['avg-loss'].style.color = 'var(--loss-color)';
-    
     dom['prolific-score'].textContent = Math.round(prolificScore);
 
+    // --- Call the SVG rendering functions ---
     renderTotalPLSparkline(allTrades);
     renderWinRateDonut(winRate);
     renderRRBarChart(avgProfit, avgLoss);
@@ -2366,12 +2352,13 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
 const updateTradeCalendar = () => {
     const isLightMode = document.documentElement.classList.contains('light');
-    const winColor = 'var(--win-color)';
-    const lossColor = 'var(--loss-color)';
+    const winColor = isLightMode ? 'text-green-600' : 'text-green-300';
+    const lossColor = isLightMode ? 'text-red-600' : 'text-red-300';
     const allTrades = getActiveTrades().filter(t => t.profitLoss !== null);
     const calendarBody = dom['calendar-body'];
     calendarBody.innerHTML = '';
 
+    // Update view toggle button styles
     dom['calendar-view-toggle'].querySelectorAll('.calendar-view-btn').forEach(btn => {
         const isSelected = btn.dataset.view === calendarViewMode;
         btn.classList.toggle('bg-accent-color', isSelected);
@@ -2379,12 +2366,13 @@ const updateTradeCalendar = () => {
         btn.classList.toggle('text-text-secondary', !isSelected);
     });
 
+   // --- VIEW-SPECIFIC RENDERING ---
     if (calendarViewMode === 'day') {
-        renderDayView(allTrades, calendarBody, winColor, lossColor, isLightMode);
+        renderDayView(allTrades, calendarBody, winColor, lossColor);
     } else if (calendarViewMode === 'month') {
-        renderMonthView(allTrades, calendarBody, winColor, lossColor, isLightMode);
+        renderMonthView(allTrades, calendarBody, winColor, lossColor);
     } else if (calendarViewMode === 'year') {
-        renderYearView(allTrades, calendarBody, winColor, lossColor, isLightMode);
+        renderYearView(allTrades, calendarBody, winColor, lossColor);
     }
 };
 
@@ -2412,8 +2400,8 @@ const renderDayView = (allTrades, container, winColor, lossColor) => {
     for (let day = 1; day <= daysInMonth; day++) {
         const pl = dailyPL[day];
         let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-if (pl > 0) bgColor = isLightMode ? 'bg-green-100 hover:bg-green-200' : 'bg-green-800/60 hover:bg-green-700/60';
-else if (pl < 0) bgColor = isLightMode ? 'bg-red-100 hover:bg-red-200' : 'bg-red-800/60 hover:bg-red-700/60';
+        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
+        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
 
         const dayDiv = document.createElement('div');
         dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
@@ -2683,7 +2671,7 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                     datasets: [{
                         label: 'Total P/L by Day',
                         data: dailyData,
-                        backgroundColor: dailyData.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'),
+                        backgroundColor: dailyData.map(v => v >= 0 ? 'rgba(22, 163, 74, 0.6)' : 'rgba(220, 38, 38, 0.6)'),
                     }]
                 },
                 options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
@@ -3462,8 +3450,8 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                     datasets: [{
                         label: 'Drawdown (%)',
                         data: drawdownData,
-                        borderColor: 'var(--loss-color)',
-                        backgroundColor: 'color-mix(in srgb, var(--loss-color) 15%, transparent)',
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
                         fill: true,
                         pointRadius: 0,
                         borderWidth: 2
@@ -3783,7 +3771,7 @@ const riskData = riskTrades.map(trade => {
                    }, {
                        label: 'Average Risk ($)',
                        data: riskData.map(d => ({ x: d.x, y: avgRisk })),
-                       borderColor: 'var(--text-secondary)',
+                       borderColor: 'rgba(255, 255, 255, 0.5)',
                        borderDash: [5, 5],
                        borderWidth: 2,
                        pointRadius: 0,
