@@ -1774,23 +1774,21 @@ const renderRRBarChart = (avgWin, avgLoss) => {
     }
     body.appendChild(fragment);
 };
- // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE ADVANCED VERSION ======
-
-// ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE ADVANCED VERSION ======
+ // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE "SUPER ADVANCED" VERSION ======
 
 const updateAdviser = (allTrades) => {
     const content = dom['adviser-content'];
     content.innerHTML = ''; // Clear previous advice
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
 
-    if (closedTrades.length < 15) { // Increased threshold for more meaningful analysis
-        content.innerHTML = '<p class="text-center text-text-secondary">Log at least 15 trades for the new Advanced Adviser to provide insights.</p>';
+    if (closedTrades.length < 20) { // Increased threshold for super advanced analysis
+        content.innerHTML = '<p class="text-center text-text-secondary">Log at least 20 trades for the Super Advanced Adviser to generate its report.</p>';
         return;
     }
 
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
-    // --- 1. GATHER ALL ANALYTICS IN ONE PLACE ---
+    // --- 1. GATHER ALL ANALYTICS & METRICS ---
     const metrics = {};
     const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
     const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
@@ -1798,17 +1796,15 @@ const updateAdviser = (allTrades) => {
     metrics.totalProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
     metrics.totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
     metrics.profitFactor = metrics.totalLoss > 0 ? metrics.totalProfit / metrics.totalLoss : Infinity;
+    metrics.winRate = (winningTrades.length + losingTrades.length) > 0 ? (winningTrades.length / (winningTrades.length + losingTrades.length)) * 100 : 0;
     metrics.avgWin = winningTrades.length > 0 ? metrics.totalProfit / winningTrades.length : 0;
     metrics.avgLoss = losingTrades.length > 0 ? metrics.totalLoss / losingTrades.length : 0;
+    metrics.realizedRR = metrics.avgLoss > 0 ? metrics.avgWin / metrics.avgLoss : 0;
     
     // Day of week performance
     metrics.dailyPerformance = { 'Sun': {pl:0, count:0}, 'Mon': {pl:0, count:0}, 'Tue': {pl:0, count:0}, 'Wed': {pl:0, count:0}, 'Thu': {pl:0, count:0}, 'Fri': {pl:0, count:0}, 'Sat': {pl:0, count:0} };
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    closedTrades.forEach(t => {
-        const day = days[new Date(t.timestamp).getDay()];
-        metrics.dailyPerformance[day].pl += t.profitLoss;
-        metrics.dailyPerformance[day].count++;
-    });
+    closedTrades.forEach(t => { const day = days[new Date(t.timestamp).getDay()]; metrics.dailyPerformance[day].pl += t.profitLoss; metrics.dailyPerformance[day].count++; });
 
     // Risk Consistency
     const riskTrades = closedTrades.filter(t => t.stopLoss !== null && !isNaN(t.stopLoss));
@@ -1818,28 +1814,21 @@ const updateAdviser = (allTrades) => {
         const variance = riskAmounts.reduce((a, b) => a + Math.pow(b - metrics.avgRisk, 2), 0) / riskAmounts.length;
         metrics.riskStdDev = Math.sqrt(variance);
         metrics.riskConsistencyRatio = metrics.avgRisk > 0 ? metrics.riskStdDev / metrics.avgRisk : 0;
-    } else {
-        metrics.riskConsistencyRatio = 0;
-    }
+    } else { metrics.riskConsistencyRatio = 0; }
     
     // Checklist Adherence
     const checklist = getActiveAccount()?.checklist || [];
+    metrics.nonCompliantTrades = [];
     if (checklist.length > 0) {
-        const nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
-        if (nonCompliantTrades.length > 0) {
-            metrics.nonCompliantPL = nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+        metrics.nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
+        if (metrics.nonCompliantTrades.length > 0) {
+            metrics.nonCompliantPL = metrics.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
         }
     }
 
     // Psychology
-    const psychologyStats = closedTrades.reduce((acc, trade) => {
-        (trade.psychologyTags || []).forEach(tag => {
-            if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 };
-            acc[tag].totalPL += trade.profitLoss;
-            acc[tag].count++;
-        });
-        return acc;
-    }, {});
+    const psychologyStats = {};
+    closedTrades.forEach(trade => { (trade.psychologyTags || []).forEach(tag => { if (!psychologyStats[tag]) psychologyStats[tag] = { totalPL: 0, count: 0 }; psychologyStats[tag].totalPL += trade.profitLoss; psychologyStats[tag].count++; }); });
     metrics.topPsychologyLeak = Object.entries(psychologyStats).filter(([tag, data]) => data.count > 2 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
 
     // MFE on Losers (Reversals)
@@ -1850,137 +1839,134 @@ const updateAdviser = (allTrades) => {
     }
 
     // Best Strategy
-    const tagStats = closedTrades.reduce((acc, trade) => {
-        (trade.tags || []).forEach(tag => {
-            if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 };
-            acc[tag].totalPL += trade.profitLoss;
-            acc[tag].count++;
-        });
-        return acc;
-    }, {});
+    const tagStats = closedTrades.reduce((acc, trade) => { (trade.tags || []).forEach(tag => { if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 }; acc[tag].totalPL += trade.profitLoss; acc[tag].count++; }); return acc; }, {});
     metrics.topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
 
-    // --- 2. DEFINE THE RULES ENGINE ---
-    let findings = [];
+    // --- 2. DEFINE THE ADVANCED RULES ENGINE ---
+    let strengths = [];
+    let weaknesses = [];
 
-    // STRENGTHS
-    if (metrics.profitFactor >= 2) findings.push({ score: 95, type: 'strength', category: 'Profitability', text: `You have an excellent Profit Factor of ${metrics.profitFactor.toFixed(2)}, indicating your winning trades significantly outperform your losing ones.` });
-    if (metrics.avgWin > metrics.avgLoss * 2 && metrics.avgLoss > 0) findings.push({ score: 90, type: 'strength', category: 'Risk Management', text: `Your risk management is superb. Your average win ($${metrics.avgWin.toFixed(2)}) is more than double your average loss ($${metrics.avgLoss.toFixed(2)}).` });
-    if (metrics.topStrategy) findings.push({ score: 85, type: 'strength', category: 'Strategy', text: `Your '${metrics.topStrategy[0]}' strategy is a clear winner, generating $${metrics.topStrategy[1].totalPL.toFixed(2)} in profit.` });
+    // --- STRENGTH IDENTIFICATION ---
+    if (metrics.profitFactor >= 2) strengths.push({ score: 95, text: `Excellent Profitability (Profit Factor: ${metrics.profitFactor.toFixed(2)})` });
+    if (metrics.realizedRR >= 2) strengths.push({ score: 90, text: `Superb Risk Management (Avg Win is ${metrics.realizedRR.toFixed(1)}x Avg Loss)` });
+    if (metrics.topStrategy) strengths.push({ score: 85, text: `High-Performing Strategy ('${metrics.topStrategy[0]}' has generated $${metrics.topStrategy[1].totalPL.toFixed(2)})` });
+    if (metrics.winRate > 65) strengths.push({ score: 80, text: `High Win Rate Accuracy (${metrics.winRate.toFixed(1)}%)` });
 
-    // WEAKNESSES
-    if (metrics.profitFactor < 1) findings.push({
-        score: 100, type: 'weakness', category: 'Profitability',
-        title: "System is Unprofitable",
-        description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. Any value below 1.0 means your total losses are currently greater than your total profits.`,
-        remedies: [
-            "**Focus on High-Quality Setups:** Be more selective. It's better to take fewer trades that meet your A+ criteria than many mediocre ones.",
-            "**Cut Losses Sooner:** Respect your stop loss. Do not widen it in the hope that a trade will turn around.",
-            "**Let Winners Run Longer:** Aim for higher R:R. If you have a winning trade, consider using a trailing stop to capture more of the move."
-        ]
-    });
-    if (metrics.avgLoss > metrics.avgWin && metrics.avgWin > 0) findings.push({
-        score: 90, type: 'weakness', category: 'Risk Management',
-        title: "Negative Risk to Reward",
-        description: `Your average loss of $${metrics.avgLoss.toFixed(2)} is larger than your average win of $${metrics.avgWin.toFixed(2)}. This makes it statistically very difficult to be profitable long-term.`,
-        remedies: [
-            "**Analyze Your Setups:** Before entering, ensure the potential profit is at least 1.5 to 2 times your potential loss.",
-            "**Review Losing Trades:** Are you cutting them too late? Identify the point where you should have known the trade was invalid and aim to exit there next time.",
-            "**Review Winning Trades:** Are you exiting too early out of fear? Identify if your winners could have run further towards a logical target."
-        ]
-    });
-    if (metrics.riskConsistencyRatio > 0.6) findings.push({ // Using 60% as a high variance threshold
-        score: 85, type: 'weakness', category: 'Risk Management',
-        title: "Inconsistent Position Sizing",
-        description: `Your risk per trade is highly variable (deviation is ${Math.round(metrics.riskConsistencyRatio*100)}% of the average). This erratic sizing makes your equity curve unpredictable and can lead to oversized losses wiping out many small wins.`,
-        remedies: [
-            "**Define Your Risk:** Decide on a fixed percentage of your account to risk per trade (e.g., 1%). Stick to it.",
-            "**Use a Position Size Calculator:** Before every trade, calculate the correct lot size based on your entry, stop loss, and fixed risk amount.",
-            "**Avoid Emotional Sizing:** Never increase your size after a loss (revenge trading) or a big win (overconfidence)."
-        ]
-    });
-    if (metrics.reversalRate > 0.15) findings.push({ // If > 15% of trades are reversals
-        score: 80, type: 'weakness', category: 'Execution',
-        title: "Poor Profit Taking",
-        description: `You've allowed ${Math.round(metrics.reversalRate*100)}% of your trades to turn from winners into losers, letting a total of $${metrics.slippedProfit.toFixed(2)} in potential profit slip away.`,
-        remedies: [
-            "**Take Partial Profits:** Secure some profit at your first target (e.g., 1R). This pays you for your work and makes it easier to hold the rest of the position stress-free.",
-            "**Use a Trailing Stop:** Once a trade is in significant profit, use a trailing stop loss to protect your gains while still allowing for more upside.",
-            "**Set a 'Breakeven' Rule:** Have a rule to move your stop loss to your entry price once the trade has moved a certain amount (e.g., 1R) in your favor."
-        ]
-    });
-     if (metrics.nonCompliantPL < 0) findings.push({
-        score: 75, type: 'weakness', category: 'Discipline',
-        title: "Lack of Discipline",
-        description: `Your undisciplined trades (those not meeting your checklist) have cost you a net total of $${Math.abs(metrics.nonCompliantPL).toFixed(2)}.`,
-        remedies: [
-            "**No Checklist, No Trade:** Make it a hard rule. If a setup doesn't tick every single box, you do not click the button. Period.",
-            "**Print Your Checklist:** Keep a physical copy of your checklist on your desk as a constant visual reminder.",
-            "**Post-Trade Review:** At the end of each day, specifically review your non-compliant trades and write down why you broke your rules."
-        ]
-    });
-    const worstDay = Object.entries(metrics.dailyPerformance).filter(([day, data]) => data.count > 4 && data.pl < 0).sort((a,b) => a[1].pl - b[1].pl)[0];
-    if (worstDay) findings.push({
-        score: 70, type: 'weakness', category: 'Patterns',
-        title: `Performance Leak on ${worstDay[0]}s`,
-        description: `You have a clear negative pattern on ${worstDay[0]}s, with a cumulative loss of $${Math.abs(worstDay[1].pl).toFixed(2)} over ${worstDay[1].count} trades.`,
-        remedies: [
-            "**Analyze That Day:** Review all trades from ${worstDay[0]}s. Is market behavior different? Are you emotionally fatigued by then?",
-            "**Reduce Size:** Consider trading with half your normal size on that day until you can improve your performance.",
-            "**Take the Day Off:** There is no rule that you must trade every day. If you consistently lose on a specific day, consider using it for review and study instead."
-        ]
-    });
-    if (metrics.topPsychologyLeak) findings.push({
-        score: 65, type: 'weakness', category: 'Psychology',
-        title: `Psychological Leak: '${metrics.topPsychologyLeak[0]}'`,
-        description: `Trading while feeling '${metrics.topPsychologyLeak[0]}' is your most expensive psychological error, costing you $${Math.abs(metrics.topPsychologyLeak[1].totalPL).toFixed(2)}.`,
-        remedies: [
-            "**Acknowledge the Feeling:** When you notice this emotion, pause. Step away from the screen for 5-10 minutes.",
-            "**Journal the 'Why':** Ask yourself why you are feeling this way. Write it down. Understanding the trigger is key to managing it.",
-            "**Have a 'State-Change' Routine:** If you feel this emotion, do something completely different: go for a walk, listen to music, or stretch. Do not trade until you feel neutral again."
-        ]
-    });
+    // --- WEAKNESS IDENTIFICATION ---
+    if (metrics.profitFactor < 1) weaknesses.push({ id: 'unprofitable', score: 100, impact: Math.abs(metrics.totalProfit + metrics.totalLoss), category: 'Profitability', title: "System is Unprofitable", description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. This is the most critical issue as your total losses currently outweigh your total profits.` });
+    if (metrics.realizedRR < 1 && metrics.avgLoss > 0) weaknesses.push({ id: 'negativeRR', score: 90, impact: metrics.avgLoss - metrics.avgWin, category: 'Risk Management', title: "Negative Risk:Reward", description: `Your average loss ($${metrics.avgLoss.toFixed(2)}) is bigger than your average win ($${metrics.avgWin.toFixed(2)}), making long-term profitability very difficult.` });
+    if (metrics.riskConsistencyRatio > 0.6) weaknesses.push({ id: 'badSizing', score: 85, impact: metrics.riskStdDev, category: 'Risk Management', title: "Inconsistent Position Sizing", description: `Your risk per trade is highly erratic. This makes your equity curve unpredictable and suggests emotional sizing.` });
+    if (metrics.reversalRate > 0.20) weaknesses.push({ id: 'badExits', score: 80, impact: metrics.slippedProfit, category: 'Execution', title: "Poor Profit Taking", description: `You let ${Math.round(metrics.reversalRate*100)}% of trades reverse from winners to losers, costing you $${metrics.slippedProfit.toFixed(2)} in potential profit.` });
+    if (metrics.nonCompliantPL < 0) weaknesses.push({ id: 'noDiscipline', score: 75, impact: Math.abs(metrics.nonCompliantPL), category: 'Discipline', title: "Lack of Discipline", description: `Breaking your own rules is expensive. Your non-compliant trades have cost you $${Math.abs(metrics.nonCompliantPL).toFixed(2)}.` });
+    const worstDay = Object.entries(metrics.dailyPerformance).filter(([d, data]) => data.count > 4 && data.pl < 0).sort((a,b) => a[1].pl - b[1].pl)[0];
+    if (worstDay) weaknesses.push({ id: 'badDay', score: 70, impact: Math.abs(worstDay[1].pl), category: 'Patterns', title: `Performance Leak on ${worstDay[0]}s`, description: `You have a clear negative pattern on ${worstDay[0]}s, with a cumulative loss of $${Math.abs(worstDay[1].pl).toFixed(2)}.` });
+    if (metrics.topPsychologyLeak) weaknesses.push({ id: 'psychology', score: 65, impact: Math.abs(metrics.topPsychologyLeak[1].totalPL), category: 'Psychology', title: `Psychological Leak: '${metrics.topPsychologyLeak[0]}'`, description: `Trading while feeling '${metrics.topPsychologyLeak[0]}' is your most expensive emotional error.` });
     
-    // --- 3. RENDER THE FINAL ADVICE ---
-    findings.sort((a, b) => b.score - a.score);
+    // --- 3. CORRELATE DATA FOR "TOXIC COMBOS" ---
+    if(weaknesses.length > 0) {
+        // Find links between top weakness and other data
+        weaknesses.sort((a, b) => b.score - a.score);
+        const topWeakness = weaknesses[0];
 
-    const topStrength = findings.find(f => f.type === 'strength');
-    const topWeakness = findings.find(f => f.type === 'weakness');
-    
-    let html = '';
+        let correlationDetail = '';
 
-    if (topStrength) {
-        html += `<div class="flex items-start gap-4 p-4 bg-green-900/30 rounded-lg border border-green-500/50">
-                    <div class="flex-shrink-0">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-text-primary">Your Greatest Strength: <span class="text-green-400">${topStrength.category}</span></h4>
-                        <p class="text-sm text-text-secondary">${topStrength.text} Keep capitalizing on this!</p>
-                    </div>
-                 </div>`;
+        if (topWeakness.id === 'noDiscipline' && metrics.topPsychologyLeak) {
+            const nonCompliantWithLeak = metrics.nonCompliantTrades.filter(t => t.psychologyTags?.includes(metrics.topPsychologyLeak[0]));
+            if (nonCompliantWithLeak.length / metrics.nonCompliantTrades.length > 0.4) {
+                 correlationDetail = `A key finding is the link between your psychology and discipline. When you trade with '${metrics.topPsychologyLeak[0]}', you are significantly more likely to break your own rules.`;
+            }
+        }
+        else if (topWeakness.id === 'negativeRR' && worstDay) {
+            const losingTradesOnWorstDay = losingTrades.filter(t => days[new Date(t.timestamp).getDay()] === worstDay[0]);
+            if(losingTradesOnWorstDay.length / losingTrades.length > 0.3) { // If >30% of losses occur on the worst day
+                 correlationDetail = `This issue is most severe on <strong>${worstDay[0]}s</strong>. You tend to take bigger losses on this day, which drags down your entire average.`;
+            }
+        }
+        else if(topWeakness.id === 'badSizing' && metrics.topPsychologyLeak) {
+            const riskTradesWithLeak = riskTrades.filter(t => t.psychologyTags?.includes(metrics.topPsychologyLeak[0]));
+            if (riskTradesWithLeak.length / riskTrades.length > 0.3) { // If >30% of trades with risk have the leak tag
+                correlationDetail = `Your inconsistent sizing appears to be driven by emotion. Trades tagged with '${metrics.topPsychologyLeak[0]}' show the highest variance in position size.`;
+            }
+        }
+        
+        if (correlationDetail) {
+            weaknesses[0].description += ` <br><strong>Correlation found:</strong> ${correlationDetail}`;
+        }
     }
 
+
+    // --- 4. GENERATE PERSONA & ACTION PLAN ---
+    let persona = "You are a Developing Trader.";
+    if (strengths.length > 2 && weaknesses.length < 2) persona = "You are a Consistent & Profitable Trader.";
+    else if (metrics.realizedRR > 1.5 && metrics.winRate < 50) persona = "You are a Patient Trader with great risk management but could improve entry timing.";
+    else if (metrics.winRate > 60 && metrics.realizedRR < 1.2) persona = "You are an Accurate Trader with precise entries, but need to work on maximizing profits.";
+    else if (weaknesses.find(w => w.id === 'noDiscipline') || weaknesses.find(w => w.id === 'psychology')) persona = "You are an Emotional Trader whose psychology is the biggest barrier to profitability.";
+
+    const actionPlan = {
+        'unprofitable': ["1. **Stop Trading Live.** Go back to demo or paper trading immediately.", "2. **Focus on ONE setup** from your playbook. Master it.", "3. **Do not proceed** until you can achieve a Profit Factor > 1.2 over 50+ trades."],
+        'negativeRR': ["1. **Mandatory R:R Check:** Before every trade, explicitly state your planned R:R. If it's below 1.5, reject the trade.", "2. **Review Your Top 5 Losses:** Find the exact point you should have exited. Was it a break of structure? A candle close? Define this as a hard exit rule.", "3. **Let Winners Run:** Trust your Take Profit. Use smaller position sizes if you feel fear about giving back profits."],
+        'badSizing': ["1. **Use a Position Size Calculator:** This is non-negotiable. Use one for EVERY trade.", "2. **Define Fixed Risk:** Decide on a fixed % (e.g., 1%) or fixed dollar amount (e.g., $100) to risk per trade.", "3. **Lock It In:** Write this risk amount on a sticky note and put it on your monitor. Do not deviate."],
+        'badExits': ["1. **Implement a Breakeven Rule:** Once a trade reaches 1R in profit, move your stop loss to your entry price. This is your #1 priority.", "2. **Partial Profits:** Consider taking 50% profit at 1.5R or 2R. This secures gains and makes it easier to hold for the final target.", "3. **Study Your MFE:** Review the 'Slipped P/L' metric in your analytics. This is money you are leaving on the table."],
+        'noDiscipline': ["1. **Print Your Checklist:** Keep a physical copy on your desk. Touch each item before entering a trade.", "2. **Introduce a 'Cool-off' Period:** If you break a rule, you must stop trading for the rest of the day.", "3. **Accountability:** At the end of each day, write one sentence explaining why you followed or broke your rules."],
+        'badDay': [`1. **Analyze All ${worstDay ? worstDay[0] : ''} Trades:** What do they have in common? Are you forcing setups? Is volume low?`, `2. **Cut Risk in Half:** For the next 4 weeks, trade with 50% of your normal size on ${worstDay ? worstDay[0] : ''}s.`, `3. **Consider Taking it Off:** If performance doesn't improve, use that day for review and study instead of live trading.`],
+        'psychology': [`1. **Identify the Trigger:** Before each trade, pause and ask, "Am I feeling ${metrics.topPsychologyLeak ? metrics.topPsychologyLeak[0] : 'emotional'}?".`, `2. **Create a State-Change Routine:** If the answer is yes, you MUST step away. Walk, listen to music, stretch. Do not trade until you feel neutral.`, `3. **Journal the Emotion:** Write down *why* you felt that way. Was it after a loss? A big win? A news event? Finding the source is key.`]
+    };
+
+
+    // --- 5. RENDER THE REPORT ---
+    strengths.sort((a,b) => b.score - a.score);
+    weaknesses.sort((a, b) => b.impact - a.impact); // Sort by financial impact!
+
+    const topWeakness = weaknesses[0];
+
+    const categoryIcons = {
+        'Profitability': '📈', 'Risk Management': '🛡️', 'Execution': '🎯', 'Discipline': '📋', 'Patterns': '🗓️', 'Psychology': '🧠'
+    };
+
+    let html = `<div class="p-4 bg-tertiary/50 rounded-lg border border-border-color space-y-6">`;
+
+    // Executive Summary
+    html += `<div>
+                <h3 class="text-xs font-semibold uppercase text-text-secondary tracking-wider">Executive Summary</h3>
+                <p class="text-lg font-semibold text-accent-color mt-1">"${persona}"</p>
+             </div>`;
+    
+    // Strengths
+    if (strengths.length > 0) {
+        html += `<div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-green-400">✅ Key Strengths</h3>
+                    <ul class="list-disc list-inside mt-2 space-y-1 text-sm text-text-secondary">
+                        ${strengths.slice(0,2).map(s => `<li>${s.text}</li>`).join('')}
+                    </ul>
+                </div>`;
+    }
+
+    // Weaknesses
+    if (weaknesses.length > 0) {
+        html += `<div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-red-400">🚨 Critical Growth Areas</h3>
+                     <div class="space-y-3 mt-2">
+                        ${weaknesses.slice(0,2).map(w => `
+                            <div class="text-sm">
+                                <p class="font-semibold text-text-primary">${categoryIcons[w.category] || '🔹'} ${w.title}</p>
+                                <p class="text-text-secondary text-xs pl-6">${w.description}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+    }
+
+    // Action Plan
     if (topWeakness) {
-        html += `<div class="mt-4 flex items-start gap-4 p-4 bg-red-900/30 rounded-lg border border-red-500/50">
-                    <div class="flex-shrink-0">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-text-primary">Top Area for Improvement: <span class="text-red-400">${topWeakness.title}</span></h4>
-                        <p class="text-sm text-text-secondary mt-1 mb-3">${topWeakness.description}</p>
-                        <h5 class="font-semibold text-base text-text-primary mb-2">How to fix it:</h5>
-                        <ul class="space-y-2 text-sm text-text-secondary">
-                            ${topWeakness.remedies.map(r => `<li class="flex items-start gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 mt-0.5 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg><span>${r}</span></li>`).join('')}
-                        </ul>
-                    </div>
-                 </div>`;
+        html += `<div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-yellow-400">🎯 Your #1 Action Plan: Fixing "${topWeakness.title}"</h3>
+                    <ol class="list-decimal list-inside mt-2 space-y-2 text-sm text-text-secondary">
+                         ${actionPlan[topWeakness.id] ? actionPlan[topWeakness.id].map(step => `<li>${step}</li>`).join('') : '<li>No specific action plan available. Focus on journaling this issue.</li>'}
+                    </ol>
+                </div>`;
     }
     
-    if (!topStrength && !topWeakness) {
-         html = '<p class="text-center text-text-secondary">Your stats are very balanced right now. Keep logging trades to uncover more specific patterns.</p>';
-    }
-
+    html += `</div>`;
     content.innerHTML = html;
 };
         const calculateRR = (type, entry, sl, tp) => {
