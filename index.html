@@ -1774,68 +1774,62 @@ const renderRRBarChart = (avgWin, avgLoss) => {
     }
     body.appendChild(fragment);
 };
- const updateAdviser = (allTrades) => {
+ // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE ADVANCED VERSION ======
+
+const updateAdviser = (allTrades) => {
     const content = dom['adviser-content'];
     content.innerHTML = ''; // Clear previous advice
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
 
-    if (closedTrades.length < 10) {
-        content.innerHTML = '<p class="text-center text-text-secondary">Not enough trade data for a meaningful analysis. Keep logging trades!</p>';
+    if (closedTrades.length < 15) { // Increased threshold for more meaningful analysis
+        content.innerHTML = '<p class="text-center text-text-secondary">Log at least 15 trades for the new Advanced Adviser to provide insights.</p>';
         return;
     }
 
-    let advice = [];
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
-    // --- Gather Core Metrics ---
+    // --- 1. GATHER ALL ANALYTICS IN ONE PLACE ---
+    const metrics = {};
     const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
     const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
-    const totalProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-    const totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
-    const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : Infinity;
-    const avgWin = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
-    const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
-    const winRate = (winningTrades.length + losingTrades.length) > 0 ? winningTrades.length / (winningTrades.length + losingTrades.length) * 100 : 0;
-
-    // --- Rule-Based Analysis ---
     
-    // Rule: Profitability
-    if (profitFactor < 1) {
-        advice.push({ score: 100, type: 'weakness', text: `Your trading system is currently unprofitable (Profit Factor: ${profitFactor.toFixed(2)}). Your losses are greater than your profits.` });
-        advice.push({ score: 99, type: 'recommendation', text: `Focus on cutting losing trades faster or letting winning trades run longer to improve your risk/reward ratio.` });
+    metrics.totalProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+    metrics.totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
+    metrics.profitFactor = metrics.totalLoss > 0 ? metrics.totalProfit / metrics.totalLoss : Infinity;
+    metrics.avgWin = winningTrades.length > 0 ? metrics.totalProfit / winningTrades.length : 0;
+    metrics.avgLoss = losingTrades.length > 0 ? metrics.totalLoss / losingTrades.length : 0;
+    
+    // Day of week performance
+    metrics.dailyPerformance = { 'Sun': {pl:0, count:0}, 'Mon': {pl:0, count:0}, 'Tue': {pl:0, count:0}, 'Wed': {pl:0, count:0}, 'Thu': {pl:0, count:0}, 'Fri': {pl:0, count:0}, 'Sat': {pl:0, count:0} };
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    closedTrades.forEach(t => {
+        const day = days[new Date(t.timestamp).getDay()];
+        metrics.dailyPerformance[day].pl += t.profitLoss;
+        metrics.dailyPerformance[day].count++;
+    });
+
+    // Risk Consistency
+    const riskTrades = closedTrades.filter(t => t.stopLoss !== null && !isNaN(t.stopLoss));
+    const riskAmounts = riskTrades.map(t => Math.abs(calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.stopLoss, t.indexName).profit || 0));
+    if (riskAmounts.length > 1) {
+        metrics.avgRisk = riskAmounts.reduce((a, b) => a + b, 0) / riskAmounts.length;
+        const variance = riskAmounts.reduce((a, b) => a + Math.pow(b - metrics.avgRisk, 2), 0) / riskAmounts.length;
+        metrics.riskStdDev = Math.sqrt(variance);
+        metrics.riskConsistencyRatio = metrics.avgRisk > 0 ? metrics.riskStdDev / metrics.avgRisk : 0;
+    } else {
+        metrics.riskConsistencyRatio = 0;
     }
     
-    // Rule: Risk to Reward
-    if (avgLoss > avgWin && avgWin > 0) {
-        advice.push({ score: 90, type: 'weakness', text: `Your average loss ($${avgLoss.toFixed(2)}) is greater than your average win ($${avgWin.toFixed(2)}).` });
-        advice.push({ score: 89, type: 'recommendation', text: `Aim for setups with a higher potential reward relative to your risk. A ratio above 1.5:1 is a good starting point.` });
-    } else if (avgWin > avgLoss * 2 && avgLoss > 0) {
-         advice.push({ score: 90, type: 'strength', text: `Excellent risk management. Your average win ($${avgWin.toFixed(2)}) is more than double your average loss ($${avgLoss.toFixed(2)}).` });
-    }
-
-    // Rule: Reversal Analysis (MFE on losers)
-    const reversedTrades = closedTrades.filter(t => t.profitLoss <= 0 && t.peakPrice && calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > breakevenThreshold);
-    if (reversedTrades.length / closedTrades.length > 0.15) { // If more than 15% of trades reverse
-        let slippedProfit = 0;
-        reversedTrades.forEach(t => slippedProfit += calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit);
-        advice.push({ score: 80, type: 'weakness', text: `You've let $${slippedProfit.toFixed(2)} in potential profit slip away on trades that ended as losses.` });
-        advice.push({ score: 79, type: 'recommendation', text: `Consider implementing a more structured profit-taking strategy, like taking partial profits at key levels or using a trailing stop.` });
-    }
-
-    // Rule: Checklist Adherence
+    // Checklist Adherence
     const checklist = getActiveAccount()?.checklist || [];
     if (checklist.length > 0) {
         const nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
         if (nonCompliantTrades.length > 0) {
-            const nonCompliantPL = nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-            if (nonCompliantPL < 0) {
-                advice.push({ score: 85, type: 'weakness', text: `Your non-compliant trades (not following your checklist) have cost you $${Math.abs(nonCompliantPL).toFixed(2)}.` });
-                advice.push({ score: 84, type: 'recommendation', text: `Improve your discipline. Only take trades that meet 100% of your pre-trade checklist criteria.` });
-            }
+            metrics.nonCompliantPL = nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
         }
     }
 
-    // Rule: Psychology Tags
+    // Psychology
     const psychologyStats = closedTrades.reduce((acc, trade) => {
         (trade.psychologyTags || []).forEach(tag => {
             if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 };
@@ -1844,14 +1838,16 @@ const renderRRBarChart = (avgWin, avgLoss) => {
         });
         return acc;
     }, {});
-    const topPsychologyLeak = Object.entries(psychologyStats).filter(([tag, data]) => data.count > 2 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
-    if (topPsychologyLeak) {
-        const [tag, data] = topPsychologyLeak;
-        advice.push({ score: 75, type: 'weakness', text: `The psychological state of '${tag}' is your most costly, resulting in a net loss of $${Math.abs(data.totalPL).toFixed(2)}.` });
-        advice.push({ score: 74, type: 'recommendation', text: `When you feel '${tag}', step away from the charts. Acknowledge the emotion and avoid trading until you are neutral.` });
+    metrics.topPsychologyLeak = Object.entries(psychologyStats).filter(([tag, data]) => data.count > 2 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
+
+    // MFE on Losers (Reversals)
+    const reversedTrades = closedTrades.filter(t => t.profitLoss <= 0 && t.peakPrice && calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > breakevenThreshold);
+    if (reversedTrades.length > 0) {
+        metrics.slippedProfit = reversedTrades.reduce((sum, t) => sum + calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit, 0);
+        metrics.reversalRate = reversedTrades.length / closedTrades.length;
     }
-    
-    // Rule: Find Best Performing Tag
+
+    // Best Strategy
     const tagStats = closedTrades.reduce((acc, trade) => {
         (trade.tags || []).forEach(tag => {
             if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 };
@@ -1860,59 +1856,127 @@ const renderRRBarChart = (avgWin, avgLoss) => {
         });
         return acc;
     }, {});
-    const topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-     if (topStrategy) {
-        const [tag, data] = topStrategy;
-        advice.push({ score: 80, type: 'strength', text: `Your '${tag}' strategy is a strong performer, generating $${data.totalPL.toFixed(2)} in profit.` });
-         advice.push({ score: 79, type: 'recommendation', text: `Review your winning '${tag}' trades. Can you identify the common patterns to find more of these high-quality setups?` });
-    }
+    metrics.topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
 
+    // --- 2. DEFINE THE RULES ENGINE ---
+    let findings = [];
 
-    // --- Render the Advice ---
-    advice.sort((a, b) => b.score - a.score);
+    // STRENGTHS
+    if (metrics.profitFactor >= 2) findings.push({ score: 95, type: 'strength', category: 'Profitability', text: `You have an excellent Profit Factor of ${metrics.profitFactor.toFixed(2)}, indicating your winning trades significantly outperform your losing ones.` });
+    if (metrics.avgWin > metrics.avgLoss * 2 && metrics.avgLoss > 0) findings.push({ score: 90, type: 'strength', category: 'Risk Management', text: `Your risk management is superb. Your average win ($${metrics.avgWin.toFixed(2)}) is more than double your average loss ($${metrics.avgLoss.toFixed(2)}).` });
+    if (metrics.topStrategy) findings.push({ score: 85, type: 'strength', category: 'Strategy', text: `Your '${metrics.topStrategy[0]}' strategy is a clear winner, generating $${metrics.topStrategy[1].totalPL.toFixed(2)} in profit.` });
 
-    const strength = advice.find(a => a.type === 'strength');
-    const weakness = advice.find(a => a.type === 'weakness');
-    const recommendations = advice.filter(a => a.type === 'recommendation').slice(0, 3);
+    // WEAKNESSES
+    if (metrics.profitFactor < 1) findings.push({
+        score: 100, type: 'weakness', category: 'Profitability',
+        title: "System is Unprofitable",
+        description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. Any value below 1.0 means your total losses are currently greater than your total profits.`,
+        remedies: [
+            "**Focus on High-Quality Setups:** Be more selective. It's better to take fewer trades that meet your A+ criteria than many mediocre ones.",
+            "**Cut Losses Sooner:** Respect your stop loss. Do not widen it in the hope that a trade will turn around.",
+            "**Let Winners Run Longer:** Aim for higher R:R. If you have a winning trade, consider using a trailing stop to capture more of the move."
+        ]
+    });
+    if (metrics.avgLoss > metrics.avgWin && metrics.avgWin > 0) findings.push({
+        score: 90, type: 'weakness', category: 'Risk Management',
+        title: "Negative Risk to Reward",
+        description: `Your average loss of $${metrics.avgLoss.toFixed(2)} is larger than your average win of $${metrics.avgWin.toFixed(2)}. This makes it statistically very difficult to be profitable long-term.`,
+        remedies: [
+            "**Analyze Your Setups:** Before entering, ensure the potential profit is at least 1.5 to 2 times your potential loss.",
+            "**Review Losing Trades:** Are you cutting them too late? Identify the point where you should have known the trade was invalid and aim to exit there next time.",
+            "**Review Winning Trades:** Are you exiting too early out of fear? Identify if your winners could have run further towards a logical target."
+        ]
+    });
+    if (metrics.riskConsistencyRatio > 0.6) findings.push({ // Using 60% as a high variance threshold
+        score: 85, type: 'weakness', category: 'Risk Management',
+        title: "Inconsistent Position Sizing",
+        description: `Your risk per trade is highly variable (deviation is ${Math.round(metrics.riskConsistencyRatio*100)}% of the average). This erratic sizing makes your equity curve unpredictable and can lead to oversized losses wiping out many small wins.`,
+        remedies: [
+            "**Define Your Risk:** Decide on a fixed percentage of your account to risk per trade (e.g., 1%). Stick to it.",
+            "**Use a Position Size Calculator:** Before every trade, calculate the correct lot size based on your entry, stop loss, and fixed risk amount.",
+            "**Avoid Emotional Sizing:** Never increase your size after a loss (revenge trading) or a big win (overconfidence)."
+        ]
+    });
+    if (metrics.reversalRate > 0.15) findings.push({ // If > 15% of trades are reversals
+        score: 80, type: 'weakness', category: 'Execution',
+        title: "Poor Profit Taking",
+        description: `You've allowed ${Math.round(metrics.reversalRate*100)}% of your trades to turn from winners into losers, letting a total of $${metrics.slippedProfit.toFixed(2)} in potential profit slip away.`,
+        remedies: [
+            "**Take Partial Profits:** Secure some profit at your first target (e.g., 1R). This pays you for your work and makes it easier to hold the rest of the position stress-free.",
+            "**Use a Trailing Stop:** Once a trade is in significant profit, use a trailing stop loss to protect your gains while still allowing for more upside.",
+            "**Set a 'Breakeven' Rule:** Have a rule to move your stop loss to your entry price once the trade has moved a certain amount (e.g., 1R) in your favor."
+        ]
+    });
+     if (metrics.nonCompliantPL < 0) findings.push({
+        score: 75, type: 'weakness', category: 'Discipline',
+        title: "Lack of Discipline",
+        description: `Your undisciplined trades (those not meeting your checklist) have cost you a net total of $${Math.abs(metrics.nonCompliantPL).toFixed(2)}.`,
+        remedies: [
+            "**No Checklist, No Trade:** Make it a hard rule. If a setup doesn't tick every single box, you do not click the button. Period.",
+            "**Print Your Checklist:** Keep a physical copy of your checklist on your desk as a constant visual reminder.",
+            "**Post-Trade Review:** At the end of each day, specifically review your non-compliant trades and write down why you broke your rules."
+        ]
+    });
+    const worstDay = Object.entries(metrics.dailyPerformance).filter(([day, data]) => data.count > 4 && data.pl < 0).sort((a,b) => a[1].pl - b[1].pl)[0];
+    if (worstDay) findings.push({
+        score: 70, type: 'weakness', category: 'Patterns',
+        title: `Performance Leak on ${worstDay[0]}s`,
+        description: `You have a clear negative pattern on ${worstDay[0]}s, with a cumulative loss of $${Math.abs(worstDay[1].pl).toFixed(2)} over ${worstDay[1].count} trades.`,
+        remedies: [
+            "**Analyze That Day:** Review all trades from ${worstDay[0]}s. Is market behavior different? Are you emotionally fatigued by then?",
+            "**Reduce Size:** Consider trading with half your normal size on that day until you can improve your performance.",
+            "**Take the Day Off:** There is no rule that you must trade every day. If you consistently lose on a specific day, consider using it for review and study instead."
+        ]
+    });
+    if (metrics.topPsychologyLeak) findings.push({
+        score: 65, type: 'weakness', category: 'Psychology',
+        title: `Psychological Leak: '${metrics.topPsychologyLeak[0]}'`,
+        description: `Trading while feeling '${metrics.topPsychologyLeak[0]}' is your most expensive psychological error, costing you $${Math.abs(metrics.topPsychologyLeak[1].totalPL).toFixed(2)}.`,
+        remedies: [
+            "**Acknowledge the Feeling:** When you notice this emotion, pause. Step away from the screen for 5-10 minutes.",
+            "**Journal the 'Why':** Ask yourself why you are feeling this way. Write it down. Understanding the trigger is key to managing it.",
+            "**Have a 'State-Change' Routine:** If you feel this emotion, do something completely different: go for a walk, listen to music, or stretch. Do not trade until you feel neutral again."
+        ]
+    });
+    
+    // --- 3. RENDER THE FINAL ADVICE ---
+    findings.sort((a, b) => b.score - a.score);
 
+    const topStrength = findings.find(f => f.type === 'strength');
+    const topWeakness = findings.find(f => f.type === 'weakness');
+    
     let html = '';
 
-    if (strength) {
-        html += `<div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+    if (topStrength) {
+        html += `<div class="flex items-start gap-4 p-4 bg-green-900/30 rounded-lg border border-green-500/50">
+                    <div class="flex-shrink-0">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
                     </div>
                     <div>
-                        <h4 class="font-semibold text-text-primary">Greatest Strength</h4>
-                        <p class="text-sm text-text-secondary">${strength.text}</p>
+                        <h4 class="font-semibold text-text-primary">Your Greatest Strength: <span class="text-green-400">${topStrength.category}</span></h4>
+                        <p class="text-sm text-text-secondary">${topStrength.text} Keep capitalizing on this!</p>
                     </div>
                  </div>`;
     }
 
-    if (weakness) {
-        html += `<div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+    if (topWeakness) {
+        html += `<div class="mt-4 flex items-start gap-4 p-4 bg-red-900/30 rounded-lg border border-red-500/50">
+                    <div class="flex-shrink-0">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
                     </div>
                     <div>
-                        <h4 class="font-semibold text-text-primary">Area for Improvement</h4>
-                        <p class="text-sm text-text-secondary">${weakness.text}</p>
-                    </div>
-                 </div>`;
-    }
-
-    if (recommendations.length > 0) {
-        html += `<div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 8a1 1 0 011-1h4a1 1 0 110 2H9a1 1 0 01-1-1zm1 4a1 1 0 100 2h3a1 1 0 100-2H8z" clip-rule="evenodd" /></svg>
-                    </div>
-                    <div>
-                        <h4 class="font-semibold text-text-primary">Actionable Recommendations</h4>
-                        <ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-text-secondary">
-                            ${recommendations.map(r => `<li>${r.text}</li>`).join('')}
+                        <h4 class="font-semibold text-text-primary">Top Area for Improvement: <span class="text-red-400">${topWeakness.title}</span></h4>
+                        <p class="text-sm text-text-secondary mt-1 mb-3">${topWeakness.description}</p>
+                        <h5 class="font-semibold text-base text-text-primary mb-2">How to fix it:</h5>
+                        <ul class="space-y-2 text-sm text-text-secondary">
+                            ${topWeakness.remedies.map(r => `<li class="flex items-start gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 mt-0.5 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg><span>${r}</span></li>`).join('')}
                         </ul>
                     </div>
                  </div>`;
+    }
+    
+    if (!topStrength && !topWeakness) {
+         html = '<p class="text-center text-text-secondary">Your stats are very balanced right now. Keep logging trades to uncover more specific patterns.</p>';
     }
 
     content.innerHTML = html;
