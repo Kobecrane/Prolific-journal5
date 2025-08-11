@@ -4140,24 +4140,22 @@ const riskData = riskTrades.map(trade => {
            const chartOptions = getChartColors();
            riskConsistencyChart = new Chart(dom.riskConsistencyChart, {
                type: 'line',
+               // ... inside updateRiskConsistencyTracker function
                data: {
                    datasets: [{
-                       label: 'Risk per Trade ($)',
-                       data: riskData,
-                       borderColor: 'rgba(234, 179, 8, 0.8)',
-                       backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                       tension: 0.1,
-                       fill: true,
+                       // ... first dataset for risk per trade
                    }, {
                        label: 'Average Risk ($)',
                        data: riskData.map(d => ({ x: d.x, y: avgRisk })),
-                       borderColor: 'rgba(255, 255, 255, 0.5)',
+                       // THIS IS THE FIX 👇
+                       borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
                        borderDash: [5, 5],
                        borderWidth: 2,
                        pointRadius: 0,
                        fill: false,
                    }]
                },
+// ...
                options: {
                    responsive: true,
                    maintainAspectRatio: false,
