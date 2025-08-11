@@ -4137,17 +4137,21 @@ const riskData = riskTrades.map(trade => {
            const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
            const avgRisk = totalRisk / riskData.length;
 
-           const chartOptions = getChartColors();
+             const chartOptions = getChartColors();
            riskConsistencyChart = new Chart(dom.riskConsistencyChart, {
                type: 'line',
-               // ... inside updateRiskConsistencyTracker function
-               data: {
+               data: { // The data object should contain the datasets
                    datasets: [{
-                       // ... first dataset for risk per trade
+                       label: 'Risk per Trade ($)',
+                       data: riskData,
+                       borderColor: 'rgba(234, 179, 8, 0.8)', // Amber color
+                       backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                       fill: true,
+                       pointRadius: 3,
+                       pointHoverRadius: 5,
                    }, {
                        label: 'Average Risk ($)',
                        data: riskData.map(d => ({ x: d.x, y: avgRisk })),
-                       // THIS IS THE FIX 👇
                        borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
                        borderDash: [5, 5],
                        borderWidth: 2,
@@ -4155,6 +4159,7 @@ const riskData = riskTrades.map(trade => {
                        fill: false,
                    }]
                },
+
 // ...
                options: {
                    responsive: true,
