@@ -785,24 +785,28 @@
                             <canvas id="drawdownChart"></canvas>
                         </div>
                     </div>
-                    <div class="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
-                            <p class="text-sm font-medium text-text-secondary">Profit Factor</p>
-                            <p id="profit-factor" class="text-2xl font-bold text-text-primary">0.00</p>
-                        </div>
-                        <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
-                            <p class="text-sm font-medium text-text-secondary">Expectancy</p>
-                            <p id="expectancy" class="text-2xl font-bold text-text-primary">$0.00</p>
-                        </div>
-                        <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-                            <p class="text-sm font-medium text-text-secondary">Longest Win Streak</p>
-                            <p id="win-streak" class="text-2xl font-bold text-green-500">0</p>
-                        </div>
-                        <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
-                            <p class="text-sm font-medium text-text-secondary">Longest Loss Streak</p>
-                            <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
-                        </div>
-                    </div>
+                   <div class="mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
+        <p class="text-sm font-medium text-text-secondary">Profit Factor</p>
+        <p id="profit-factor" class="text-2xl font-bold text-text-primary">0.00</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
+        <p class="text-sm font-medium text-text-secondary">Expectancy</p>
+        <p id="expectancy" class="text-2xl font-bold text-text-primary">$0.00</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
+        <p class="text-sm font-medium text-text-secondary">Recovery Factor</p>
+        <p id="recovery-factor" class="text-2xl font-bold text-text-primary">0.00</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
+        <p class="text-sm font-medium text-text-secondary">Longest Win Streak</p>
+        <p id="win-streak" class="text-2xl font-bold text-green-500">0</p>
+    </div>
+    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 200ms;">
+        <p class="text-sm font-medium text-text-secondary">Longest Loss Streak</p>
+        <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
+    </div>
+</div>
                          <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
     <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Trade Duration</h2>
     <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on how long trades were held.</p>
@@ -1088,7 +1092,7 @@
             'accounts-list', 'new-account-name', 'filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date',
             'filter-status', 'journal-page', 'analytics-page', 'goals-page', 'playbook-page', 'trade-history-body', 'total-pl', 'win-rate',
             'realized-rr', 'total-trades', 'avg-profit', 'avg-loss', 'account-growth', 'current-balance',
-            'profit-factor', 'expectancy', 'win-streak', 'loss-streak',
+            'profit-factor', 'expectancy', 'win-streak', 'loss-streak', 'recovery-factor', 
             'dailyPerformanceChart', 'hourlyPerformanceChart', 'tag-performance-body', 'psychology-performance-body',
             'index-performance-body', 'rr-analysis-body', 'calendar-body', 'calendar-month-year',
             'mcChart', 'mc-stats', 'reversal-analysis-body', 'calendar-day-title', 'calendar-day-trades',
@@ -1118,7 +1122,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content'
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 
 
 ];
         
@@ -2549,8 +2553,8 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
     setTimeout(() => {
         if (!dom['analytics-page'].classList.contains('hidden')) {
             // updateEquityCurveChart(tradesForAnalytics); // Commented out until we build it
-            updateDrawdownAnalysis(tradesForAnalytics);
-            updateAdvancedAnalytics(tradesForAnalytics);
+            const { maxDrawdownUSD } = updateDrawdownAnalysis(tradesForAnalytics);
+updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
             updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
             updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
@@ -3008,71 +3012,100 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
             }));
         };
 
-        const updateAdvancedAnalytics = (allTrades) => {
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-            const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-            if (closedTrades.length === 0) return;
+       const updateAdvancedAnalytics = (allTrades, maxDrawdownUSD) => {
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
 
-            const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
-            const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
+    // --- Reset all fields if there are no trades ---
+    if (closedTrades.length === 0) {
+        dom['profit-factor'].textContent = '0.00';
+        dom['expectancy'].textContent = '$0.00';
+        dom['win-streak'].textContent = '0';
+        dom['loss-streak'].textContent = '0';
+        if (dom['recovery-factor']) dom['recovery-factor'].textContent = '0.00';
+        // You might want to clear charts here too if they are not cleared elsewhere
+        return;
+    }
+
+    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
+    const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
+
+    const grossProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+    const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
+    const totalPL = grossProfit - grossLoss;
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : Infinity;
+
+    // --- NEW: Recovery Factor Calculation ---
+    let recoveryFactor = 0.00;
+    if (maxDrawdownUSD > 0) {
+        recoveryFactor = totalPL / maxDrawdownUSD;
+    } else if (totalPL > 0) {
+        recoveryFactor = Infinity; // No drawdown, but positive profit
+    }
+    
+    if (dom['recovery-factor']) {
+        dom['recovery-factor'].textContent = recoveryFactor === Infinity ? '∞' : recoveryFactor.toFixed(2);
+        dom['recovery-factor'].className = `text-2xl font-bold ${recoveryFactor >= 1 ? 'text-green-500' : 'text-red-500'}`;
+        if (recoveryFactor < 0 || recoveryFactor === 0) {
+            dom['recovery-factor'].className = `text-2xl font-bold text-red-500`;
+        }
+    }
+    // --- End of new logic ---
+
+    const winRate = (winningTrades.length + losingTrades.length) > 0 ? winningTrades.length / (winningTrades.length + losingTrades.length) : 0;
+    const lossRate = 1 - winRate;
+    const avgWin = winningTrades.length > 0 ? grossProfit / winningTrades.length : 0;
+    const avgLoss = losingTrades.length > 0 ? grossLoss / losingTrades.length : 0;
+    const expectancy = (winRate * avgWin) - (lossRate * avgLoss);
+
+    dom['profit-factor'].textContent = profitFactor === Infinity ? '∞' : profitFactor.toFixed(2);
+    dom['expectancy'].textContent = `$${expectancy.toFixed(2)}`;
+
+    let maxWinStreak = 0, currentWinStreak = 0, maxLossStreak = 0, currentLossStreak = 0;
+    closedTrades.forEach(trade => {
+        if (trade.profitLoss > breakevenThreshold) { currentWinStreak++; currentLossStreak = 0; maxWinStreak = Math.max(maxWinStreak, currentWinStreak); } 
+        else if (trade.profitLoss <= 0) { currentLossStreak++; currentWinStreak = 0; maxLossStreak = Math.max(maxLossStreak, currentLossStreak); }
+    });
+    dom['win-streak'].textContent = maxWinStreak;
+    dom['loss-streak'].textContent = maxLossStreak;
+
+    // ... (rest of the original chart logic remains the same)
+    const chartOptions = getChartColors();
             
-            const grossProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-            const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
-            const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : Infinity;
+    const dailyStats = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    closedTrades.forEach(t => dailyStats[days[new Date(t.timestamp).getDay()]] += t.profitLoss);
+    const dailyData = Object.values(dailyStats);
+    if(dailyPerfChart) dailyPerfChart.destroy();
+    dailyPerfChart = new Chart(dom['dailyPerformanceChart'], {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Total P/L by Day',
+                data: dailyData,
+                backgroundColor: dailyData.map(v => v >= 0 ? 'rgba(22, 163, 74, 0.6)' : 'rgba(220, 38, 38, 0.6)'),
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
+    });
 
-            const winRate = (winningTrades.length + losingTrades.length) > 0 ? winningTrades.length / (winningTrades.length + losingTrades.length) : 0;
-            const lossRate = 1 - winRate;
-            const avgWin = winningTrades.length > 0 ? grossProfit / winningTrades.length : 0;
-            const avgLoss = losingTrades.length > 0 ? grossLoss / losingTrades.length : 0;
-            const expectancy = (winRate * avgWin) - (lossRate * avgLoss);
-
-            dom['profit-factor'].textContent = profitFactor === Infinity ? '∞' : profitFactor.toFixed(2);
-            dom['expectancy'].textContent = `$${expectancy.toFixed(2)}`;
-
-            let maxWinStreak = 0, currentWinStreak = 0, maxLossStreak = 0, currentLossStreak = 0;
-            closedTrades.forEach(trade => {
-                if (trade.profitLoss > breakevenThreshold) { currentWinStreak++; currentLossStreak = 0; maxWinStreak = Math.max(maxWinStreak, currentWinStreak); } 
-                else if (trade.profitLoss <= 0) { currentLossStreak++; currentWinStreak = 0; maxLossStreak = Math.max(maxLossStreak, currentLossStreak); }
-            });
-            dom['win-streak'].textContent = maxWinStreak;
-            dom['loss-streak'].textContent = maxLossStreak;
-
-            const chartOptions = getChartColors();
-            
-            const dailyStats = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 };
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            closedTrades.forEach(t => dailyStats[days[new Date(t.timestamp).getDay()]] += t.profitLoss);
-            const dailyData = Object.values(dailyStats);
-            if(dailyPerfChart) dailyPerfChart.destroy();
-            dailyPerfChart = new Chart(dom['dailyPerformanceChart'], {
-                type: 'bar',
-                data: {
-                    labels: days,
-                    datasets: [{
-                        label: 'Total P/L by Day',
-                        data: dailyData,
-                        backgroundColor: dailyData.map(v => v >= 0 ? 'rgba(22, 163, 74, 0.6)' : 'rgba(220, 38, 38, 0.6)'),
-                    }]
-                },
-                options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
-            });
-
-            const hourlyStats = Array(24).fill(0);
-            closedTrades.forEach(t => hourlyStats[new Date(t.timestamp).getHours()] += t.profitLoss);
-            if(hourlyPerfChart) hourlyPerfChart.destroy();
-            hourlyPerfChart = new Chart(dom['hourlyPerformanceChart'], {
-                type: 'bar',
-                data: {
-                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-                    datasets: [{
-                        label: 'Total P/L by Hour',
-                        data: hourlyStats,
-                        backgroundColor: hourlyStats.map(v => v >= 0 ? 'rgba(79, 70, 229, 0.6)' : 'rgba(239, 68, 68, 0.6)'),
-                    }]
-                },
-                options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
-            });
-        };
+    const hourlyStats = Array(24).fill(0);
+    closedTrades.forEach(t => hourlyStats[new Date(t.timestamp).getHours()] += t.profitLoss);
+    if(hourlyPerfChart) hourlyPerfChart.destroy();
+    hourlyPerfChart = new Chart(dom['hourlyPerformanceChart'], {
+        type: 'bar',
+        data: {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [{
+                label: 'Total P/L by Hour',
+                data: hourlyStats,
+                backgroundColor: hourlyStats.map(v => v >= 0 ? 'rgba(79, 70, 229, 0.6)' : 'rgba(239, 68, 68, 0.6)'),
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
+    });
+};
         
         const updateTagAnalysis = (allTrades, tagType, bodyElement) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
@@ -3847,7 +3880,8 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                     plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Drawdown: ${-ctx.raw.y.toFixed(2)}%` } } }
                 }
             });
-        };
+       return { maxDrawdownUSD };
+ };
         
         const handleSavePlay = () => {
              const editingId = dom['editing-play-id'].value;
