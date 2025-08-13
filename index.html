@@ -303,26 +303,7 @@
 .tippy-box[data-theme~='light-border'][data-placement^='bottom']>.tippy-arrow:before {
     border-bottom-color: var(--border-color);
 }
-   /* --- CSS for Virtual Scrolling --- */
-#trade-history-viewport {
-    height: 150vh; /* Or any fixed height you prefer */
-    position: relative; /* This is essential for positioning the content */
-    overflow-y: auto; /* This makes the container scrollable */
-    flex-grow: 1; /* Allows it to fill the card space */
-}
-
-#trade-history-sizer {
-    position: relative;
-    width: 100%;
-}
-
-#trade-history-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-} 
-</style>
+    </style>
 </head>
 <body class="flex">
 
@@ -628,30 +609,36 @@
                             <button id="cancel-edit-btn" class="hidden w-full bg-tertiary text-text-primary font-bold py-2 px-4 rounded-lg hover:bg-border-color transition-colors mt-2">Cancel Edit</button>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 card p-6 rounded-xl shadow-sm animate-fade-in-up flex flex-col" style="animation-delay: 100ms;">
-    <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-text-primary">Trade History</h2>
-        <div id="filter-bar" class="flex flex-wrap items-center gap-2 text-sm">
-            <button id="reset-filters-btn" class="p-1.5 text-text-secondary hover:text-text-primary">Reset</button>
-        </div>
-    </div>
-    <div id="filter-status" class="text-xs text-accent-color mb-2 hidden"></div>
-
-    <div class="grid grid-cols-12 gap-4 text-xs text-text-secondary uppercase px-4 py-3 bg-bg-tertiary rounded-t-lg">
-        <div class="col-span-4">Trade Details</div>
-        <div class="col-span-2">Type</div>
-        <div class="col-span-2">R:R</div>
-        <div class="col-span-2">Net P/L ($)</div>
-        <div class="col-span-2">Actions</div>
-    </div>
-    
-    <div id="trade-history-viewport" class="overflow-y-auto flex-grow" style="height: 150vh; position: relative;">
-        <div id="trade-history-sizer" style="position: relative; width: 100%; height: 0;">
-            <div id="trade-history-content" style="position: absolute; top: 0; left: 0; width: 100%;">
-                </div>
-        </div>
-    </div>
-</div>
+                    <div class="lg:col-span-2 card p-6 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
+                        <div class="flex flex-wrap gap-4 items-center justify-between mb-4">
+                              <h2 class="text-xl font-semibold text-text-primary">Trade History</h2>
+                            <div id="filter-bar" class="flex flex-wrap items-center gap-2 text-sm">
+                                <select id="filter-instrument" class="form-input rounded-lg p-1.5"><option value="">All Instruments</option></select>
+                                <select id="filter-tag" class="form-input rounded-lg p-1.5"><option value="">All Tags</option></select>
+                                <select id="filter-psychology-tag" class="form-input rounded-lg p-1.5"><option value="">All Psychology</option></select>
+                                <select id="filter-type" class="form-input rounded-lg p-1.5"><option value="">All Types</option><option value="Buy">Buy</option><option value="Sell">Sell</option></select>
+                                <select id="filter-outcome" class="form-input rounded-lg p-1.5"><option value="">All Outcomes</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option><option value="open">Open</option></select>
+                                <input type="date" id="filter-start-date" class="form-input rounded-lg p-1.5 text-sm" title="Start Date">
+                                <input type="date" id="filter-end-date" class="form-input rounded-lg p-1.5 text-sm" title="End Date">
+                                <button id="reset-filters-btn" class="p-1.5 text-text-secondary hover:text-text-primary">Reset</button>
+                            </div>
+                        </div>
+                        <div id="filter-status" class="text-xs text-accent-color mb-2 hidden"></div>
+                        <div class="overflow-y-auto" style="max-height: 150vh;">
+                            <table class="w-full text-sm text-left">
+                                <thead class="text-xs text-text-secondary uppercase bg-bg-tertiary sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3">Trade Details</th>
+                                        <th scope="col" class="px-4 py-3">Type</th>
+                                        <th scope="col" class="px-4 py-3">R:R</th>
+                                        <th scope="col" class="px-4 py-3">Net P/L ($)</th>
+                                        <th scope="col" class="px-4 py-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trade-history-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1166,7 +1153,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'trade-history-viewport', 'trade-history-sizer', 'trade-history-content',
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 
 
 ];
         
@@ -2477,36 +2464,52 @@ dom['analytics-page'].addEventListener('click', (e) => {
         const filterValue = link.dataset.filterValue;
         applyDrillDown(filterType, filterValue);
     }
-}); dom['trade-history-viewport'].addEventListener('click', async (e) => {
-    // Find the closest trade row div
-    const row = e.target.closest('.grid');
-    if (!row) return;
+}); dom['trade-history-body'].addEventListener('click', async (e) => {
+        const detailsBtn = e.target.closest('.details-btn');
+        if (detailsBtn) {
+            detailsBtn.closest('tr').nextElementSibling.classList.toggle('open');
+        }
 
-    const editBtn = e.target.closest('.edit-trade-btn');
-    if (editBtn) {
-        enterEditMode(editBtn.dataset.id);
-    }
+        const editBtn = e.target.closest('.edit-trade-btn');
+        if (editBtn) {
+            enterEditMode(editBtn.dataset.id);
+        }
 
-    const deleteBtn = e.target.closest('.delete-trade-btn');
-    if (deleteBtn) {
-        const tradeIdToDelete = deleteBtn.dataset.id;
-        const confirmed = await showCustomModal({
-            title: 'Delete Trade',
-            text: 'Are you sure you want to delete this trade? This action cannot be undone.',
-            confirmText: 'Delete',
-        });
-        if (confirmed) {
-            const activeAccount = getActiveAccount();
-            const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
-            if(tradeIndex > -1) {
-                activeAccount.trades.splice(tradeIndex, 1);
-                saveAppData();
-                refreshUI();
-                showToast("Trade deleted", "info");
+        const deleteBtn = e.target.closest('.delete-trade-btn');
+        if (deleteBtn) {
+            const tradeIdToDelete = deleteBtn.dataset.id;
+            const confirmed = await showCustomModal({
+                title: 'Delete Trade',
+                text: 'Are you sure you want to delete this trade? This action cannot be undone.',
+                confirmText: 'Delete',
+            });
+            if (confirmed) {
+                const activeAccount = getActiveAccount();
+                const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
+                if(tradeIndex > -1) {
+                    activeAccount.trades.splice(tradeIndex, 1);
+                    saveAppData();
+                    refreshUI();
+                    showToast("Trade deleted", "info");
+                }
             }
         }
-    }
-});
+
+        const toggleBtn = e.target.closest('.toggle-review-btn');
+        if (toggleBtn) {
+            const grid = toggleBtn.closest('.trade-details-grid');
+            if (grid) {
+                grid.classList.toggle('review-collapsed');
+                const isCollapsed = grid.classList.contains('review-collapsed');
+                
+                toggleBtn.title = isCollapsed ? 'Show Review Panel' : 'Hide Review Panel';
+                toggleBtn.innerHTML = isCollapsed 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+            }
+        }
+    });
+}; 
         
         const handleImageDrop = (e) => {
             e.preventDefault();
@@ -2550,7 +2553,7 @@ dom['analytics-page'].addEventListener('click', (e) => {
             const filteredTrades = applyFilters();
             const allTrades = getActiveTrades();
             
-           updateVirtualScroll(filteredTrades);
+            renderTrades(filteredTrades);
             renderChecklists();
             updateFilterDropdowns();
             populatePlaybookSelect();
@@ -2613,115 +2616,113 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             }
         };
 
-        // --- Virtual Scrolling for Trade History ---
-const VIRTUAL_ROW_HEIGHT = 130; // Estimated height for a trade row + details row. Adjust if needed.
-const ROW_BUFFER = 5; // Render 5 extra rows above and below the viewport
-let virtualTrades = []; // Holds the trades to be rendered virtually
-
-const updateVirtualScroll = (tradesToRender) => {
-    virtualTrades = [...tradesToRender].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const viewport = dom['trade-history-viewport'];
-
-    // If no viewport, fallback or do nothing.
-    if (!viewport) return;
-    
-    // Attach the scroll event listener once
-    viewport.onscroll = () => renderVirtualWindow();
-
-    // Initial render
-    renderVirtualWindow();
-};
-
-const renderVirtualWindow = () => {
-    const viewport = dom['trade-history-viewport'];
-    const sizer = dom['trade-history-sizer'];
-    const content = dom['trade-history-content'];
-    
-    if (!viewport || !sizer || !content) return;
-    
-    // Calculate total size
-    const totalHeight = virtualTrades.length * VIRTUAL_ROW_HEIGHT;
-    sizer.style.height = `${totalHeight}px`;
-
-    // Calculate visible window
-    const scrollTop = viewport.scrollTop;
-    const viewportHeight = viewport.clientHeight;
-    
-    let startIndex = Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT);
-    let endIndex = Math.min(virtualTrades.length - 1, Math.ceil((scrollTop + viewportHeight) / VIRTUAL_ROW_HEIGHT));
-
-    // Apply buffer
-    startIndex = Math.max(0, startIndex - ROW_BUFFER);
-    endIndex = Math.min(virtualTrades.length - 1, endIndex + ROW_BUFFER);
-    
-    const itemsToRender = [];
-    for (let i = startIndex; i <= endIndex; i++) {
-        itemsToRender.push(renderSingleTradeRow(virtualTrades[i], i * VIRTUAL_ROW_HEIGHT));
+        const renderTrades = (tradesToRender) => {
+    const tradeHistoryBody = dom['trade-history-body'];
+    tradeHistoryBody.innerHTML = '';
+    if (tradesToRender.length === 0) { 
+        tradeHistoryBody.innerHTML = `<tr><td colspan="5" class="text-center text-text-secondary py-8">No trades match the current filters.</td></tr>`; 
+        return;
     }
-
-    if (virtualTrades.length === 0) {
-        content.innerHTML = `<div class="text-center text-text-secondary py-8">No trades match the current filters.</div>`;
-    } else {
-        content.innerHTML = itemsToRender.join('');
-    }
-};
-
-const renderSingleTradeRow = (trade, topOffset) => {
+    
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-    const isClosed = trade.profitLoss !== null;
-    let plText, plClass;
-    if (!isClosed) { plText = 'Open'; plClass = 'text-text-secondary'; } 
-    else if (trade.profitLoss > 0 && trade.profitLoss <= breakevenThreshold) { plText = 'Breakeven'; plClass = 'text-blue-500'; }
-    else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
-    else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
 
-    const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
-    const typeClass = trade.tradeType === 'Buy' ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300';
-    const tradeDate = new Date(trade.timestamp).toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'medium', timeStyle: 'short' });
+    const fragment = document.createDocumentFragment();
+    tradesToRender.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(trade => {
+        const row = document.createElement('tr');
+        row.className = 'border-b border-border-color';
+        
+        const isClosed = trade.profitLoss !== null;
+        let plText, plClass;
+        if (!isClosed) { plText = 'Open'; plClass = 'text-text-secondary'; } 
+        else if (trade.profitLoss > 0 && trade.profitLoss <= breakevenThreshold) { plText = 'Breakeven'; plClass = 'text-blue-500'; }
+        else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
+        else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
+        
+        const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
+        const typeClass = trade.tradeType === 'Buy' ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300';
+        const tradeDate = new Date(trade.timestamp).toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'medium', timeStyle: 'short' });
+        
+        const allTags = getActiveAccount().tags || [];
+        const allPsychologyTags = getActiveAccount().psychologyTags || [];
 
-    const allTags = getActiveAccount().tags || [];
-    const allPsychologyTags = getActiveAccount().psychologyTags || [];
+        const tagSpans = (trade.tags && trade.tags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.tags.map(tagName => {
+            const tagInfo = allTags.find(t => t.name === tagName);
+            const color = tagInfo ? tagInfo.color : '#8B5CF6';
+            return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
+        }).join('')}</div>` : '';
 
-    const tagSpans = (trade.tags && trade.tags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.tags.map(tagName => {
-        const tagInfo = allTags.find(t => t.name === tagName);
-        const color = tagInfo ? tagInfo.color : '#8B5CF6';
-        return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
-    }).join('')}</div>` : '';
+        const psychologyTagSpans = (trade.psychologyTags && trade.psychologyTags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.psychologyTags.map(tagName => {
+            const tagInfo = allPsychologyTags.find(t => t.name === tagName);
+            const color = tagInfo ? tagInfo.color : '#EC4899';
+            return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
+        }).join('')}</div>` : '';
 
-    const psychologyTagSpans = (trade.psychologyTags && trade.psychologyTags.length > 0) ? `<div class="flex flex-wrap gap-1 mt-1">${trade.psychologyTags.map(tagName => {
-        const tagInfo = allPsychologyTags.find(t => t.name === tagName);
-        const color = tagInfo ? tagInfo.color : '#EC4899';
-        return `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background-color: ${color}33; color: ${color};">${tagName}</span>`;
-    }).join('')}</div>` : '';
-    
-    // The details section (hidden by default)
-    const { grade, insights } = generateAdvancedInsights(trade);
-    const insightIconMap = { /* ... same as before ... */ }; // This can be copied from your old file or simplified if not needed here
-    const insightsHTML = insights.map(insight => `<li class="flex items-start gap-2 text-sm text-text-secondary">...</li>`).join(''); // Simplified
+        row.innerHTML = `
+            <td class="px-4 py-3 align-top">
+                <div class="font-medium text-text-primary">${trade.indexName}</div>
+                <div class="text-xs text-text-secondary">${tradeDate}</div>
+                ${tagSpans}
+                ${psychologyTagSpans}
+            </td>
+            <td class="px-4 py-3 align-top"><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeClass}">${trade.tradeType}</span></td>
+            <td class="px-4 py-3 font-medium align-top text-text-secondary">${rrText}</td>
+            <td class="px-4 py-3 font-bold align-top ${plClass}">${plText}</td>
+            <td class="px-4 py-3 align-top">
+                <div class="flex items-center space-x-2">
+                    <button class="details-btn text-accent-color hover:underline text-sm font-semibold">View</button>
+                    <button class="edit-trade-btn text-text-secondary hover:text-green-500" data-id="${trade.id}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                    <button class="delete-trade-btn text-text-secondary hover:text-red-500" data-id="${trade.id}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                </div>
+            </td>`;
+        
+        const detailsRow = document.createElement('tr');
+        detailsRow.className = 'details-row bg-bg-primary';
 
-    // Note: The expanding details part is complex with virtual scroll. 
-    // This simplified version renders the main row only. Expanding details would require dynamic height adjustments.
-    return `
-    <div class="grid grid-cols-12 gap-4 items-center px-4 py-3 border-b border-border-color text-sm" style="position: absolute; top: ${topOffset}px; width: 100%; height: ${VIRTUAL_ROW_HEIGHT}px;">
-        <div class="col-span-4">
-            <div class="font-medium text-text-primary">${trade.indexName}</div>
-            <div class="text-xs text-text-secondary">${tradeDate}</div>
-            ${tagSpans}
-            ${psychologyTagSpans}
-        </div>
-        <div class="col-span-2"><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeClass}">${trade.tradeType}</span></div>
-        <div class="col-span-2 font-medium text-text-secondary">${rrText}</div>
-        <div class="col-span-2 font-bold ${plClass}">${plText}</div>
-        <div class="col-span-2">
-            <div class="flex items-center space-x-2">
-                <button class="edit-trade-btn text-text-secondary hover:text-green-500" data-id="${trade.id}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ...></svg></button>
-                <button class="delete-trade-btn text-text-secondary hover:text-red-500" data-id="${trade.id}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ...></svg></button>
+        const { grade, insights } = generateAdvancedInsights(trade);
+        const insightIconMap = {
+            positive: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>',
+            negative: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>',
+            warning: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>',
+            info: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>',
+            neutral: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 5.168A1 1 0 008 6v1a1 1 0 002 0V6a1 1 0 00-1-1h-.445zM10 14a1 1 0 100-2 1 1 0 000 2zM8 9a1 1 0 112 0v1a1 1 0 11-2 0V9z" clip-rule="evenodd" /></svg>'
+        };
+        const insightsHTML = insights.map(insight => `
+            <li class="flex items-start gap-2 text-sm text-text-secondary insight-item">
+                ${insightIconMap[insight.type] || insightIconMap.neutral}
+                <span>${insight.text}</span>
+            </li>
+        `).join('');
+
+        detailsRow.innerHTML = `
+        <td colspan="5">
+            <div class="details-content">
+                <div class="trade-details-grid grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="rendered-notes prose dark:prose-invert max-w-none">${trade.notesHTML || '<p class="text-text-secondary">No notes or screenshots added.</p>'}</div>
+                    <div class="trade-insight-card p-4 rounded-lg">
+                        <h4 class="font-bold text-base text-text-primary mb-3 flex items-center justify-between">
+                            <span>Trade Management Review</span>
+                            <div class="flex items-center gap-2">
+                                ${grade !== 'N/A' ? `<span class="insight-grade grade-${grade.toLowerCase()}">${grade}</span>` : ''}
+                                <button class="toggle-review-btn p-1 rounded-full hover:bg-tertiary" title="Hide Review Panel">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                </button>
+                            </div>
+                        </h4>
+                        <ul class="space-y-2.5 list-none p-0">
+                            ${insightsHTML}
+                        </ul>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>`;
+        </td>`;
+        
+        fragment.appendChild(row);
+        fragment.appendChild(detailsRow);
+    });
+
+    tradeHistoryBody.appendChild(fragment);
 };
         
-           
      const updateSummary = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     dom['total-trades'].textContent = allTrades.length;
