@@ -13,12 +13,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <!-- jsPDF and html2canvas for PDF Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+     <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css" />
     <style>
         :root {
             --bg-primary: #1a1c23;
@@ -286,7 +290,19 @@
         ::-webkit-scrollbar-track { background: var(--bg-secondary); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
-
+         
+        /* Tippy.js Theme */
+.tippy-box[data-theme~='light-border'] {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+.tippy-box[data-theme~='light-border'][data-placement^='top']>.tippy-arrow:before {
+    border-top-color: var(--border-color);
+}
+.tippy-box[data-theme~='light-border'][data-placement^='bottom']>.tippy-arrow:before {
+    border-bottom-color: var(--border-color);
+}
     </style>
 </head>
 <body class="flex">
@@ -787,23 +803,38 @@
                     </div>
                    <div class="mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
-        <p class="text-sm font-medium text-text-secondary">Profit Factor</p>
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-text-secondary">Profit Factor</p>
+            <svg data-tippy-content="Gross Profit / Gross Loss. Measures how many dollars you make for every dollar you lose. A value > 1 is profitable." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
         <p id="profit-factor" class="text-2xl font-bold text-text-primary">0.00</p>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
-        <p class="text-sm font-medium text-text-secondary">Expectancy</p>
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-text-secondary">Expectancy</p>
+            <svg data-tippy-content="The average amount you can expect to win or lose per trade. Calculated as (Win Rate * Avg Win) - (Loss Rate * Avg Loss)." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
         <p id="expectancy" class="text-2xl font-bold text-text-primary">$0.00</p>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-        <p class="text-sm font-medium text-text-secondary">Recovery Factor</p>
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-text-secondary">Recovery Factor</p>
+            <svg data-tippy-content="Total Net Profit / Max Drawdown. Measures the system's ability to recover from its largest loss period. Higher is better." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
         <p id="recovery-factor" class="text-2xl font-bold text-text-primary">0.00</p>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
-        <p class="text-sm font-medium text-text-secondary">Longest Win Streak</p>
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-text-secondary">Longest Win Streak</p>
+            <svg data-tippy-content="The highest number of consecutive winning trades." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
         <p id="win-streak" class="text-2xl font-bold text-green-500">0</p>
     </div>
     <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 200ms;">
-        <p class="text-sm font-medium text-text-secondary">Longest Loss Streak</p>
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-text-secondary">Longest Loss Streak</p>
+            <svg data-tippy-content="The highest number of consecutive losing trades." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
         <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
     </div>
 </div>
@@ -1232,6 +1263,11 @@
             
             dom.sidebar.addEventListener('mouseenter', () => dom.sidebar.classList.add('group'));
             dom.sidebar.addEventListener('mouseleave', () => dom.sidebar.classList.remove('group'));
+        // Initialize Tippy.js for all elements with the data-tippy-content attribute
+tippy('[data-tippy-content]', {
+  animation: 'scale-subtle',
+  theme: 'light-border',
+});
         });
         
        const getChartColors = () => {
