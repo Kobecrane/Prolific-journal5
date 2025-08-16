@@ -1900,18 +1900,30 @@ const updateAdviser = (allTrades) => {
     // Best Strategy
     const tagStats = closedTrades.reduce((acc, trade) => { (trade.tags || []).forEach(tag => { if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 }; acc[tag].totalPL += trade.profitLoss; acc[tag].count++; }); return acc; }, {});
     metrics.topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-
+// Timeframe Performance
+const timeframeStats = closedTrades.reduce((acc, trade) => {
+    if (trade.timeframe) {
+        if (!acc[trade.timeframe]) acc[trade.timeframe] = { totalPL: 0, count: 0 };
+        acc[trade.timeframe].totalPL += trade.profitLoss;
+        acc[trade.timeframe].count++;
+    }
+    return acc;
+}, {});
+metrics.topTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
+metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
     // --- 2. DEFINE THE ADVANCED RULES ENGINE ---
     let strengths = [];
     let weaknesses = [];
 
     // --- STRENGTH IDENTIFICATION ---
+    if (metrics.topTimeframe) strengths.push({ score: 82, text: `High-Performing Timeframe ('${metrics.topTimeframe[0]}' has generated $${metrics.topTimeframe[1].totalPL.toFixed(2)})` });
     if (metrics.profitFactor >= 2) strengths.push({ score: 95, text: `Excellent Profitability (Profit Factor: ${metrics.profitFactor.toFixed(2)})` });
     if (metrics.realizedRR >= 2) strengths.push({ score: 90, text: `Superb Risk Management (Avg Win is ${metrics.realizedRR.toFixed(1)}x Avg Loss)` });
     if (metrics.topStrategy) strengths.push({ score: 85, text: `High-Performing Strategy ('${metrics.topStrategy[0]}' has generated $${metrics.topStrategy[1].totalPL.toFixed(2)})` });
     if (metrics.winRate > 65) strengths.push({ score: 80, text: `High Win Rate Accuracy (${metrics.winRate.toFixed(1)}%)` });
 
     // --- WEAKNESS IDENTIFICATION ---
+     if (metrics.worstTimeframe) weaknesses.push({ id: 'badTimeframe', score: 68, impact: Math.abs(metrics.worstTimeframe[1].totalPL), category: 'Patterns', title: `Performance Leak on ${metrics.worstTimeframe[0]} Timeframe`, description: `You have a clear negative pattern on the ${metrics.worstTimeframe[0]} timeframe, with a cumulative loss of $${Math.abs(metrics.worstTimeframe[1].totalPL).toFixed(2)}.` });
     if (metrics.profitFactor < 1) weaknesses.push({ id: 'unprofitable', score: 100, impact: Math.abs(metrics.totalProfit + metrics.totalLoss), category: 'Profitability', title: "System is Unprofitable", description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. This is the most critical issue as your total losses currently outweigh your total profits.` });
     if (metrics.realizedRR < 1 && metrics.avgLoss > 0) weaknesses.push({ id: 'negativeRR', score: 90, impact: metrics.avgLoss - metrics.avgWin, category: 'Risk Management', title: "Negative Risk:Reward", description: `Your average loss ($${metrics.avgLoss.toFixed(2)}) is bigger than your average win ($${metrics.avgWin.toFixed(2)}), making long-term profitability very difficult.` });
     if (metrics.riskConsistencyRatio > 0.6) weaknesses.push({ id: 'badSizing', score: 85, impact: metrics.riskStdDev, category: 'Risk Management', title: "Inconsistent Position Sizing", description: `Your risk per trade is highly erratic. This makes your equity curve unpredictable and suggests emotional sizing.` });
@@ -1968,7 +1980,12 @@ const updateAdviser = (allTrades) => {
         'badExits': ["1. **Implement a Breakeven Rule:** Once a trade reaches 1R in profit, move your stop loss to your entry price. This is your #1 priority.", "2. **Partial Profits:** Consider taking 50% profit at 1.5R or 2R. This secures gains and makes it easier to hold for the final target.", "3. **Study Your MFE:** Review the 'Slipped P/L' metric in your analytics. This is money you are leaving on the table."],
         'noDiscipline': ["1. **Print Your Checklist:** Keep a physical copy on your desk. Touch each item before entering a trade.", "2. **Introduce a 'Cool-off' Period:** If you break a rule, you must stop trading for the rest of the day.", "3. **Accountability:** At the end of each day, write one sentence explaining why you followed or broke your rules."],
         'badDay': [`1. **Analyze All ${worstDay ? worstDay[0] : ''} Trades:** What do they have in common? Are you forcing setups? Is volume low?`, `2. **Cut Risk in Half:** For the next 4 weeks, trade with 50% of your normal size on ${worstDay ? worstDay[0] : ''}s.`, `3. **Consider Taking it Off:** If performance doesn't improve, use that day for review and study instead of live trading.`],
-        'psychology': [`1. **Identify the Trigger:** Before each trade, pause and ask, "Am I feeling ${metrics.topPsychologyLeak ? metrics.topPsychologyLeak[0] : 'emotional'}?".`, `2. **Create a State-Change Routine:** If the answer is yes, you MUST step away. Walk, listen to music, stretch. Do not trade until you feel neutral.`, `3. **Journal the Emotion:** Write down *why* you felt that way. Was it after a loss? A big win? A news event? Finding the source is key.`]
+        'psychology': [`1. **Identify the Trigger:** Before each trade, pause and ask, "Am I feeling ${metrics.topPsychologyLeak ? metrics.topPsychologyLeak[0] : 'emotional'}?".`, `2. **Create a State-Change Routine:** If the answer is yes, you MUST step away. Walk, listen to music, stretch. Do not trade until you feel neutral.`, `3. **Journal the Emotion:** Write down *why* you felt that way. Was it after a loss? A big win? A news event? Finding the source is key.`],
+       'badTimeframe': [
+    `1. <strong>Analyze All Losing Trades</strong> on the ${metrics.worstTimeframe ? metrics.worstTimeframe[0] : ''} timeframe. Is the setup less clear? Are you forcing trades?`,
+    `2. <strong>Impose a Rule:</strong> For the next 20 trades, either avoid this timeframe completely or reduce your position size by 75% when trading on it.`,
+    `3. <strong>Compare to Your Best Timeframe:</strong> What are the key differences in market conditions or your own execution versus your most profitable timeframe?`
+]
     };
 
 
