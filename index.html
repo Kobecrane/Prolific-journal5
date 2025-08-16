@@ -1900,30 +1900,64 @@ const updateAdviser = (allTrades) => {
     // Best Strategy
     const tagStats = closedTrades.reduce((acc, trade) => { (trade.tags || []).forEach(tag => { if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 }; acc[tag].totalPL += trade.profitLoss; acc[tag].count++; }); return acc; }, {});
     metrics.topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-// Timeframe Performance
-const timeframeStats = closedTrades.reduce((acc, trade) => {
-    if (trade.timeframe) {
-        if (!acc[trade.timeframe]) acc[trade.timeframe] = { totalPL: 0, count: 0 };
-        acc[trade.timeframe].totalPL += trade.profitLoss;
-        acc[trade.timeframe].count++;
-    }
-    return acc;
-}, {});
-metrics.topTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
+
+    // *** NEW LOGIC: Analyze Strategy Tag Pairs ***
+    const tagPairStats = {};
+    closedTrades.forEach(trade => {
+        if (trade.tags && trade.tags.length >= 2) {
+            const sortedTags = [...trade.tags].sort(); // Create a sorted copy
+            for (let i = 0; i < sortedTags.length; i++) {
+                for (let j = i + 1; j < sortedTags.length; j++) {
+                    const pairKey = `${sortedTags[i]}|${sortedTags[j]}`; // Use a delimiter
+                    if (!tagPairStats[pairKey]) {
+                        tagPairStats[pairKey] = { totalPL: 0, count: 0 };
+                    }
+                    tagPairStats[pairKey].totalPL += trade.profitLoss;
+                    tagPairStats[pairKey].count++;
+                }
+            }
+        }
+    });
+
+    const MIN_PAIR_TRADES = 3; // Minimum trades for a pair to be considered significant
+    const significantPairs = Object.entries(tagPairStats)
+        .filter(([key, data]) => data.count >= MIN_PAIR_TRADES && data.totalPL > 0)
+        .sort((a, b) => b[1].totalPL - a[1].totalPL);
+    
+    metrics.topTagPair = significantPairs.length > 0 ? significantPairs[0] : null;
+    // *** END OF NEW LOGIC ***
+    
+    // Timeframe Performance
+    const timeframeStats = closedTrades.reduce((acc, trade) => {
+        if (trade.timeframe) {
+            if (!acc[trade.timeframe]) acc[trade.timeframe] = { totalPL: 0, count: 0 };
+            acc[trade.timeframe].totalPL += trade.profitLoss;
+            acc[trade.timeframe].count++;
+        }
+        return acc;
+    }, {});
+    metrics.topTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
+    metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
+    
     // --- 2. DEFINE THE ADVANCED RULES ENGINE ---
     let strengths = [];
     let weaknesses = [];
 
     // --- STRENGTH IDENTIFICATION ---
-    if (metrics.topTimeframe) strengths.push({ score: 82, text: `High-Performing Timeframe ('${metrics.topTimeframe[0]}' has generated $${metrics.topTimeframe[1].totalPL.toFixed(2)})` });
     if (metrics.profitFactor >= 2) strengths.push({ score: 95, text: `Excellent Profitability (Profit Factor: ${metrics.profitFactor.toFixed(2)})` });
     if (metrics.realizedRR >= 2) strengths.push({ score: 90, text: `Superb Risk Management (Avg Win is ${metrics.realizedRR.toFixed(1)}x Avg Loss)` });
+    // Add the new synergy check
+    if (metrics.topTagPair) {
+        const pairName = metrics.topTagPair[0].replace('|', ' & ');
+        const pairData = metrics.topTagPair[1];
+        strengths.push({ score: 88, text: `Powerful Tag Synergy ('${pairName}' combination is highly profitable, generating $${pairData.totalPL.toFixed(2)})` });
+    }
     if (metrics.topStrategy) strengths.push({ score: 85, text: `High-Performing Strategy ('${metrics.topStrategy[0]}' has generated $${metrics.topStrategy[1].totalPL.toFixed(2)})` });
+    if (metrics.topTimeframe) strengths.push({ score: 82, text: `High-Performing Timeframe ('${metrics.topTimeframe[0]}' has generated $${metrics.topTimeframe[1].totalPL.toFixed(2)})` });
     if (metrics.winRate > 65) strengths.push({ score: 80, text: `High Win Rate Accuracy (${metrics.winRate.toFixed(1)}%)` });
 
+
     // --- WEAKNESS IDENTIFICATION ---
-     if (metrics.worstTimeframe) weaknesses.push({ id: 'badTimeframe', score: 68, impact: Math.abs(metrics.worstTimeframe[1].totalPL), category: 'Patterns', title: `Performance Leak on ${metrics.worstTimeframe[0]} Timeframe`, description: `You have a clear negative pattern on the ${metrics.worstTimeframe[0]} timeframe, with a cumulative loss of $${Math.abs(metrics.worstTimeframe[1].totalPL).toFixed(2)}.` });
     if (metrics.profitFactor < 1) weaknesses.push({ id: 'unprofitable', score: 100, impact: Math.abs(metrics.totalProfit + metrics.totalLoss), category: 'Profitability', title: "System is Unprofitable", description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. This is the most critical issue as your total losses currently outweigh your total profits.` });
     if (metrics.realizedRR < 1 && metrics.avgLoss > 0) weaknesses.push({ id: 'negativeRR', score: 90, impact: metrics.avgLoss - metrics.avgWin, category: 'Risk Management', title: "Negative Risk:Reward", description: `Your average loss ($${metrics.avgLoss.toFixed(2)}) is bigger than your average win ($${metrics.avgWin.toFixed(2)}), making long-term profitability very difficult.` });
     if (metrics.riskConsistencyRatio > 0.6) weaknesses.push({ id: 'badSizing', score: 85, impact: metrics.riskStdDev, category: 'Risk Management', title: "Inconsistent Position Sizing", description: `Your risk per trade is highly erratic. This makes your equity curve unpredictable and suggests emotional sizing.` });
@@ -1932,13 +1966,12 @@ metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => d
     const worstDay = Object.entries(metrics.dailyPerformance).filter(([d, data]) => data.count > 4 && data.pl < 0).sort((a,b) => a[1].pl - b[1].pl)[0];
     if (worstDay) weaknesses.push({ id: 'badDay', score: 70, impact: Math.abs(worstDay[1].pl), category: 'Patterns', title: `Performance Leak on ${worstDay[0]}s`, description: `You have a clear negative pattern on ${worstDay[0]}s, with a cumulative loss of $${Math.abs(worstDay[1].pl).toFixed(2)}.` });
     if (metrics.topPsychologyLeak) weaknesses.push({ id: 'psychology', score: 65, impact: Math.abs(metrics.topPsychologyLeak[1].totalPL), category: 'Psychology', title: `Psychological Leak: '${metrics.topPsychologyLeak[0]}'`, description: `Trading while feeling '${metrics.topPsychologyLeak[0]}' is your most expensive emotional error.` });
-    
+    if (metrics.worstTimeframe) weaknesses.push({ id: 'badTimeframe', score: 68, impact: Math.abs(metrics.worstTimeframe[1].totalPL), category: 'Patterns', title: `Performance Leak on ${metrics.worstTimeframe[0]} Timeframe`, description: `You have a clear negative pattern on the ${metrics.worstTimeframe[0]} timeframe, with a cumulative loss of $${Math.abs(metrics.worstTimeframe[1].totalPL).toFixed(2)}.` });
+
     // --- 3. CORRELATE DATA FOR "TOXIC COMBOS" ---
     if(weaknesses.length > 0) {
-        // Find links between top weakness and other data
         weaknesses.sort((a, b) => b.score - a.score);
         const topWeakness = weaknesses[0];
-
         let correlationDetail = '';
 
         if (topWeakness.id === 'noDiscipline' && metrics.topPsychologyLeak) {
@@ -1982,10 +2015,10 @@ metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => d
         'badDay': [`1. **Analyze All ${worstDay ? worstDay[0] : ''} Trades:** What do they have in common? Are you forcing setups? Is volume low?`, `2. **Cut Risk in Half:** For the next 4 weeks, trade with 50% of your normal size on ${worstDay ? worstDay[0] : ''}s.`, `3. **Consider Taking it Off:** If performance doesn't improve, use that day for review and study instead of live trading.`],
         'psychology': [`1. **Identify the Trigger:** Before each trade, pause and ask, "Am I feeling ${metrics.topPsychologyLeak ? metrics.topPsychologyLeak[0] : 'emotional'}?".`, `2. **Create a State-Change Routine:** If the answer is yes, you MUST step away. Walk, listen to music, stretch. Do not trade until you feel neutral.`, `3. **Journal the Emotion:** Write down *why* you felt that way. Was it after a loss? A big win? A news event? Finding the source is key.`],
        'badTimeframe': [
-    `1. <strong>Analyze All Losing Trades</strong> on the ${metrics.worstTimeframe ? metrics.worstTimeframe[0] : ''} timeframe. Is the setup less clear? Are you forcing trades?`,
-    `2. <strong>Impose a Rule:</strong> For the next 20 trades, either avoid this timeframe completely or reduce your position size by 75% when trading on it.`,
-    `3. <strong>Compare to Your Best Timeframe:</strong> What are the key differences in market conditions or your own execution versus your most profitable timeframe?`
-]
+            `1. <strong>Analyze All Losing Trades</strong> on the ${metrics.worstTimeframe ? metrics.worstTimeframe[0] : ''} timeframe. Is the setup less clear? Are you forcing trades?`,
+            `2. <strong>Impose a Rule:</strong> For the next 20 trades, either avoid this timeframe completely or reduce your position size by 75% when trading on it.`,
+            `3. <strong>Compare to Your Best Timeframe:</strong> What are the key differences in market conditions or your own execution versus your most profitable timeframe?`
+        ]
     };
 
 
