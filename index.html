@@ -306,6 +306,39 @@
     </style>
 </head>
 <body class="flex">
+<svg width="0" height="0" style="position:absolute;z-index:-1;">
+    <defs>
+        <filter id="pro-drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+            <feOffset in="blur" dx="1" dy="2" result="offsetBlur"/>
+            <feFlood flood-color="#000" flood-opacity="0.2" result="offsetColor"/>
+            <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur"/>
+            <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <linearGradient id="pro-gradient-green" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#4ade80;" />
+            <stop offset="100%" style="stop-color:#16a34a;" />
+        </linearGradient>
+        <linearGradient id="pro-gradient-red" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#f87171;" />
+            <stop offset="100%" style="stop-color:#dc2626;" />
+        </linearGradient>
+        <linearGradient id="pro-gradient-sparkline-win" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#22c55e; stop-opacity:0.4" />
+            <stop offset="100%" style="stop-color:#22c55e; stop-opacity:0" />
+        </linearGradient>
+        <linearGradient id="pro-gradient-sparkline-loss" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#ef4444; stop-opacity:0.4" />
+            <stop offset="100%" style="stop-color:#ef4444; stop-opacity:0" />
+        </linearGradient>
+    </defs>
+</svg>
+<style>
+    .pro-shadow { filter: url(#pro-drop-shadow); }
+</style>
 
     <!-- Sidebar Navigation -->
     <aside id="sidebar" class="sidebar w-20 hover:w-64 bg-secondary h-screen flex flex-col p-4 border-r border-border-color fixed top-0 left-0 z-40">
@@ -1653,38 +1686,45 @@ const generateAdvancedInsights = (trade) => {
         // ADD THESE THREE NEW FUNCTIONS TO YOUR SCRIPT
 const renderProlificScoreGauge = (score) => {
     const container = dom['prolific-score-gauge'];
-    const colors = getChartColors(); // Get current theme colors
+    const colors = getChartColors();
     const percentage = score || 0;
     const circumference = 2 * Math.PI * 28;
     const strokeOffset = circumference - (percentage / 100) * circumference;
 
-    let colorClass = 'text-red-500';
-    if (percentage >= 75) colorClass = 'text-green-500';
-    else if (percentage >= 50) colorClass = 'text-yellow-500';
-    else if (percentage >= 25) colorClass = 'text-orange-500';
+    let colorStop1 = '#ef4444'; let colorStop2 = '#b91c1c';
+    if (percentage >= 75) { colorStop1 = '#4ade80'; colorStop2 = '#16a34a'; }
+    else if (percentage >= 50) { colorStop1 = '#facc15'; colorStop2 = '#ca8a04'; }
+    else if (percentage >= 25) { colorStop1 = '#fb923c'; colorStop2 = '#ea580c'; }
 
     container.innerHTML = `
         <svg viewBox="0 0 64 64" class="w-full h-full transform -rotate-90">
+            <defs>
+                <linearGradient id="pro-score-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:${colorStop1};" />
+                    <stop offset="100%" style="stop-color:${colorStop2};" />
+                </linearGradient>
+            </defs>
             <circle stroke-width="8" stroke="${colors.gaugeBase}" fill="transparent" r="28" cx="32" cy="32"></circle>
-            <circle class="${colorClass}"
+            <circle class="pro-shadow"
                 stroke-width="8"
                 stroke-dasharray="${circumference}"
                 stroke-dashoffset="${strokeOffset}"
                 stroke-linecap="round"
-                stroke="currentColor"
+                stroke="url(#pro-score-gradient)"
                 fill="transparent"
                 r="28" cx="32" cy="32"
-                style="transition: stroke-dashoffset 0.5s ease-out;"
+                style="transition: stroke-dashoffset 0.8s cubic-bezier(0.25, 1, 0.5, 1);"
             ></circle>
-            <text class="text-lg font-bold ${colorClass}" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" transform="rotate(90 32 32)">
-                ${Math.round(percentage)}
+            <text fill="${colors.textColor}" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" transform="rotate(90 32 32)">
+                <tspan font-size="18" font-weight="800" fill="${colorStop1}">${Math.round(percentage)}</tspan>
+                <tspan font-size="10" font-weight="600" fill="${colors.textColor}" dx="-2">%</tspan>
             </text>
         </svg>
     `;
 };
 const renderTotalPLSparkline = (trades) => {
     const container = dom['pl-sparkline'];
-    const closedTrades = trades.filter(t => t.profitLoss !== null).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).slice(-20);
+    const closedTrades = trades.filter(t => t.profitLoss !== null).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)).slice(-30);
     if (closedTrades.length < 2) {
         container.innerHTML = '';
         return;
@@ -1704,43 +1744,33 @@ const renderTotalPLSparkline = (trades) => {
         const y = height - ((p - min) / range) * height;
         return `${x.toFixed(2)},${y.toFixed(2)}`;
     }).join(' ');
-
-    const lastPoint = cumulativePl[cumulativePl.length - 1];
-    const firstPoint = cumulativePl[0];
-    const color = lastPoint >= firstPoint ? '#22c55e' : '#ef4444';
+    
+    const areaPoints = `${points} ${width},${height} 0,${height}`;
+    const isWin = cumulativePl[cumulativePl.length - 1] >= cumulativePl[0];
+    const color = isWin ? '#22c55e' : '#ef4444';
+    const gradientId = isWin ? 'url(#pro-gradient-sparkline-win)' : 'url(#pro-gradient-sparkline-loss)';
 
     container.innerHTML = `
         <svg viewBox="0 0 ${width} ${height}" class="w-full h-full" preserveAspectRatio="none">
-            <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polygon points="${areaPoints}" fill="${gradientId}"/>
+            <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="pro-shadow"/>
         </svg>
     `;
 };
 
 const renderWinRateDonut = (winRate) => {
     const container = dom['winrate-donut'];
-    const colors = getChartColors(); // Get current theme colors
+    const colors = getChartColors();
     const percentage = winRate || 0;
-    const circumference = 2 * Math.PI * 15.9155;
-    const strokeOffset = circumference - (percentage / 100) * circumference;
-    const colorClass = percentage >= 50 ? 'text-green-500' : 'text-red-500';
-
-    container.innerHTML = `
-        <svg viewBox="0 0 36 36" class="w-full h-full">
-            <circle stroke-width="4" stroke="${colors.donutBase}" fill="transparent" r="15.9155" cx="18" cy="18"></circle>
-            <circle class="${colorClass}"
-                stroke-width="4"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${strokeOffset}"
-                stroke-linecap="round"
-                stroke="currentColor"
-                fill="transparent"
-                r="15.9155" cx="18" cy="18"
-                transform="rotate(-90 18 18)"
-            ></circle>
-        </svg>
+    const color = percentage >= 50 ? '#22c55e' : '#ef4444';
+    
+    container.style.background = `
+        radial-gradient(${colors.donutBase} 55%, transparent 56%),
+        conic-gradient(${color} 0% ${percentage}%, ${colors.gaugeBase} ${percentage}% 100%)
     `;
+    container.style.borderRadius = '50%';
+    container.classList.add('pro-shadow');
 };
-
 
 const renderRRBarChart = (avgWin, avgLoss) => {
     const container = dom['rr-barchart'];
@@ -1754,11 +1784,12 @@ const renderRRBarChart = (avgWin, avgLoss) => {
 
     container.innerHTML = `
         <svg viewBox="0 0 48 40" class="w-full h-full">
-            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="#22c55e" rx="2"></rect>
-            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="#ef4444" rx="2"></rect>
+            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="url(#pro-gradient-green)" rx="4" class="pro-shadow"></rect>
+            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="url(#pro-gradient-red)" rx="4" class="pro-shadow"></rect>
         </svg>
     `;
-}; const renderAvgWinLossBars = (avgWin, avgLoss) => {
+};
+const renderAvgWinLossBars = (avgWin, avgLoss) => {
     const container = dom['avg-win-loss-bars'];
     if (avgWin <= 0 && avgLoss <= 0) {
         container.innerHTML = '';
@@ -1770,8 +1801,8 @@ const renderRRBarChart = (avgWin, avgLoss) => {
 
     container.innerHTML = `
         <svg viewBox="0 0 48 40" class="w-full h-full">
-            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="#22c55e" rx="2"></rect>
-            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="#ef4444" rx="2"></rect>
+            <rect x="5" y="${100 - winHeight}%" width="16" height="${winHeight}%" fill="url(#pro-gradient-green)" rx="4" class="pro-shadow"></rect>
+            <rect x="27" y="${100 - lossHeight}%" width="16" height="${lossHeight}%" fill="url(#pro-gradient-red)" rx="4" class="pro-shadow"></rect>
         </svg>
     `;
 };
