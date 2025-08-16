@@ -523,6 +523,20 @@
                                     <option value="">None</option>
                                 </select>
                             </div>
+                             <div>
+    <label for="entry-timeframe" class="block text-sm font-medium text-text-secondary">Entry Timeframe</label>
+    <select id="entry-timeframe" class="form-input mt-1 w-full p-2 rounded-lg">
+        <option value="1m">1 Minute</option>
+        <option value="3m">3 Minutes</option>
+        <option value="5m">5 Minutes</option>
+        <option value="15m">15 Minutes</option>
+        <option value="30m">30 Minutes</option>
+        <option value="1H">1 Hour</option>
+        <option value="4H">4 Hours</option>
+        <option value="D">Daily</option>
+        <option value="W">Weekly</option>
+    </select>
+</div>
                             <div>
                   <div class="flex justify-between items-center">
                       <label class="block text-sm font-medium text-text-secondary">Pre-Trade Checklist</label>
@@ -614,6 +628,7 @@
                               <h2 class="text-xl font-semibold text-text-primary">Trade History</h2>
                             <div id="filter-bar" class="flex flex-wrap items-center gap-2 text-sm">
                                 <select id="filter-instrument" class="form-input rounded-lg p-1.5"><option value="">All Instruments</option></select>
+                                <select id="filter-timeframe" class="form-input rounded-lg p-1.5"><option value="">All Timeframes</option></select>
                                 <select id="filter-tag" class="form-input rounded-lg p-1.5"><option value="">All Tags</option></select>
                                 <select id="filter-psychology-tag" class="form-input rounded-lg p-1.5"><option value="">All Psychology</option></select>
                                 <select id="filter-type" class="form-input rounded-lg p-1.5"><option value="">All Types</option><option value="Buy">Buy</option><option value="Sell">Sell</option></select>
@@ -924,6 +939,10 @@
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2>
                         <div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                     </div>
+                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Entry Timeframe</h2>
+    <div id="timeframe-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
                      <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Planned Risk : Reward Analysis</h2>
                         <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p>
@@ -1153,7 +1172,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 
 
 ];
         
@@ -2033,7 +2052,7 @@ const updateAdviser = (allTrades) => {
         const resetForm = () => {
             const form = dom['log-trade-btn'].closest('div.space-y-4');
             form.querySelectorAll('input, select').forEach(el => {
-                if(el.type !== 'checkbox' && el.type !== 'radio' && el.id !== 'num-positions' && el.id !== 'index-selector'  && el.id !== 'playbook-select') el.value = '';
+                if(el.type !== 'checkbox' && el.type !== 'radio' && el.id !== 'num-positions' && el.id !== 'index-selector'  && el.id !== 'playbook-select' && el.id !== 'entry-timeframe' ) el.value = '';
             });
             dom['num-positions'].value = '1';
             dom['trade-comments-editor'].innerHTML = '';
@@ -2067,6 +2086,7 @@ const updateAdviser = (allTrades) => {
             dom['fees'].value = tradeToEdit.fees || '';
             dom['trade-comments-editor'].innerHTML = tradeToEdit.notesHTML || '';
             dom['playbook-select'].value = tradeToEdit.playId || '';
+            dom['entry-timeframe'].value = tradeToEdit.timeframe || '15m'; // Default to 15m if not set
             if (tradeToEdit.tradeType === 'Buy') dom['buy-btn'].click(); else dom['sell-btn'].click();
             console.log('Editing trade, checklist data:', tradeToEdit.checklistMet);   
             renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
@@ -2086,6 +2106,7 @@ const updateAdviser = (allTrades) => {
              const fees = dom['fees'].value.trim() === '' ? 0 : parseFloat(dom['fees'].value);
              const notesHTML = dom['trade-comments-editor'].innerHTML.trim();
              const playId = dom['playbook-select'].value || null;
+             const timeframe = dom['entry-timeframe'].value;
 
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
              const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
@@ -2108,7 +2129,7 @@ const updateAdviser = (allTrades) => {
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems  };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems, timeframe  };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -2121,7 +2142,7 @@ const updateAdviser = (allTrades) => {
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems // Add this line
+                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe
                        });
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
@@ -2373,11 +2394,11 @@ const updateChecklistAnalysis = (trades) => {
             dom['import-file'].addEventListener('change', importData);
             dom['export-pdf-btn'].addEventListener('click', generatePDF);
 
-            ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => {
+            ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date', 'filter-timeframe'].forEach(id => {
                if(dom[id]) dom[id].addEventListener('change', refreshUI);
             });
             dom['reset-filters-btn'].addEventListener('click', () => {
-                ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date'].forEach(id => dom[id].value = '');
+                ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date', 'filter-timeframe'].forEach(id => dom[id].value = '');
                 refreshUI();
             });
             
@@ -2566,7 +2587,7 @@ dom['analytics-page'].addEventListener('click', (e) => {
 // PASTE THIS CORRECTED BLOCK IN ITS PLACE
 
 if (!dom['analytics-page'].classList.contains('hidden')) {
-    let tradesForAnalytics = applyFilters(); 
+  let tradesForAnalytics = applyFilters(); 
 
     if (analyticsDrillDownFilter) {
         tradesForAnalytics = tradesForAnalytics.filter(trade => {
@@ -2594,6 +2615,7 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
             updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
             updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
+            updateGenericBreakdownAnalysis(tradesForAnalytics, 'timeframe', dom['timeframe-performance-body'], 'Timeframe');
             updateRRAnalysis(tradesForAnalytics);
             updateRRPerformanceAnalysis(tradesForAnalytics);
             updateTradeCalendar(); 
@@ -2661,6 +2683,7 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             <td class="px-4 py-3 align-top">
                 <div class="font-medium text-text-primary">${trade.indexName}</div>
                 <div class="text-xs text-text-secondary">${tradeDate}</div>
+                 <div class="text-xs font-semibold text-accent-color mt-1">${trade.timeframe || ''}</div>
                 ${tagSpans}
                 ${psychologyTagSpans}
             </td>
@@ -3555,6 +3578,7 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             reader.readAsText(file);
         };
         const applyFilters = () => {
+            const timeframe = dom['filter-timeframe'].value;
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const allTrades = getActiveTrades();
             const instrument = dom['filter-instrument'].value;
@@ -3568,12 +3592,13 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             const startDate = startDateString ? new Date(startDateString + 'T00:00:00') : null;
             const endDate = endDateString ? new Date(endDateString + 'T23:59:59') : null;
 
-            let activeFilterCount = [instrument, tag, psychologyTag, type, outcome, startDateString, endDateString].filter(Boolean).length;
+            let activeFilterCount = [instrument, tag, psychologyTag, type, outcome, startDateString, timeframe, endDateString].filter(Boolean).length;
 
             dom['filter-status'].classList.toggle('hidden', activeFilterCount === 0);
             if(activeFilterCount > 0) dom['filter-status'].textContent = `${activeFilterCount} filter(s) active. Dashboard stats reflect filtered data.`;
 
             return allTrades.filter(trade => {
+                if (timeframe && trade.timeframe !== timeframe) return false;
                 if (instrument && trade.indexName !== instrument) return false;
                 if (tag && (!trade.tags || !trade.tags.includes(tag))) return false;
                 if (psychologyTag && (!trade.psychologyTags || !trade.psychologyTags.includes(psychologyTag))) return false;
@@ -3596,6 +3621,7 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
         };
         const updateFilterDropdowns = () => {
             const allTrades = getActiveTrades();
+            const timeframes = [...new Set(allTrades.map(t => t.timeframe).filter(Boolean))].sort();
             const instruments = [...new Set(allTrades.map(t => t.indexName))].sort();
             const tags = getActiveAccount().tags.map(t => t.name).sort();
             const psychologyTags = getActiveAccount().psychologyTags.map(t => t.name).sort();
@@ -3606,7 +3632,7 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 options.forEach(opt => selectEl.innerHTML += `<option value="${opt}">${opt}</option>`);
                 selectEl.value = currentValue;
             };
-
+            updateSelect(dom['filter-timeframe'], timeframes, 'Timeframes');
             updateSelect(dom['filter-instrument'], instruments, 'Instruments');
             updateSelect(dom['filter-tag'], tags, 'Tags');
             updateSelect(dom['filter-psychology-tag'], psychologyTags, 'Psychology');
