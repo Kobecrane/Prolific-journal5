@@ -3403,11 +3403,12 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             body.innerHTML = '';
 
             const reversedTrades = allTrades.filter(t => 
-                t.profitLoss <= breakevenThreshold && 
-                t.peakPrice !== null && 
-                !isNaN(t.peakPrice) &&
-                calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > 0
-            );
+    t.profitLoss !== null && 
+    t.profitLoss <= breakevenThreshold && 
+    t.peakPrice !== null && 
+    !isNaN(t.peakPrice) &&
+    calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > 0
+);
 
             if (reversedTrades.length === 0) {
                 body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No reversed trades with potential profit to analyze.</p>';
