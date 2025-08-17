@@ -1031,6 +1031,13 @@
                         <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Planned R:R</h2>
                         <div id="rr-performance-body" class="space-y-4">
                         </div>
+                  </div> 
+<div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
+                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Target vs. Stop Pip Analysis</h2>
+                        <p class="text-xs text-text-secondary mb-4 -mt-3">Compares the average pip/point movement for trades that hit their full Take Profit vs. their Stop Loss.</p>
+                        <div id="pip-analysis-body">
+                            </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1205,7 +1212,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body',
 
 ];
         
@@ -2668,6 +2675,7 @@ dom['analytics-page'].addEventListener('click', (e) => {
 // PASTE THIS CORRECTED BLOCK IN ITS PLACE
 
 if (!dom['analytics-page'].classList.contains('hidden')) {
+      updatePipAnalysis(tradesForAnalytics);
   let tradesForAnalytics = applyFilters(); 
 
     if (analyticsDrillDownFilter) {
@@ -3409,7 +3417,6 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
     !isNaN(t.peakPrice) &&
     calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > 0
 );
-
             if (reversedTrades.length === 0) {
                 body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No reversed trades with potential profit to analyze.</p>';
                 return;
@@ -4477,6 +4484,78 @@ const riskData = riskTrades.map(trade => {
                 "hide_side_toolbar": false,
                 "container_id": "tradingview-widget-container"
             });
+        };
+const updatePipAnalysis = (allTrades) => {
+            const body = dom['pip-analysis-body'];
+            if (!body) return;
+            body.innerHTML = ''; // Clear previous content
+
+            /**
+             * Helper function to calculate the absolute pip/point movement for a given trade.
+             * It correctly handles Forex, JPY pairs, and indices/commodities.
+             * @param {object} trade - The trade object.
+             * @returns {number} The absolute movement in pips or points.
+             */
+            const getPipMovement = (trade) => {
+                if (!trade.exitPrice || !trade.entryPrice) return 0;
+                let movement = Math.abs(trade.exitPrice - trade.entryPrice);
+                // Check if it's a Forex pair
+                if (trade.indexName.includes('/')) {
+                    // Adjust multiplier for JPY pairs vs. standard pairs
+                    movement *= (trade.indexName.includes('JPY') ? 100 : 10000);
+                }
+                return movement;
+            };
+
+            // Filter for trades that closed precisely at their defined TP or SL
+            const tpHitTrades = allTrades.filter(t => t.takeProfit !== null && t.exitPrice !== null && t.takeProfit === t.exitPrice);
+            const slHitTrades = allTrades.filter(t => t.stopLoss !== null && t.exitPrice !== null && t.stopLoss === t.exitPrice);
+
+            // Calculate the average pip movement for each category
+            const avgTpPips = tpHitTrades.length > 0 ? tpHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / tpHitTrades.length : 0;
+            const avgSlPips = slHitTrades.length > 0 ? slHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / slHitTrades.length : 0;
+
+            // If there's no data, display an informative message
+            if (tpHitTrades.length === 0 && slHitTrades.length === 0) {
+                body.innerHTML = '<p class="text-center text-text-secondary">Log trades that close exactly at your TP or SL to enable this analysis.</p>';
+                return;
+            }
+
+            // Determine the maximum value for scaling the bar chart correctly
+            const maxValue = Math.max(avgTpPips, avgSlPips, 1); // Use 1 as a minimum to prevent division by zero
+            const tpBarWidth = (avgTpPips / maxValue) * 100;
+            const slBarWidth = (avgSlPips / maxValue) * 100;
+
+            // Render the complete HTML for the analysis card, including the graphical bars
+            body.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="font-semibold text-green-400">TP-Hit Trades (${tpHitTrades.length})</span>
+                            <span class="text-lg font-bold text-green-400">${avgTpPips.toFixed(1)} pips/pts</span>
+                        </div>
+                        <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Reward: ${avgTpPips.toFixed(1)} pips/pts">
+                            <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
+                                 style="width: ${tpBarWidth}%; background-image: linear-gradient(to right, #4ade80, #16a34a);">
+                                Avg. Reward
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="font-semibold text-red-400">SL-Hit Trades (${slHitTrades.length})</span>
+                            <span class="text-lg font-bold text-red-400">${avgSlPips.toFixed(1)} pips/pts</span>
+                        </div>
+                        <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Risk: ${avgSlPips.toFixed(1)} pips/pts">
+                            <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
+                                 style="width: ${slBarWidth}%; background-image: linear-gradient(to right, #f87171, #dc2626);">
+                                Avg. Risk
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         };
 
     </script>
