@@ -1881,7 +1881,7 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
         </svg>
     `;
 };
-        const updateTradeDurationPerformance = (allTrades) => {
+const updateTradeDurationPerformance = (allTrades) => {
     const body = dom['trade-duration-performance-body'];
     body.innerHTML = '';
     const closedTrades = allTrades.filter(t => t.profitLoss !== null && t.exitTimestamp !== null);
@@ -1891,7 +1891,6 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
         return;
     }
 
-    // Define duration buckets in milliseconds
     const durationBuckets = {
         'Under 15 min': { min: 0, max: 15 * 60 * 1000, trades: 0, wins: 0, totalPL: 0 },
         '15-60 min': { min: 15 * 60 * 1000, max: 60 * 60 * 1000, trades: 0, wins: 0, totalPL: 0 },
@@ -1899,13 +1898,12 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
         '4+ hours': { min: 4 * 60 * 60 * 1000, max: Infinity, trades: 0, wins: 0, totalPL: 0 }
     };
   
-
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
     closedTrades.forEach(trade => {
         const entryTime = new Date(trade.timestamp).getTime();
         const exitTime = new Date(trade.exitTimestamp).getTime();
-        const duration = exitTime - entryTime; // Duration in milliseconds
+        const duration = exitTime - entryTime;
 
         for (const bucketName in durationBuckets) {
             const bucket = durationBuckets[bucketName];
@@ -1915,7 +1913,7 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
                 if (trade.profitLoss > breakevenThreshold) {
                     bucket.wins++;
                 }
-                break; // Assign to the first matching bucket
+                break;
             }
         }
     });
@@ -1937,8 +1935,14 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
         `;
         fragment.appendChild(bucketEl);
     }
-    body.appendChild(fragment);
+
+    if (fragment.children.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary">No closed trades with duration data to analyze.</p>';
+    } else {
+        body.appendChild(fragment);
+    }
 };
+        updateTradeDurationPerformance
  // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE "SUPER ADVANCED" VERSION ======
 
 const updateAdviser = (allTrades) => {
@@ -2426,8 +2430,9 @@ const updateChecklistAnalysis = (trades) => {
         return;
     }
 
-    const compliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length === checklist.length);
-    const nonCompliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length !== checklist.length);
+    const closedTrades = trades.filter(t => t.profitLoss !== null);
+    const compliantTrades = closedTrades.filter(t => t.checklistMet?.length === checklist.length);
+    const nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
 
     const createStatCard = (title, tradeSet, bgColor) => {
         const totalPL = tradeSet.reduce((sum, t) => sum + t.profitLoss, 0);
@@ -2451,7 +2456,8 @@ const updateChecklistAnalysis = (trades) => {
         ${createStatCard('Compliant Trades', compliantTrades, 'bg-green-900/20')}
         ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
     `;
-};        const setupEventListeners = () => {
+};    
+const setupEventListeners = () => {
             // Inside setupEventListeners function
 const setupPipAnalysisSettings = () => {
     dom['pip-analysis-settings-btn'].addEventListener('click', (e) => {
@@ -3508,85 +3514,67 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             dom['calendar-day-modal'].classList.add('open');
         };
         const updateReversalAnalysis = (allTrades) => {
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-            const body = dom['reversal-analysis-body'];
-            body.innerHTML = '';
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const body = dom['reversal-analysis-body'];
+    body.innerHTML = '';
 
-            const reversedTrades = allTrades.filter(t => 
-    t.profitLoss !== null && 
-    t.profitLoss <= breakevenThreshold && 
-    t.peakPrice !== null && 
-    !isNaN(t.peakPrice) &&
-    calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > 0
-);
-            if (reversedTrades.length === 0) {
-                body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No reversed trades with potential profit to analyze.</p>';
-                return;
+    const reversedTrades = allTrades.filter(t => 
+        t.profitLoss !== null && 
+        t.profitLoss <= breakevenThreshold && 
+        t.peakPrice !== null && 
+        !isNaN(t.peakPrice) &&
+        calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > 0
+    );
+
+    if (reversedTrades.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">Log losing trades with a "Peak Profit Price" to see this analysis.</p>';
+        return;
+    }
+
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const weeklyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfWeek);
+    const monthlyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfMonth);
+    const yearlyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfYear);
+    
+    const createAnalysisCard = (trades, periodName) => {
+        if (trades.length === 0) {
+            return `<div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
+                        <h3 class="font-bold text-lg text-text-primary">${periodName}</h3>
+                        <p class="mt-2 text-sm text-text-secondary">No reversals in this period.</p>
+                    </div>`;
+        }
+
+        let totalSlippedProfit = 0;
+        trades.forEach(trade => {
+            const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
+            if (peakProfit > 0) {
+                 totalSlippedProfit += (peakProfit - Math.max(0, trade.profitLoss));
             }
+        });
+        
+        return `<div class="reversal-card">
+                    <h3 class="reversal-card-header">${periodName} (${trades.length} Reversals)</h3>
+                    <div class="mt-2 space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-text-secondary">Total Slipped Profit:</span><span class="reversal-card-stat-value">$${totalSlippedProfit.toFixed(2)}</span></div>
+                    </div>
+                </div>`;
+    };
 
-            const now = new Date();
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
-
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-            const weeklyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfWeek);
-            const monthlyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfMonth);
-            const yearlyReversals = reversedTrades.filter(t => new Date(t.timestamp) >= startOfYear);
-            
-            const createAnalysisCard = (trades, periodName) => {
-                if (trades.length === 0) {
-                    return `<div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
-                                <h3 class="font-bold text-lg text-text-primary">${periodName}</h3>
-                                <p class="mt-2 text-sm text-text-secondary">No reversals in this period.</p>
-                            </div>`;
-                }
-
-                let totalPotentialProfit = 0;
-                let totalHoldTime = 0;
-                const tagFreq = {};
-                const assetFreq = {};
-
-                trades.forEach(trade => {
-                    const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
-                    if (peakProfit > 0) totalPotentialProfit += (peakProfit - (trade.profitLoss > 0 ? trade.profitLoss : 0));
-                    
-                    if(trade.exitTimestamp) {
-                        totalHoldTime += new Date(trade.exitTimestamp) - new Date(trade.timestamp);
-                    }
-
-                    (trade.tags || []).forEach(t => tagFreq[t] = (tagFreq[t] || 0) + 1);
-                    assetFreq[trade.indexName] = (assetFreq[trade.indexName] || 0) + 1;
-                });
-                
-                const findTopItem = (freqMap) => Object.keys(freqMap).length > 0 ? Object.entries(freqMap).sort((a,b) => b[1] - a[1])[0][0] : 'N/A';
-                
-                const topTag = findTopItem(tagFreq);
-                const topAsset = findTopItem(assetFreq);
-                const avgHoldTime = totalHoldTime / trades.length;
-
-                return `<div class="reversal-card">
-                            <h3 class="reversal-card-header">${periodName} (${trades.length} Reversals)</h3>
-                            <div class="mt-2 space-y-2 text-sm">
-                                <div class="flex justify-between"><span class="text-text-secondary">Profit Slipped:</span><span class="reversal-card-stat-value">$${totalPotentialProfit.toFixed(2)}</span></div>
-                                <div class="flex justify-between"><span class="text-text-secondary">Avg. Hold Time:</span><span class="reversal-card-stat-value">${formatDuration(avgHoldTime)}</span></div>
-                                <hr class="my-1 border-border-color">
-                                <div class="flex justify-between"><span class="text-text-secondary">Top Reversed Asset:</span><span class="font-semibold text-text-primary">${topAsset}</span></div>
-                                <div class="flex justify-between"><span class="text-text-secondary">Top Associated Tag:</span><span class="font-semibold" style="color: var(--accent-color);">${topTag}</span></div>
-                            </div>
-                        </div>`;
-            };
-
-            body.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    ${createAnalysisCard(weeklyReversals, 'This Week')}
-                    ${createAnalysisCard(monthlyReversals, 'This Month')}
-                    ${createAnalysisCard(yearlyReversals, 'This Year')}
-                </div>
-            `;
-        };
+    body.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${createAnalysisCard(weeklyReversals, 'This Week')}
+            ${createAnalysisCard(monthlyReversals, 'This Month')}
+            ${createAnalysisCard(yearlyReversals, 'This Year')}
+        </div>
+    `;
+};
         const updateExcursionAnalysis = (allTrades) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
@@ -4396,129 +4384,128 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             dom[`${type === 'sl' ? 'stop-loss' : 'take-profit'}`].value = finalPrice.toFixed(decimalPlaces);
         };
 
-        const updateRiskConsistencyTracker = (allTrades) => {
-           const riskTrades = allTrades
-               .filter(t => t.stopLoss !== null && !isNaN(t.stopLoss) && t.entryPrice !== null)
-               .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+       const updateRiskConsistencyTracker = (allTrades) => {
+   const riskTrades = allTrades
+       .filter(t => t.stopLoss !== null && !isNaN(t.stopLoss) && t.entryPrice !== null)
+       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-           if (riskConsistencyChart) riskConsistencyChart.destroy();
-           
-           if (riskTrades.length < 2) {
-               const canvas = dom.riskConsistencyChart;
-               if (canvas) {
-                  const ctx = canvas.getContext('2d');
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-               }
-               return;
-           }
+   if (riskConsistencyChart) riskConsistencyChart.destroy();
+   
+   if (riskTrades.length < 2) {
+       const canvas = dom.riskConsistencyChart;
+       if (canvas) {
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          // Optionally, display a message on the canvas
+          ctx.font = "14px Inter";
+          ctx.fillStyle = getChartColors().textColor;
+          ctx.textAlign = "center";
+          ctx.fillText("Log at least 2 trades with a Stop Loss to see this chart.", canvas.width / 2, canvas.height / 2);
+       }
+       return;
+   }
 
-          // This is the new, more accurate calculation
-const riskData = riskTrades.map(trade => {
-    // We can reuse our main P/L function to accurately find the potential loss (our risk)
+  const riskData = riskTrades.map(trade => {
     const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
-    
-    // We use Math.abs because a loss is negative, but risk is a positive value.
     return { x: new Date(trade.timestamp), y: Math.abs(riskInDollars || 0) };
-});
+  });
 
-           const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
-           const avgRisk = totalRisk / riskData.length;
+   const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
+   const avgRisk = totalRisk / riskData.length;
 
-             const chartOptions = getChartColors();
-           riskConsistencyChart = new Chart(dom.riskConsistencyChart, {
-               type: 'line',
-               data: { // The data object should contain the datasets
-                   datasets: [{
-                       label: 'Risk per Trade ($)',
-                       data: riskData,
-                       borderColor: 'rgba(234, 179, 8, 0.8)', // Amber color
-                       backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                       fill: true,
-                       pointRadius: 3,
-                       pointHoverRadius: 5,
-                   }, {
-                       label: 'Average Risk ($)',
-                       data: riskData.map(d => ({ x: d.x, y: avgRisk })),
-                       borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
-                       borderDash: [5, 5],
-                       borderWidth: 2,
-                       pointRadius: 0,
-                       fill: false,
-                   }]
-               },
-
-// ...
-               options: {
-                   responsive: true,
-                   maintainAspectRatio: false,
-                   scales: {
-                       x: { type: 'time', time: { unit: 'day' }, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } },
-                       y: { 
-                           beginAtZero: true, 
-                           grid: { color: chartOptions.gridColor }, 
-                           ticks: { color: chartOptions.textColor, callback: (value) => `$${value.toFixed(0)}` } 
-                       }
-                   },
-                   plugins: { 
-                       legend: { display: true, labels: { color: chartOptions.textColor } },
-                       tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: $${ctx.raw.y.toFixed(2)}` } }
-                   }
+     const chartOptions = getChartColors();
+   riskConsistencyChart = new Chart(dom.riskConsistencyChart, {
+       type: 'line',
+       data: {
+           datasets: [{
+               label: 'Risk per Trade ($)',
+               data: riskData,
+               borderColor: 'rgba(234, 179, 8, 0.8)',
+               backgroundColor: 'rgba(234, 179, 8, 0.1)',
+               fill: true,
+               pointRadius: 3,
+               pointHoverRadius: 5,
+           }, {
+               label: 'Average Risk ($)',
+               data: riskData.map(d => ({ x: d.x, y: avgRisk })),
+               borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
+               borderDash: [5, 5],
+               borderWidth: 2,
+               pointRadius: 0,
+               fill: false,
+           }]
+       },
+       options: {
+           responsive: true,
+           maintainAspectRatio: false,
+           scales: {
+               x: { type: 'time', time: { unit: 'day' }, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } },
+               y: { 
+                   beginAtZero: true, 
+                   grid: { color: chartOptions.gridColor }, 
+                   ticks: { color: chartOptions.textColor, callback: (value) => `$${value.toFixed(0)}` } 
                }
-           });
-        };
+           },
+           plugins: { 
+               legend: { display: true, labels: { color: chartOptions.textColor } },
+               tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: $${ctx.raw.y.toFixed(2)}` } }
+           }
+       }
+   });
+};
 
         const updateRRPerformanceAnalysis = (allTrades) => {
-            const body = dom['rr-performance-body'];
-            body.innerHTML = '';
-            const rrTrades = allTrades.filter(t => t.rrRatio !== null && t.rrRatio > 0 && t.profitLoss !== null);
+    const body = dom['rr-performance-body'];
+    body.innerHTML = '';
+    const rrTrades = allTrades.filter(t => t.rrRatio !== null && t.rrRatio > 0 && t.profitLoss !== null);
 
-            if (rrTrades.length === 0) {
-                body.innerHTML = '<p class="text-center text-text-secondary">No trades with planned R:R to analyze.</p>';
-                return;
-            }
+    if (rrTrades.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary">No trades with both SL and TP to analyze.</p>';
+        return;
+    }
 
-            const rrBuckets = {
-                'Under 1R': { trades: 0, wins: 0, totalPL: 0 },
-                '1R - 1.9R': { trades: 0, wins: 0, totalPL: 0 },
-                '2R - 2.9R': { trades: 0, wins: 0, totalPL: 0 },
-                '3R+': { trades: 0, wins: 0, totalPL: 0 }
-            };
+    const rrBuckets = {
+        'Under 1R': { trades: 0, wins: 0, totalPL: 0 },
+        '1R - 1.9R': { trades: 0, wins: 0, totalPL: 0 },
+        '2R - 2.9R': { trades: 0, wins: 0, totalPL: 0 },
+        '3R+': { trades: 0, wins: 0, totalPL: 0 }
+    };
 
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
-            rrTrades.forEach(trade => {
-                let bucket;
-                if (trade.rrRatio < 1) bucket = 'Under 1R';
-                else if (trade.rrRatio < 2) bucket = '1R - 1.9R';
-                else if (trade.rrRatio < 3) bucket = '2R - 2.9R';
-                else bucket = '3R+';
+    rrTrades.forEach(trade => {
+        let bucket;
+        if (trade.rrRatio < 1) bucket = 'Under 1R';
+        else if (trade.rrRatio < 2) bucket = '1R - 1.9R';
+        else if (trade.rrRatio < 3) bucket = '2R - 2.9R';
+        else bucket = '3R+';
 
-                rrBuckets[bucket].trades++;
-                rrBuckets[bucket].totalPL += trade.profitLoss;
-                if (trade.profitLoss > breakevenThreshold) {
-                    rrBuckets[bucket].wins++;
-                }
-            });
+        rrBuckets[bucket].trades++;
+        rrBuckets[bucket].totalPL += trade.profitLoss;
+        if (trade.profitLoss > breakevenThreshold) {
+            rrBuckets[bucket].wins++;
+        }
+    });
 
-            const fragment = document.createDocumentFragment();
-            for (const [bucketName, stats] of Object.entries(rrBuckets)) {
-                if (stats.trades === 0) continue;
+    const fragment = document.createDocumentFragment();
+    for (const [bucketName, stats] of Object.entries(rrBuckets)) {
+        if (stats.trades === 0) continue;
 
-                const winRate = (stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0).toFixed(1);
-                const plClass = stats.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
+        const winRate = (stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0).toFixed(1);
+        const plClass = stats.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
 
-                const bucketEl = document.createElement('div');
-                bucketEl.className = 'grid grid-cols-4 items-center bg-tertiary/50 p-3 rounded-lg text-sm';
-                bucketEl.innerHTML = `
-                    <div class="font-bold text-text-primary col-span-1">${bucketName}</div>
-                    <div class="text-center"><span class="font-semibold text-text-primary">${stats.trades}</span> <span class="text-text-secondary">trades</span></div>
-                    <div class="text-center"><span class="font-semibold text-text-primary">${winRate}%</span> <span class="text-text-secondary">win rate</span></div>
-                    <div class="text-right font-bold ${plClass}">$${stats.totalPL.toFixed(2)}</div>
-                `;
-                fragment.appendChild(bucketEl);
-            }
-            body.appendChild(fragment);
-        };
+        const bucketEl = document.createElement('div');
+        bucketEl.className = 'grid grid-cols-4 items-center bg-tertiary/50 p-3 rounded-lg text-sm';
+        bucketEl.innerHTML = `
+            <div class="font-bold text-text-primary col-span-1">${bucketName}</div>
+            <div class="text-center"><span class="font-semibold text-text-primary">${stats.trades}</span> <span class="text-text-secondary">trades</span></div>
+            <div class="text-center"><span class="font-semibold text-text-primary">${winRate}%</span> <span class="text-text-secondary">win rate</span></div>
+            <div class="text-right font-bold ${plClass}">$${stats.totalPL.toFixed(2)}</div>
+        `;
+        fragment.appendChild(bucketEl);
+    }
+    body.appendChild(fragment);
+};
 
         const updateAvgWinLossComparison = (allTrades) => {
             const container = dom['avg-win-loss-comparison'];
