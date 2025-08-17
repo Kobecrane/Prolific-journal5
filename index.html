@@ -303,7 +303,60 @@
 .tippy-box[data-theme~='light-border'][data-placement^='bottom']>.tippy-arrow:before {
     border-bottom-color: var(--border-color);
 }
-    </style>
+/* START: Redesigned Analytics Page CSS */
+.analytics-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem; /* 12px */
+    padding: 1.5rem; /* 24px */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    transition: all 0.2s ease-in-out;
+}
+.analytics-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    border-color: var(--accent-color);
+}
+.analytics-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* 8px */
+    font-size: 1.125rem; /* 18px */
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.analytics-subheader {
+    font-size: 0.875rem; /* 14px */
+    color: var(--text-secondary);
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+}
+
+.kpi-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.kpi-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.kpi-value {
+    font-size: 1.875rem; /* 30px */
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+/* END: Redesigned Analytics Page CSS */    
+</style>
 </head>
 <body class="flex">
 <svg width="0" height="0" style="position:absolute;z-index:-1;">
@@ -814,257 +867,247 @@
 
             <!-- Analytics Page -->
             <div id="analytics-page" class="hidden">
-             <div id="drilldown-status-bar" class="hidden items-center justify-between bg-accent-color/20 text-accent-color p-3 rounded-lg mb-4">
+    <div id="drilldown-status-bar" class="hidden items-center justify-between bg-accent-color/20 text-accent-color p-3 rounded-lg mb-6">
         <p class="font-semibold">Showing analytics for: <span id="drilldown-filter-name" class="font-bold underline"></span></p>
         <button id="clear-drilldown-btn" class="font-bold text-lg hover:text/white">&times;</button>
     </div>
-      <div id="adviser-panel" class="card p-6 rounded-xl shadow-sm animate-fade-in-up mb-6 border-l-4 border-accent-color">
-                <h2 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v2.5a1.5 1.5 0 01-3 0v-.5a1 1 0 00-1-1h-3a1 1 0 00-1 1v10a1 1 0 001 1h3a1 1 0 001-1v-.5a1.5 1.5 0 013 0V18a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V6a1 1 0 011-1h3a1 1 0 011 1v.5a1.5 1.5 0 003 0V3.5z" />
-                    </svg>
-                    <span>Trading Adviser</span>
-                </h2>
-                <div id="adviser-content" class="space-y-4">
-                    </div>
+
+    <div class="space-y-6" id="analytics-content-for-pdf">
+        
+        <div id="adviser-panel" class="card p-6 rounded-xl shadow-sm animate-fade-in-up border-l-4 border-accent-color">
+            <h2 class="analytics-header">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v2.5a1.5 1.5 0 01-3 0v-.5a1 1 0 00-1-1h-3a1 1 0 00-1 1v10a1 1 0 001 1h3a1 1 0 001-1v-.5a1.5 1.5 0 013 0V18a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V6a1 1 0 011-1h3a1 1 0 011 1v.5a1.5 1.5 0 003 0V3.5z" />
+                </svg>
+                <span>Trading Adviser</span>
+            </h2>
+            <div id="adviser-content" class="space-y-4 mt-4"></div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Profit Factor</span>
+                    <svg data-tippy-content="Gross Profit / Gross Loss. Measures how many dollars you make for every dollar you lose. A value > 1 is profitable." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <p id="profit-factor" class="kpi-value">0.00</p>
             </div>
-                 <div class="space-y-6" id="analytics-content-for-pdf">
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Drawdown Analysis</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                            <div>
-                                <p class="text-sm font-medium text-text-secondary">Max Drawdown ($)</p>
-                                <p id="max-drawdown-usd" class="text-2xl font-bold text-red-500">$0.00</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-text-secondary">Max Drawdown (%)</p>
-                                <p id="max-drawdown-pct" class="text-2xl font-bold text-red-500">0.00%</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-text-secondary">Longest Drawdown</p>
-                                <p id="longest-drawdown-period" class="text-2xl font-bold text-red-500">0 days</p>
-                            </div>
-                        </div>
-                        <div class="mt-4 h-48">
-                            <canvas id="drawdownChart"></canvas>
-                        </div>
-                    </div>
-                   <div class="mb-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up">
-        <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-text-secondary">Profit Factor</p>
-            <svg data-tippy-content="Gross Profit / Gross Loss. Measures how many dollars you make for every dollar you lose. A value > 1 is profitable." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Expectancy</span>
+                    <svg data-tippy-content="The average amount you can expect to win or lose per trade. Calculated as (Win Rate * Avg Win) - (Loss Rate * Avg Loss)." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <p id="expectancy" class="kpi-value">$0.00</p>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Recovery Factor</span>
+                     <svg data-tippy-content="Total Net Profit / Max Drawdown. Measures the system's ability to recover from its largest loss period. Higher is better." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <p id="recovery-factor" class="kpi-value">0.00</p>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Longest Win Streak</span>
+                </div>
+                <p id="win-streak" class="kpi-value text-green-500">0</p>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">
+                    <span>Longest Loss Streak</span>
+                </div>
+                <p id="loss-streak" class="kpi-value text-red-500">0</p>
+            </div>
         </div>
-        <p id="profit-factor" class="text-2xl font-bold text-text-primary">0.00</p>
-    </div>
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 50ms;">
-        <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-text-secondary">Expectancy</p>
-            <svg data-tippy-content="The average amount you can expect to win or lose per trade. Calculated as (Win Rate * Avg Win) - (Loss Rate * Avg Loss)." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.707 4.293a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L10 8.586l4.293-4.293a1 1 0 011.414 0zm-2.828 8.001a1 1 0 01-1.414 0L9 10.586l-1.293 1.293a1 1 0 11-1.414-1.414l2-2a1 1 0 011.414 0l3 3a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
+                    <span>Drawdown Analysis</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mt-4">
+                    <div>
+                        <p class="text-sm font-medium text-text-secondary">Max Drawdown ($)</p>
+                        <p id="max-drawdown-usd" class="text-2xl font-bold text-red-500">$0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-text-secondary">Max Drawdown (%)</p>
+                        <p id="max-drawdown-pct" class="text-2xl font-bold text-red-500">0.00%</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-text-secondary">Longest Drawdown</p>
+                        <p id="longest-drawdown-period" class="text-2xl font-bold text-red-500">0 days</p>
+                    </div>
+                </div>
+                <div class="mt-4 h-48"><canvas id="drawdownChart"></canvas></div>
+            </div>
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    <span>Risk Consistency Tracker</span>
+                </h2>
+                 <p class="analytics-subheader">Plots the initial dollar risk for each trade with a defined Stop Loss.</p>
+                <div class="mt-4 h-64"><canvas id="riskConsistencyChart"></canvas></div>
+            </div>
         </div>
-        <p id="expectancy" class="text-2xl font-bold text-text-primary">$0.00</p>
-    </div>
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-        <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-text-secondary">Recovery Factor</p>
-            <svg data-tippy-content="Total Net Profit / Max Drawdown. Measures the system's ability to recover from its largest loss period. Higher is better." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
-        <p id="recovery-factor" class="text-2xl font-bold text-text-primary">0.00</p>
-    </div>
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 150ms;">
-        <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-text-secondary">Longest Win Streak</p>
-            <svg data-tippy-content="The highest number of consecutive winning trades." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
-        <p id="win-streak" class="text-2xl font-bold text-green-500">0</p>
-    </div>
-    <div class="card p-4 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 200ms;">
-        <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-text-secondary">Longest Loss Streak</p>
-            <svg data-tippy-content="The highest number of consecutive losing trades." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
-        <p id="loss-streak" class="text-2xl font-bold text-red-500">0</p>
-    </div>
-</div>
-                         <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Trade Duration</h2>
-    <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on how long trades were held.</p>
-    <div id="trade-duration-performance-body" class="space-y-4">
-        <!-- Data will be populated here by JavaScript -->
-    </div>
-</div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                            <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Day of Week</h2>
-                            <canvas id="dailyPerformanceChart"></canvas>
-                        </div>
-                        <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up" style="animation-delay: 100ms;">
-                            <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Hour of Day</h2>
-                            <canvas id="hourlyPerformanceChart"></canvas>
-                        </div>
-                    </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Risk Consistency Tracker</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Plots the initial dollar risk for each trade with a defined Stop Loss.</p>
-                        <div class="h-64">
-                            <canvas id="riskConsistencyChart"></canvas>
-                        </div>
-                    </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden">
-                            <div class="bg-bg-secondary p-4">
-                                <h3 class="font-semibold text-center text-red-400">MAE on Winners</h3>
-                                <p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p>
-                                <div class="flex justify-between items-baseline">
-                                    <span class="text-sm font-medium text-text-secondary">Avg. MAE</span>
-                                    <span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span>
-                                </div>
-                                <div class="flex justify-between items-baseline mt-1">
-                                    <span class="text-sm font-medium text-text-secondary">Total MAE</span>
-                                    <span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span>
-                                </div>
-                                <div class="mt-3">
-                                    <p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p>
-                                    <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
-                                        <div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-bg-secondary p-4">
-                                <h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3>
-                                <p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p>
-                                <div class="flex justify-between items-baseline">
-                                    <span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span>
-                                    <span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span>
-                                </div>
-                                <div class="flex justify-between items-baseline mt-1">
-                                    <span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span>
-                                    <span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span>
-                                </div>
-                                 <div class="mt-3">
-                                    <p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p>
-                                    <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
-                                        <div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Strategy Tag</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom strategy tags.</p>
-                        <div id="tag-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                    </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Psychology & Performance Analysis</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p>
-                        <div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                    </div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Checklist Adherence</h2>
-    <p class="text-xs text-text-secondary mb-4 -mt-3">Compares performance of disciplined vs. undisciplined trades.</p>
-    <div id="checklist-analysis-body" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        </div>
-</div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2>
-                        <div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                    </div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Entry Timeframe</h2>
-    <div id="timeframe-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-</div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Planned Risk : Reward Analysis</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p>
-                        <div id="rr-analysis-body"></div>
-                    </div>
-                   <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2>
-    
-    <div class="flex items-center justify-between mb-4">
-        <button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button>
-        <h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3>
-        <button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button>
-    </div>
 
-    <div class="flex justify-center mb-4">
-        <div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg">
-            <button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button>
-            <button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button>
-            <button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button>
+        <div>
+            <h2 class="text-2xl font-bold mb-4">Performance Deep Dive</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="analytics-card">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" /></svg>
+                        <span>By Day of Week</span>
+                    </h2>
+                    <div class="mt-4 h-48"><canvas id="dailyPerformanceChart"></canvas></div>
+                </div>
+                <div class="analytics-card">
+                    <h2 class="analytics-header">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+                        <span>By Hour of Day</span>
+                    </h2>
+                    <div class="mt-4 h-48"><canvas id="hourlyPerformanceChart"></canvas></div>
+                </div>
+                <div class="analytics-card">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm2 1v1a1 1 0 001 1h4a1 1 0 001-1V5h-1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V5H7z" /></svg>
+                        <span>By Trade Duration</span>
+                    </h2>
+                    <div id="trade-duration-performance-body" class="mt-4 space-y-4"></div>
+                </div>
+                <div class="analytics-card md:col-span-2 lg:col-span-3">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fill-rule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h4a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                        <span>By Strategy Tag</span>
+                    </h2>
+                    <div id="tag-performance-body" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+                 <div class="analytics-card md:col-span-2 lg:col-span-3">
+                    <h2 class="analytics-header">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-5-2.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM10 12a5.99 5.99 0 00-4.793 2.39A6.483 6.483 0 0010 16.5a6.483 6.483 0 004.793-2.11A5.99 5.99 0 0010 12z" clip-rule="evenodd" /></svg>
+                        <span>By Psychology Tag</span>
+                    </h2>
+                    <div id="psychology-performance-body" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+                 <div class="analytics-card md:col-span-2 lg:col-span-3">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+                        <span>By Instrument</span>
+                    </h2>
+                    <div id="index-performance-body" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+                <div class="analytics-card md:col-span-2 lg:col-span-3">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h1.358a2 2 0 011.707.989l.163.299A1.5 1.5 0 0010.5 5h-1a.5.5 0 000 1h1.536a1.5 1.5 0 011.33 2.03l-.162.323A2 2 0 0110.536 9H9a1 1 0 100 2h1.536a2 2 0 011.789.98l.162.323A1.5 1.5 0 0013.828 14H15a3 3 0 11-2.997-2.783A1 1 0 1011 12.5v.018a3 3 0 01-2.07 2.753l-.163.081A2 2 0 017.06 17H6a3 3 0 01-3-3V6z" clip-rule="evenodd" /></svg>
+                        <span>By Entry Timeframe</span>
+                    </h2>
+                    <div id="timeframe-performance-body" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 5.168A1 1 0 008 6v1a1 1 0 002 0V6a1 1 0 00-1-1h-.445zM10 14a1 1 0 100-2 1 1 0 000 2zM8 9a1 1 0 112 0v1a1 1 0 11-2 0V9z" clip-rule="evenodd" /></svg>
+                    <span>Checklist Adherence</span>
+                </h2>
+                <p class="analytics-subheader">Compares performance of disciplined vs. undisciplined trades.</p>
+                <div id="checklist-analysis-body" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.153.01-.229.015.093.457.176.924.249 1.405.072.47.135.954.186 1.452.056.522.094 1.058.114 1.604a1 1 0 01-2.018.002c-.02-.555-.06-1.103-.118-1.644-.059-.533-.124-1.058-.198-1.572a1 1 0 111.956-.454c.068.494.128.98.182 1.452.055.48.102.946.142 1.398.046.504.078 1.018.098 1.542h1.946c-.02-.524-.052-1.038-.098-1.542-.04-.452-.087-.918-.142-1.398-.054-.472-.114-.958-.182-1.452A6.003 6.003 0 0010 4zm2.135 5h1.946a6.004 6.004 0 00-2.782-4.882C11.648 6.03 11.942 7.454 12.135 9z" clip-rule="evenodd" /></svg>
+                    <span>Trade Excursion (MAE/MFE)</span>
+                </h2>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden">
+                    <div class="bg-bg-secondary p-4">
+                        <h3 class="font-semibold text-center text-red-400">MAE on Winners</h3>
+                        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p>
+                        <div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. MAE</span><span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span></div>
+                        <div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total MAE</span><span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span></div>
+                        <div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div></div></div>
+                    </div>
+                    <div class="bg-bg-secondary p-4">
+                        <h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3>
+                        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p>
+                        <div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span><span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span></div>
+                        <div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span><span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span></div>
+                        <div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L12 11.586l3.293-3.293H12z" clip-rule="evenodd" /></svg>
+                    <span>Reversal Analysis (MFE)</span>
+                </h2>
+                <p class="analytics-subheader">Analyzes profitable trades that ended as losses/breakeven.</p>
+                <div id="reversal-analysis-body" class="mt-4"></div>
+            </div>
+
+            <div class="analytics-card">
+                 <div class="flex justify-between items-center mb-4">
+                    <h2 class="analytics-header">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.707 10.293a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L9 14.586V3a1 1 0 112 0v11.586l3.293-3.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        <span>Target vs. Stop Pip Analysis</span>
+                    </h2>
+                    <div class="relative">
+                        <button id="pip-analysis-settings-btn" class="p-1.5 rounded-full hover:bg-tertiary transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM17 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" /></svg>
+                        </button>
+                        <div id="pip-analysis-settings-panel" class="hidden absolute top-full right-0 mt-2 w-64 bg-bg-primary border border-border-color p-4 rounded-lg shadow-xl z-10">
+                            <p class="text-sm font-semibold mb-2">Analysis Mode</p>
+                            <div class="space-y-2"><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Strict Mode (Exact Hit)</span></label><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="flexible" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Flexible Mode</span></label></div>
+                            <div id="pip-analysis-tolerance-container" class="mt-3 hidden"><label for="pip-analysis-tolerance" class="text-xs font-medium text-text-secondary">Tolerance (<span id="pip-analysis-tolerance-value">10</span>% of SL distance)</label><input type="range" id="pip-analysis-tolerance" min="1" max="50" value="10" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="pip-analysis-body"></div>
+            </div>
+
+            <div class="analytics-card lg:col-span-2">
+                <h2 class="analytics-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z" /></svg>
+                    <span>Performance by Planned R:R</span>
+                </h2>
+                <div id="rr-performance-body" class="mt-4 space-y-4"></div>
+            </div>
+
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V5a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15 6.464V5.414l.279-.14.001.002 2.14 1.07-2.14 1.07-.279-.14v-1.05zM5 3a1 1 0 000 2v8a1 1 0 001 1h2a1 1 0 100-2H7V5h2a1 1 0 100-2H5z" /></svg>
+                    <span>Monte Carlo Simulation</span>
+                </h2>
+                 <div class="flex flex-wrap items-end gap-4 my-4">
+                    <div><label for="mc-trades" class="block text-sm font-medium text-text-secondary">Trades to Project</label><input type="number" id="mc-trades" value="252" class="form-input mt-1 p-2 rounded-lg w-32"></div>
+                    <div><label for="mc-simulations" class="block text-sm font-medium text-text-secondary">Simulations</label><input type="number" id="mc-simulations" value="1000" class="form-input mt-1 p-2 rounded-lg w-32"></div>
+                    <button id="run-mc-btn" class="font-semibold py-2 px-4 rounded-lg btn btn-primary text-white">Run Simulation</button>
+                </div>
+                 <div id="mc-results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <canvas id="mcChart"></canvas>
+                    <div id="mc-stats" class="text-sm"></div>
+                </div>
+            </div>
+
+            <div class="analytics-card">
+                <h2 class="analytics-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm-2 5a1 1 0 011-1h12a1 1 0 110 2H5a1 1 0 01-1-1zm1 3a1 1 0 000 2h12a1 1 0 100-2H5z" clip-rule="evenodd" /></svg>
+                    <span>Trade Calendar</span>
+                </h2>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between mb-4"><button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button><h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3><button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button></div>
+                    <div class="flex justify-center mb-4"><div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg"><button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button><button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button><button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button></div></div>
+                    <div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+                    <div id="calendar-body" class="grid gap-2"></div>
+                </div>
+            </div>
+
         </div>
     </div>
-
-    <div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2">
-        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-    </div>
-
-    <div id="calendar-body" class="grid gap-2"></div>
 </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Monte Carlo Simulation</h2>
-                         <div class="flex flex-wrap items-end gap-4 mb-4">
-                              <div>
-                                <label for="mc-trades" class="block text-sm font-medium text-text-secondary">Trades to Project</label>
-                                <input type="number" id="mc-trades" value="252" class="form-input mt-1 p-2 rounded-lg w-32">
-                            </div>
-                              <div>
-                                <label for="mc-simulations" class="block text-sm font-medium text-text-secondary">Simulations</label>
-                                <input type="number" id="mc-simulations" value="1000" class="form-input mt-1 p-2 rounded-lg w-32">
-                            </div>
-                            <button id="run-mc-btn" class="font-semibold py-2 px-4 rounded-lg btn btn-primary text-white">Run Simulation</button>
-                        </div>
-                         <div id="mc-results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <canvas id="mcChart"></canvas>
-                            <div id="mc-stats" class="text-sm"></div>
-                        </div>
-                    </div>
-                     <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p>
-                        <div id="reversal-analysis-body"></div>
-                    </div>
-                    <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Planned R:R</h2>
-                        <div id="rr-performance-body" class="space-y-4">
-                        </div>
-                  </div> 
-<div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <div class="flex justify-between items-center mb-4">
-                            <div>
-                                <h2 class="text-xl font-semibold text-text-primary">Target vs. Stop Pip Analysis</h2>
-                                <p class="text-xs text-text-secondary -mt-1">Compares pip movement for trades that hit their TP vs. SL.</p>
-                            </div>
-                            <div class="relative">
-                                <button id="pip-analysis-settings-btn" class="p-1.5 rounded-full hover:bg-tertiary transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM17 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" />
-                                    </svg>
-                                </button>
-                                <div id="pip-analysis-settings-panel" class="hidden absolute top-full right-0 mt-2 w-64 bg-bg-primary border border-border-color p-4 rounded-lg shadow-xl z-10">
-                                    <p class="text-sm font-semibold mb-2">Analysis Mode</p>
-                                    <div class="space-y-2">
-                                        <label class="flex items-center text-sm">
-                                            <input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color">
-                                            <span class="ml-2">Strict Mode (Exact Hit)</span>
-                                        </label>
-                                        <label class="flex items-center text-sm">
-                                            <input type="radio" name="pip-analysis-mode" value="flexible" class="text-accent-color focus:ring-accent-color">
-                                            <span class="ml-2">Flexible Mode</span>
-                                        </label>
-                                    </div>
-                                    <div id="pip-analysis-tolerance-container" class="mt-3 hidden">
-                                        <label for="pip-analysis-tolerance" class="text-xs font-medium text-text-secondary">Tolerance (<span id="pip-analysis-tolerance-value">10</span>% of SL distance)</label>
-                                        <input type="range" id="pip-analysis-tolerance" min="1" max="50" value="10" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer mt-1">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="pip-analysis-body"></div>
-                    </div>
     </main>
     
     <!-- Modals and Overlays -->
