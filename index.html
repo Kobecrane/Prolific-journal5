@@ -1033,15 +1033,38 @@
                         </div>
                   </div> 
 <div class="card p-6 rounded-xl shadow-sm animate-fade-in-up">
-                        <h2 class="text-xl font-semibold mb-4 text-text-primary">Target vs. Stop Pip Analysis</h2>
-                        <p class="text-xs text-text-secondary mb-4 -mt-3">Compares the average pip/point movement for trades that hit their full Take Profit vs. their Stop Loss.</p>
-                        <div id="pip-analysis-body">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h2 class="text-xl font-semibold text-text-primary">Target vs. Stop Pip Analysis</h2>
+                                <p class="text-xs text-text-secondary -mt-1">Compares pip movement for trades that hit their TP vs. SL.</p>
                             </div>
+                            <div class="relative">
+                                <button id="pip-analysis-settings-btn" class="p-1.5 rounded-full hover:bg-tertiary transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM17 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" />
+                                    </svg>
+                                </button>
+                                <div id="pip-analysis-settings-panel" class="hidden absolute top-full right-0 mt-2 w-64 bg-bg-primary border border-border-color p-4 rounded-lg shadow-xl z-10">
+                                    <p class="text-sm font-semibold mb-2">Analysis Mode</p>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center text-sm">
+                                            <input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color">
+                                            <span class="ml-2">Strict Mode (Exact Hit)</span>
+                                        </label>
+                                        <label class="flex items-center text-sm">
+                                            <input type="radio" name="pip-analysis-mode" value="flexible" class="text-accent-color focus:ring-accent-color">
+                                            <span class="ml-2">Flexible Mode</span>
+                                        </label>
+                                    </div>
+                                    <div id="pip-analysis-tolerance-container" class="mt-3 hidden">
+                                        <label for="pip-analysis-tolerance" class="text-xs font-medium text-text-secondary">Tolerance (<span id="pip-analysis-tolerance-value">10</span>% of SL distance)</label>
+                                        <input type="range" id="pip-analysis-tolerance" min="1" max="50" value="10" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer mt-1">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="pip-analysis-body"></div>
                     </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
     
     <!-- Modals and Overlays -->
@@ -1212,7 +1235,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body',
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value'
 
 ];
         
@@ -1414,7 +1437,9 @@ const setTheme = (theme) => {
                     accentColor: '#4f46e5',
                     breakevenThreshold: 2.0,
                     calendarSummaryMode: 'monthly',
-                    theme: 'dark', 
+                    theme: 'dark',
+                    pipAnalysisMode: 'strict', 
+                    pipAnalysisTolerance: 10, 
                 };
                 await saveData('settings', settings);
             }
@@ -2384,6 +2409,40 @@ const updateChecklistAnalysis = (trades) => {
         ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
     `;
 };        const setupEventListeners = () => {
+            // Inside setupEventListeners function
+const setupPipAnalysisSettings = () => {
+    dom['pip-analysis-settings-btn'].addEventListener('click', (e) => {
+        e.stopPropagation();
+        dom['pip-analysis-settings-panel'].classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dom['pip-analysis-settings-panel'].contains(e.target) && !dom['pip-analysis-settings-btn'].contains(e.target)) {
+            dom['pip-analysis-settings-panel'].classList.add('hidden');
+        }
+    });
+
+    document.querySelectorAll('input[name="pip-analysis-mode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            appData.settings.pipAnalysisMode = e.target.value;
+            dom['pip-analysis-tolerance-container'].classList.toggle('hidden', e.target.value !== 'flexible');
+            saveAppData();
+            refreshUI();
+        });
+    });
+
+    dom['pip-analysis-tolerance'].addEventListener('input', (e) => {
+        const tolerance = parseInt(e.target.value);
+        dom['pip-analysis-tolerance-value'].textContent = tolerance;
+    });
+
+    dom['pip-analysis-tolerance'].addEventListener('change', (e) => {
+        appData.settings.pipAnalysisTolerance = parseInt(e.target.value);
+        saveAppData();
+        refreshUI();
+    });
+};
+setupPipAnalysisSettings();
             setupChecklistManager(); // Add this line
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
@@ -4488,45 +4547,66 @@ const riskData = riskTrades.map(trade => {
 const updatePipAnalysis = (allTrades) => {
             const body = dom['pip-analysis-body'];
             if (!body) return;
-            body.innerHTML = ''; // Clear previous content
 
-            /**
-             * Helper function to calculate the absolute pip/point movement for a given trade.
-             * It correctly handles Forex, JPY pairs, and indices/commodities.
-             * @param {object} trade - The trade object.
-             * @returns {number} The absolute movement in pips or points.
-             */
+            // Set UI controls based on saved settings
+            const mode = appData.settings.pipAnalysisMode || 'strict';
+            const tolerancePercent = appData.settings.pipAnalysisTolerance || 10;
+            document.querySelector(`input[name="pip-analysis-mode"][value="${mode}"]`).checked = true;
+            dom['pip-analysis-tolerance'].value = tolerancePercent;
+            dom['pip-analysis-tolerance-value'].textContent = tolerancePercent;
+            dom['pip-analysis-tolerance-container'].classList.toggle('hidden', mode !== 'flexible');
+
             const getPipMovement = (trade) => {
                 if (!trade.exitPrice || !trade.entryPrice) return 0;
                 let movement = Math.abs(trade.exitPrice - trade.entryPrice);
-                // Check if it's a Forex pair
                 if (trade.indexName.includes('/')) {
-                    // Adjust multiplier for JPY pairs vs. standard pairs
                     movement *= (trade.indexName.includes('JPY') ? 100 : 10000);
                 }
                 return movement;
             };
 
-            // Filter for trades that closed precisely at their defined TP or SL
-            const tpHitTrades = allTrades.filter(t => t.takeProfit !== null && t.exitPrice !== null && t.takeProfit === t.exitPrice);
-            const slHitTrades = allTrades.filter(t => t.stopLoss !== null && t.exitPrice !== null && t.stopLoss === t.exitPrice);
+            let tpHitTrades, slHitTrades;
 
-            // Calculate the average pip movement for each category
+            const closedTrades = allTrades.filter(t => t.exitPrice !== null);
+
+            if (mode === 'strict') {
+                tpHitTrades = closedTrades.filter(t => t.takeProfit !== null && t.takeProfit === t.exitPrice);
+                slHitTrades = closedTrades.filter(t => t.stopLoss !== null && t.stopLoss === t.exitPrice);
+            } else { // Flexible Mode Logic
+                tpHitTrades = [];
+                slHitTrades = [];
+
+                closedTrades.forEach(trade => {
+                    if (trade.stopLoss !== null) {
+                        const riskDistance = Math.abs(trade.entryPrice - trade.stopLoss);
+                        const tolerance = riskDistance * (tolerancePercent / 100);
+
+                        // Check if it's an SL hit
+                        if (Math.abs(trade.exitPrice - trade.stopLoss) <= tolerance) {
+                            slHitTrades.push(trade);
+                            return; // A trade can't be both an SL and TP hit
+                        }
+                        
+                        // Check if it's a TP hit
+                        if (trade.takeProfit !== null && Math.abs(trade.exitPrice - trade.takeProfit) <= tolerance) {
+                            tpHitTrades.push(trade);
+                        }
+                    }
+                });
+            }
+
             const avgTpPips = tpHitTrades.length > 0 ? tpHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / tpHitTrades.length : 0;
             const avgSlPips = slHitTrades.length > 0 ? slHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / slHitTrades.length : 0;
 
-            // If there's no data, display an informative message
             if (tpHitTrades.length === 0 && slHitTrades.length === 0) {
-                body.innerHTML = '<p class="text-center text-text-secondary">Log trades that close exactly at your TP or SL to enable this analysis.</p>';
+                body.innerHTML = '<p class="text-center text-text-secondary">No trades match the current analysis mode. Try adjusting the filter or mode settings.</p>';
                 return;
             }
 
-            // Determine the maximum value for scaling the bar chart correctly
-            const maxValue = Math.max(avgTpPips, avgSlPips, 1); // Use 1 as a minimum to prevent division by zero
+            const maxValue = Math.max(avgTpPips, avgSlPips, 1);
             const tpBarWidth = (avgTpPips / maxValue) * 100;
             const slBarWidth = (avgSlPips / maxValue) * 100;
 
-            // Render the complete HTML for the analysis card, including the graphical bars
             body.innerHTML = `
                 <div class="space-y-4">
                     <div>
@@ -4541,7 +4621,6 @@ const updatePipAnalysis = (allTrades) => {
                             </div>
                         </div>
                     </div>
-
                     <div>
                         <div class="flex justify-between items-baseline mb-1">
                             <span class="font-semibold text-red-400">SL-Hit Trades (${slHitTrades.length})</span>
@@ -4557,7 +4636,6 @@ const updatePipAnalysis = (allTrades) => {
                 </div>
             `;
         };
-
     </script>
 </body>
 </html>
