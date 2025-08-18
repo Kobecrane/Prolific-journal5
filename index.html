@@ -2212,6 +2212,15 @@ const renderChecklistList = () => {
 
 const renderChecklistOnForm = (checkedItems = []) => {
     const container = dom['trade-checklist'];
+    // --- START FIX ---
+    // If checkedItems is not provided (like during a theme refresh),
+    // preserve the current state before redrawing the element.
+    let itemsToKeepChecked = checkedItems;
+    if (itemsToKeepChecked.length === 0 && container.innerHTML !== '') {
+        itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+    }
+    // --- END FIX ---
+
     const checklist = getActiveAccount()?.checklist || [];
     container.innerHTML = '';
     if (checklist.length === 0) {
@@ -2219,7 +2228,8 @@ const renderChecklistOnForm = (checkedItems = []) => {
         return;
     }
     checklist.forEach(item => {
-        const isChecked = checkedItems.includes(item);
+        // Use the preserved list (itemsToKeepChecked) to set the checked status
+        const isChecked = itemsToKeepChecked.includes(item);
         const id = `checklist-${item.replace(/\s+/g, '-')}`;
         container.innerHTML += `
             <div class="flex items-center">
@@ -3699,9 +3709,24 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
         };
 
         const renderChecklists = (selectedTags = [], selectedPsychologyTags = []) => {
-            renderAChecklist(dom['tags-checklist'], getActiveAccount().tags, selectedTags, 'Manage Tags');
-            renderAChecklist(dom['psychology-tags-checklist'], getActiveAccount().psychologyTags, selectedPsychologyTags, 'Manage Psychology Tags');
-        };
+    // --- START FIX ---
+    // Preserve the current state of checked tags if none are explicitly passed.
+    // This happens during a general UI refresh, like a theme change.
+    let tagsToKeepChecked = selectedTags;
+    if (tagsToKeepChecked.length === 0 && dom['tags-checklist'].innerHTML !== '') {
+        tagsToKeepChecked = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+    }
+
+    let psychTagsToKeepChecked = selectedPsychologyTags;
+    if (psychTagsToKeepChecked.length === 0 && dom['psychology-tags-checklist'].innerHTML !== '') {
+        psychTagsToKeepChecked = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+    }
+    // --- END FIX ---
+
+    // Pass the preserved state to the rendering helper function
+    renderAChecklist(dom['tags-checklist'], getActiveAccount().tags, tagsToKeepChecked, 'Manage Tags');
+    renderAChecklist(dom['psychology-tags-checklist'], getActiveAccount().psychologyTags, psychTagsToKeepChecked, 'Manage Psychology Tags');
+};
 
         const renderAChecklist = (container, tags, selected, manageText) => { 
             container.innerHTML = '';
