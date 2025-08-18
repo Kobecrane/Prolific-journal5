@@ -1294,7 +1294,7 @@ const setTheme = (theme) => {
                     breakevenThreshold: 2.0,
                     calendarSummaryMode: 'monthly',
                     theme: 'dark',
-                    pipAnalysisMode: 'flexible', 
+                     pipAnalysisMode: 'flexible', 
                     pipAnalysisTolerance: 10, 
                 };
                 await saveData('settings', settings);
@@ -4442,97 +4442,100 @@ const riskData = riskTrades.map(trade => {
             });
         };
 const updatePipAnalysis = (allTrades) => {
-            const body = dom['pip-analysis-body'];
-            if (!body) return;
+    const body = dom['pip-analysis-body'];
+    if (!body) return;
 
-            // Set UI controls based on saved settings
-            const mode = appData.settings.pipAnalysisMode || 'strict';
-            const tolerancePercent = appData.settings.pipAnalysisTolerance || 10;
-            document.querySelector(`input[name="pip-analysis-mode"][value="${mode}"]`).checked = true;
-            dom['pip-analysis-tolerance'].value = tolerancePercent;
-            dom['pip-analysis-tolerance-value'].textContent = tolerancePercent;
-            dom['pip-analysis-tolerance-container'].classList.toggle('hidden', mode !== 'flexible');
+    // Set UI controls based on saved settings
+    const mode = appData.settings.pipAnalysisMode || 'strict';
+    const tolerancePercent = appData.settings.pipAnalysisTolerance || 10;
+    document.querySelector(`input[name="pip-analysis-mode"][value="${mode}"]`).checked = true;
+    dom['pip-analysis-tolerance'].value = tolerancePercent;
+    dom['pip-analysis-tolerance-value'].textContent = tolerancePercent;
+    dom['pip-analysis-tolerance-container'].classList.toggle('hidden', mode !== 'flexible');
 
-            const getPipMovement = (trade) => {
-                if (!trade.exitPrice || !trade.entryPrice) return 0;
-                let movement = Math.abs(trade.exitPrice - trade.entryPrice);
-                if (trade.indexName.includes('/')) {
-                    movement *= (trade.indexName.includes('JPY') ? 100 : 10000);
-                }
-                return movement;
-            };
+    const getPipMovement = (trade) => {
+        if (!trade.exitPrice || !trade.entryPrice) return 0;
+        let movement = Math.abs(trade.exitPrice - trade.entryPrice);
+        if (trade.indexName.includes('/')) {
+            movement *= (trade.indexName.includes('JPY') ? 100 : 10000);
+        }
+        return movement;
+    };
 
-            let tpHitTrades, slHitTrades;
+    let tpHitTrades, slHitTrades;
+    const closedTrades = allTrades.filter(t => t.exitPrice !== null);
 
-            const closedTrades = allTrades.filter(t => t.exitPrice !== null);
+    if (mode === 'strict') {
+        tpHitTrades = closedTrades.filter(t => t.takeProfit !== null && t.takeProfit === t.exitPrice);
+        slHitTrades = closedTrades.filter(t => t.stopLoss !== null && t.stopLoss === t.exitPrice);
+    } else { // --- CORRECTED FLEXIBLE MODE LOGIC ---
+        tpHitTrades = [];
+        slHitTrades = [];
 
-            if (mode === 'strict') {
-                tpHitTrades = closedTrades.filter(t => t.takeProfit !== null && t.takeProfit === t.exitPrice);
-                slHitTrades = closedTrades.filter(t => t.stopLoss !== null && t.stopLoss === t.exitPrice);
-            } else { // Flexible Mode Logic
-                tpHitTrades = [];
-                slHitTrades = [];
-
-                closedTrades.forEach(trade => {
-                    if (trade.stopLoss !== null) {
-                        const riskDistance = Math.abs(trade.entryPrice - trade.stopLoss);
-                        const tolerance = riskDistance * (tolerancePercent / 100);
-
-                        // Check if it's an SL hit
-                        if (Math.abs(trade.exitPrice - trade.stopLoss) <= tolerance) {
-                            slHitTrades.push(trade);
-                            return; // A trade can't be both an SL and TP hit
-                        }
-                        
-                        // Check if it's a TP hit
-                        if (trade.takeProfit !== null && Math.abs(trade.exitPrice - trade.takeProfit) <= tolerance) {
-                            tpHitTrades.push(trade);
-                        }
-                    }
-                });
+        for (const trade of closedTrades) {
+            // A trade MUST have a defined SL for our flexible analysis to work,
+            // as the tolerance is based on the initial risk distance.
+            if (trade.stopLoss === null || trade.entryPrice === null) {
+                continue; // Skip trades that cannot be analyzed this way.
             }
+            
+            const riskDistance = Math.abs(trade.entryPrice - trade.stopLoss);
+            const tolerance = riskDistance * (tolerancePercent / 100);
 
-            const avgTpPips = tpHitTrades.length > 0 ? tpHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / tpHitTrades.length : 0;
-            const avgSlPips = slHitTrades.length > 0 ? slHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / slHitTrades.length : 0;
-
-            if (tpHitTrades.length === 0 && slHitTrades.length === 0) {
-                body.innerHTML = '<p class="text-center text-text-secondary">No trades match the current analysis mode. Try adjusting the filter or mode settings.</p>';
-                return;
+            // Check if it's an SL hit
+            if (Math.abs(trade.exitPrice - trade.stopLoss) <= tolerance) {
+                slHitTrades.push(trade);
+                continue; // It's an SL hit, so it can't be a TP hit. Move to the next trade.
             }
+            
+            // If it wasn't an SL hit, now check if it's a TP hit
+            if (trade.takeProfit !== null && Math.abs(trade.exitPrice - trade.takeProfit) <= tolerance) {
+                tpHitTrades.push(trade);
+            }
+        }
+    }
 
-            const maxValue = Math.max(avgTpPips, avgSlPips, 1);
-            const tpBarWidth = (avgTpPips / maxValue) * 100;
-            const slBarWidth = (avgSlPips / maxValue) * 100;
+    const avgTpPips = tpHitTrades.length > 0 ? tpHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / tpHitTrades.length : 0;
+    const avgSlPips = slHitTrades.length > 0 ? slHitTrades.reduce((sum, t) => sum + getPipMovement(t), 0) / slHitTrades.length : 0;
 
-            body.innerHTML = `
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between items-baseline mb-1">
-                            <span class="font-semibold text-green-400">TP-Hit Trades (${tpHitTrades.length})</span>
-                            <span class="text-lg font-bold text-green-400">${avgTpPips.toFixed(1)} pips/pts</span>
-                        </div>
-                        <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Reward: ${avgTpPips.toFixed(1)} pips/pts">
-                            <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
-                                 style="width: ${tpBarWidth}%; background-image: linear-gradient(to right, #4ade80, #16a34a);">
-                                Avg. Reward
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-baseline mb-1">
-                            <span class="font-semibold text-red-400">SL-Hit Trades (${slHitTrades.length})</span>
-                            <span class="text-lg font-bold text-red-400">${avgSlPips.toFixed(1)} pips/pts</span>
-                        </div>
-                        <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Risk: ${avgSlPips.toFixed(1)} pips/pts">
-                            <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
-                                 style="width: ${slBarWidth}%; background-image: linear-gradient(to right, #f87171, #dc2626);">
-                                Avg. Risk
-                            </div>
-                        </div>
+    if (tpHitTrades.length === 0 && slHitTrades.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary">No trades match the current analysis mode. Try adjusting the filter or mode settings.</p>';
+        return;
+    }
+
+    const maxValue = Math.max(avgTpPips, avgSlPips, 1);
+    const tpBarWidth = (avgTpPips / maxValue) * 100;
+    const slBarWidth = (avgSlPips / maxValue) * 100;
+
+    body.innerHTML = `
+        <div class="space-y-4">
+            <div>
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="font-semibold text-green-400">TP-Hit Trades (${tpHitTrades.length})</span>
+                    <span class="text-lg font-bold text-green-400">${avgTpPips.toFixed(1)} pips/pts</span>
+                </div>
+                <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Reward: ${avgTpPips.toFixed(1)} pips/pts">
+                    <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
+                         style="width: ${tpBarWidth}%; background-image: linear-gradient(to right, #4ade80, #16a34a);">
+                        Avg. Reward
                     </div>
                 </div>
-            `;
-        };
-    </script>
+            </div>
+            <div>
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="font-semibold text-red-400">SL-Hit Trades (${slHitTrades.length})</span>
+                    <span class="text-lg font-bold text-red-400">${avgSlPips.toFixed(1)} pips/pts</span>
+                </div>
+                <div class="w-full bg-bg-tertiary rounded-full h-5" title="Average Risk: ${avgSlPips.toFixed(1)} pips/pts">
+                    <div class="h-5 rounded-full text-white text-xs font-bold flex items-center pl-2 pro-shadow" 
+                         style="width: ${slBarWidth}%; background-image: linear-gradient(to right, #f87171, #dc2626);">
+                        Avg. Risk
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};    
+</script>
 </body>
 </html>
