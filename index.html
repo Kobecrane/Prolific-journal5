@@ -2825,8 +2825,8 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
        // REPLACE YOUR OLD updateTradeCalendar FUNCTION WITH THIS NEW, EXPANDED VERSION
 const updateTradeCalendar = () => {
     const isLightMode = document.documentElement.classList.contains('light');
-    const winColor = isLightMode ? 'text-green-600' : 'text-green-300';
-    const lossColor = isLightMode ? 'text-red-600' : 'text-red-300';
+    const winColor = isLightMode ? 'text-green-800' : 'text-green-300';
+    const lossColor = isLightMode ? 'text-red-800' : 'text-red-300';
     const allTrades = getActiveTrades().filter(t => t.profitLoss !== null);
     const calendarBody = dom['calendar-body'];
     calendarBody.innerHTML = '';
