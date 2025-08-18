@@ -629,19 +629,14 @@
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
-    <div>
-        <label for="lot-size" class="block text-sm font-medium text-text-secondary">Lot Size</label>
-        <input type="number" id="lot-size" placeholder="e.g., 0.2" class="form-input mt-1 w-full p-2 rounded-lg">
-    </div>
-    <div>
-        <label for="deriv-contract-id" class="block text-sm font-medium text-text-secondary">Deriv Contract ID</label>
-        <input type="number" id="deriv-contract-id" placeholder="For open trades" class="form-input mt-1 w-full p-2 rounded-lg">
-    </div>
-</div>
-<div id="num-positions-container">
-    <label for="num-positions" class="block text-sm font-medium text-text-secondary">No. of Positions</label>
-    <input type="number" id="num-positions" value="1" min="1" class="form-input mt-1 w-full p-2 rounded-lg">
-</div>
+                                <div>
+                                    <label for="lot-size" class="block text-sm font-medium text-text-secondary">Lot Size</label>
+                                    <input type="number" id="lot-size" placeholder="e.g., 0.2" class="form-input mt-1 w-full p-2 rounded-lg">
+                                </div>
+                                 <div id="num-positions-container">
+                                    <label for="num-positions" class="block text-sm font-medium text-text-secondary">No. of Positions</label>
+                                    <input type="number" id="num-positions" value="1" min="1" class="form-input mt-1 w-full p-2 rounded-lg">
+                                </div>
                             </div>
                               <div class="grid grid-cols-2 gap-4">
                                 <div>
@@ -947,13 +942,6 @@
             <h3 class="text-sm font-semibold text-text-secondary mb-2">Theme Accent Color</h3>
             <input type="color" id="accent-color-picker" class="w-full h-10 p-1 bg-tertiary rounded-lg cursor-pointer">
         </div>
-      <div>
-    <h3 class="text-sm font-semibold text-text-secondary mb-2">Deriv API Integration</h3>
-    <div class="space-y-2">
-        <input type="text" id="deriv-api-token" placeholder="Paste Read-Only API Token" class="w-full text-sm p-2 form-input rounded-lg">
-        <button id="save-deriv-token-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Token</button>
-    </div>
-</div>
         <div>
           <h3 class="text-sm font-semibold text-text-secondary mb-2">Breakeven Threshold ($)</h3>
           <div class="flex items-center gap-2">
@@ -1050,11 +1038,9 @@
         // --- App State & Constants ---
         let appData = {
              activeAccountName: 'Default Account',
-     accounts: {},
-     settings: {
-        derivApiToken: null,
-     }
-};
+             accounts: {},
+             settings: {}
+        };
         let tradeType = 'Buy';
         let calendarDate = new Date();
         let calendarViewMode = 'day';
@@ -1105,7 +1091,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value', 'deriv-api-token', 'save-deriv-token-btn', 'deriv-contract-id'
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value'
 
 ];
         
@@ -1309,8 +1295,7 @@ const setTheme = (theme) => {
                     calendarSummaryMode: 'monthly',
                     theme: 'dark',
                     pipAnalysisMode: 'strict', 
-                    pipAnalysisTolerance: 10,
-                    derivApiToken: null, 
+                    pipAnalysisTolerance: 10, 
                 };
                 await saveData('settings', settings);
             }
@@ -1374,7 +1359,6 @@ const setTheme = (theme) => {
             dom['breakeven-slider'].value = appData.settings.breakevenThreshold;
             dom['breakeven-value'].textContent = `$${parseFloat(appData.settings.breakevenThreshold).toFixed(2)}`;
             setTheme(appData.settings.theme);
-            dom['deriv-api-token'].value = appData.settings.derivApiToken || '';
         };
 
         const saveAppData = () => {
@@ -2091,7 +2075,6 @@ const updateAdviser = (allTrades) => {
              const fees = dom['fees'].value.trim() === '' ? 0 : parseFloat(dom['fees'].value);
              const notesHTML = dom['trade-comments-editor'].innerHTML.trim();
              const playId = dom['playbook-select'].value || null;
-             const derivContractId = dom['deriv-contract-id'].value.trim() || null;
              const timeframe = dom['entry-timeframe'].value;
 
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
@@ -2115,7 +2098,7 @@ const updateAdviser = (allTrades) => {
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems, timeframe, derivContractId };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems, timeframe  };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -2125,11 +2108,11 @@ const updateAdviser = (allTrades) => {
                        const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                        
                        activeAccount.trades.push({
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-    indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe, derivContractId
-});
+                           id: crypto.randomUUID(),
+                           timestamp: new Date().toISOString(),
+                           exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
+                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe
+                       });
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
              }
@@ -2566,24 +2549,6 @@ dom['analytics-page'].addEventListener('click', (e) => {
             }
         }
     });
-// START: Paste this at the end of setupEventListeners
-dom['save-deriv-token-btn'].addEventListener('click', () => {
-    const token = dom['deriv-api-token'].value.trim();
-    appData.settings.derivApiToken = token;
-    saveAppData();
-    showToast("Deriv API Token saved!", "success");
-    // Disconnect and reconnect with the new token
-    if (derivSocket) derivSocket.close();
-    if (liveUpdateInterval) clearInterval(liveUpdateInterval); // Clear old interval
-    liveUpdateInterval = setInterval(connectToDeriv, 15000);
-    connectToDeriv(); // Connect immediately
-});
-
-// Start live updates when the app loads
-liveUpdateInterval = setInterval(connectToDeriv, 15000); // Check connection/request portfolio every 15 seconds
-connectToDeriv();
-// END: New code block
-
 }; 
         
         const handleImageDrop = (e) => {
@@ -2708,30 +2673,12 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
         const row = document.createElement('tr');
         row.className = 'border-b border-border-color';
         
-        // START: Replacement block
-const isClosed = trade.profitLoss !== null;
-let plContent;
-
-// Add the data-contract-id attribute to the main row if the trade is open and has an ID
-if (!isClosed && trade.derivContractId) {
-    row.setAttribute('data-contract-id', trade.derivContractId);
-}
-
-if (isClosed) {
-    // Logic for trades that are already closed and saved
-    let plText, plClass;
-    if (trade.profitLoss > 0 && trade.profitLoss <= breakevenThreshold) { plText = 'Breakeven'; plClass = 'text-blue-500'; }
-    else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
-    else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
-    plContent = `<td class="px-4 py-3 font-bold align-top ${plClass}">${plText}</td>`;
-} else {
-    // This is an open trade, render the live P/L cell
-    const initialPL = (openPositions[trade.derivContractId] && openPositions[trade.derivContractId].pl) ? openPositions[trade.derivContractId].pl.toFixed(2) : '...';
-    const plValue = (openPositions[trade.derivContractId] && openPositions[trade.derivContractId].pl) ? openPositions[trade.derivContractId].pl : 0;
-    const initialClass = plValue >= 0 ? 'text-green-500' : 'text-red-500';
-    plContent = `<td class="px-4 py-3 live-pl-cell font-bold align-top ${initialClass}">$${initialPL}</td>`;
-}
-// END: Replacement block
+        const isClosed = trade.profitLoss !== null;
+        let plText, plClass;
+        if (!isClosed) { plText = 'Open'; plClass = 'text-text-secondary'; } 
+        else if (trade.profitLoss > 0 && trade.profitLoss <= breakevenThreshold) { plText = 'Breakeven'; plClass = 'text-blue-500'; }
+        else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
+        else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
         
         const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
         const typeClass = trade.tradeType === 'Buy' ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300';
@@ -2762,7 +2709,7 @@ if (isClosed) {
             </td>
             <td class="px-4 py-3 align-top"><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeClass}">${trade.tradeType}</span></td>
             <td class="px-4 py-3 font-medium align-top text-text-secondary">${rrText}</td>
-            ${plContent}
+            <td class="px-4 py-3 font-bold align-top ${plClass}">${plText}</td>
             <td class="px-4 py-3 align-top">
                 <div class="flex items-center space-x-2">
                     <button class="details-btn text-accent-color hover:underline text-sm font-semibold">View</button>
@@ -4561,99 +4508,6 @@ const updatePipAnalysis = (allTrades) => {
                 </div>
             `;
         };
-// START: Paste this new section at the end of the script
-// --- Deriv API Integration ---
-let derivSocket;
-let openPositions = {}; // Stores live P/L data: { contract_id: { pl: value, symbol: 'name' } }
-let isSocketOpen = false;
-let liveUpdateInterval; // Holds the interval timer
-
-function connectToDeriv() {
-    const token = appData.settings.derivApiToken;
-    if (!token) {
-        console.log("Deriv API token not set. Skipping connection.");
-        return;
-    }
-
-    // If socket exists and is open, no need to reconnect, the subscription is active.
-    if (derivSocket && derivSocket.readyState === WebSocket.OPEN) {
-        // We can send a ping to keep it alive if needed, but portfolio subscription is enough.
-        derivSocket.send(JSON.stringify({ ping: 1 }));
-        return;
-    }
-
-    derivSocket = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089'); // Using a generic app_id
-
-    derivSocket.onopen = function(e) {
-        console.log("Connected to Deriv WebSocket.");
-        isSocketOpen = true;
-        derivSocket.send(JSON.stringify({ authorize: token }));
-    };
-
-    derivSocket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        if (data.error) {
-            console.error("Deriv API Error:", data.error.message);
-            if (data.error.code === 'InvalidToken') {
-                 showToast("Deriv API token is invalid.", "error");
-                 // Stop trying to reconnect with a bad token
-                 if(liveUpdateInterval) clearInterval(liveUpdateInterval);
-            }
-            return;
-        }
-
-        if (data.msg_type === 'authorize') {
-            console.log("Authorized successfully.");
-            // Now subscribe to portfolio updates to get live data
-            derivSocket.send(JSON.stringify({ portfolio: 1, subscribe: 1 }));
-        }
-
-        if (data.msg_type === 'portfolio') {
-            const newPositions = {};
-            if (data.portfolio && data.portfolio.contracts) {
-                data.portfolio.contracts.forEach(contract => {
-                    newPositions[contract.contract_id] = {
-                        pl: contract.profit,
-                        symbol: contract.shortcode
-                    };
-                });
-            }
-            openPositions = newPositions;
-            updateOpenTradePL(); // Update the UI with the new data
-        }
-    };
-
-    derivSocket.onclose = function(event) {
-        console.log("Disconnected from Deriv WebSocket.");
-        isSocketOpen = false;
-        openPositions = {};
-        updateOpenTradePL(); // Clear out old P/L values from the UI
-    };
-
-    derivSocket.onerror = function(error) {
-        console.error(`WebSocket Error: ${error.message}`);
-    };
-}
-
-// This function will be called periodically to update the P/L display in the table
-function updateOpenTradePL() {
-    const openTradeRows = document.querySelectorAll('tr[data-contract-id]');
-    openTradeRows.forEach(row => {
-        const contractId = row.dataset.contractId;
-        const plCell = row.querySelector('.live-pl-cell');
-
-        if (openPositions[contractId] && plCell) {
-            const pl = openPositions[contractId].pl;
-            plCell.textContent = `$${pl.toFixed(2)}`;
-            plCell.className = `px-4 py-3 live-pl-cell font-bold align-top ${pl >= 0 ? 'text-green-500' : 'text-red-500'}`;
-        } else if (plCell) {
-            // If position is closed on Deriv's end but still marked as open in the journal
-            plCell.textContent = 'Closed';
-            plCell.className = 'px-4 py-3 live-pl-cell font-bold align-top text-text-secondary';
-        }
-    });
-}
-// END: New section    
-</script>
+    </script>
 </body>
 </html>
