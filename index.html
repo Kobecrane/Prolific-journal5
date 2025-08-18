@@ -2023,6 +2023,18 @@ const updateAdviser = (allTrades) => {
             form.querySelectorAll('input, select').forEach(el => {
                 if(el.type !== 'checkbox' && el.type !== 'radio' && el.id !== 'num-positions' && el.id !== 'index-selector'  && el.id !== 'playbook-select' && el.id !== 'entry-timeframe' ) el.value = '';
             });
+
+            // Uncheck all checklist, strategy, and psychology tags
+            if (dom['trade-checklist']) {
+                dom['trade-checklist'].querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            if (dom['tags-checklist']) {
+                dom['tags-checklist'].querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            if (dom['psychology-tags-checklist']) {
+                dom['psychology-tags-checklist'].querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+
             dom['num-positions'].value = '1';
             dom['trade-comments-editor'].innerHTML = '';
             dom['editing-trade-id'].value = '';
