@@ -4203,12 +4203,41 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             }
             updateRealtimePL();
         };
+        // ===== REPLACE THE OLD getPipMultiplier WITH THIS NEW VERSION =====
+
         const getPipMultiplier = (instrument) => {
             if (!instrument) return 1;
-            if (instrument.includes('/')) { // It's Forex
+
+            // --- Forex Pairs ---
+            if (instrument.includes('/')) { 
                 return instrument.includes('JPY') ? 0.01 : 0.0001;
             }
-            // For indices, metals, commodities, etc., 1 point = 1 unit of price
+            
+            // --- Deriv Volatility Indices (Standard) ---
+            // For VIX 75, a 1 point move is $1, so multiplier is 1.
+            // But for VIX 10, a 0.01 price move is a "pip", so multiplier is 0.01.
+            if (instrument.startsWith('Volatility')) {
+                const number = parseInt(instrument.match(/\d+/)[0]);
+                // This is a common structure, but might need tweaking
+                // based on specific contract specs.
+                if (number >= 50) return 1; // V50, V75, V100 are often 1:1
+                return 0.01; // V10, V25 often have smaller ticks
+            }
+            
+            // --- Deriv Crash/Boom ---
+            // For these, the value is the "point" itself.
+            if (instrument.includes('Crash') || instrument.includes('Boom')) {
+                return 1;
+            }
+
+            // --- Deriv Jump & Other Synthetics ---
+            // Most other synthetics also use points as the base unit.
+            if (instrument.includes('Jump') || instrument.includes('Step') || instrument.includes('Range Break')) {
+                return 1;
+            }
+
+            // --- Standard Indices & Commodities (Default fallback) ---
+            // For Gold, US 500, etc., 1 point = 1 unit of price
             return 1;
         };
 
