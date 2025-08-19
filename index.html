@@ -2062,6 +2062,8 @@ const updateAdviser = (allTrades) => {
             dom['exit-price'].value = tradeToEdit.exitPrice !== null ? tradeToEdit.exitPrice : '';
             dom['stop-loss'].value = tradeToEdit.stopLoss || '';
             dom['take-profit'].value = tradeToEdit.takeProfit || '';
+            calculatePipsFromPrice('sl');
+            calculatePipsFromPrice('tp');
             dom['peak-price'].value = tradeToEdit.peakPrice !== null ? tradeToEdit.peakPrice : '';
             dom['mae-price'].value = tradeToEdit.maePrice !== null ? tradeToEdit.maePrice : '';
             dom['fees'].value = tradeToEdit.fees || '';
@@ -2287,42 +2289,12 @@ const updateChecklistAnalysis = (trades) => {
         ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
     `;
 };        const setupEventListeners = () => {
-            // Inside setupEventListeners function
-const setupPipAnalysisSettings = () => {
-    dom['pip-analysis-settings-btn'].addEventListener('click', (e) => {
-        e.stopPropagation();
-        dom['pip-analysis-settings-panel'].classList.toggle('hidden');
-    });
+            // Helper to clear inputs
+            const clearPipAndPriceInputs = () => {
+                ['stop-loss', 'sl-pips', 'take-profit', 'tp-pips'].forEach(id => dom[id].value = '');
+            };
 
-    document.addEventListener('click', (e) => {
-        if (!dom['pip-analysis-settings-panel'].contains(e.target) && !dom['pip-analysis-settings-btn'].contains(e.target)) {
-            dom['pip-analysis-settings-panel'].classList.add('hidden');
-        }
-    });
-
-    document.querySelectorAll('input[name="pip-analysis-mode"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            appData.settings.pipAnalysisMode = e.target.value;
-            dom['pip-analysis-tolerance-container'].classList.toggle('hidden', e.target.value !== 'flexible');
-            saveAppData();
-            refreshUI();
-        });
-    });
-
-    dom['pip-analysis-tolerance'].addEventListener('input', (e) => {
-        const tolerance = parseInt(e.target.value);
-        dom['pip-analysis-tolerance-value'].textContent = tolerance;
-    });
-
-    dom['pip-analysis-tolerance'].addEventListener('change', (e) => {
-        appData.settings.pipAnalysisTolerance = parseInt(e.target.value);
-        saveAppData();
-        refreshUI();
-    });
-};
-
-setupPipAnalysisSettings();
-// Analytics Page Tab Logic
+            // Analytics Page Tab Logic
             const tabButtons = document.querySelectorAll('.analytics-tabs .tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
 
@@ -2330,43 +2302,58 @@ setupPipAnalysisSettings();
                 button.addEventListener('click', () => {
                     tabButtons.forEach(btn => btn.classList.remove('active'));
                     button.classList.add('active');
-
                     const tabId = button.dataset.tab + '-tab';
-                    tabContents.forEach(content => {
-                        content.classList.toggle('active', content.id === tabId);
-                    });
+                    tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
                 });
             });
-            setupChecklistManager(); // Add this line
+            setupChecklistManager();
+
+            // --- Trade Type Buttons ---
             dom['buy-btn'].addEventListener('click', () => { 
                 tradeType = 'Buy'; 
                 dom['buy-btn'].className = 'trade-type-btn bg-blue-500 text-white p-2 rounded-lg btn'; 
                 dom['sell-btn'].className = 'trade-type-btn bg-tertiary text-text-secondary p-2 rounded-lg btn'; 
                 updateRealtimePL();
-                clearPipInputs();
+                clearPipAndPriceInputs();
             });
             dom['sell-btn'].addEventListener('click', () => { 
                 tradeType = 'Sell'; 
                 dom['sell-btn'].className = 'trade-type-btn bg-red-500 text-white p-2 rounded-lg btn'; 
                 dom['buy-btn'].className = 'trade-type-btn bg-tertiary text-text-secondary p-2 rounded-lg btn'; 
                 updateRealtimePL(); 
-                clearPipInputs();
+                clearPipAndPriceInputs();
             });
             
-            ['lot-size', 'entry-price', 'exit-price', 'index-selector'].forEach(id => {
-                if(dom[id]) dom[id].addEventListener('input', updateRealtimePL)
-            });
+            // --- Realtime P/L and Input Clearing ---
+            ['lot-size', 'exit-price'].forEach(id => dom[id]?.addEventListener('input', updateRealtimePL));
             
-            ['entry-price', 'index-selector'].forEach(id => {
-                if(dom[id]) dom[id].addEventListener('input', clearPipInputs);
-            });
+           if (dom['entry-price']) {
+    dom['entry-price'].addEventListener('input', () => {
+        updateRealtimePL();
+        // RECALCULATE SL/TP from pips instead of clearing them.
+        // This is the core of the fix.
+        calculatePriceFromPips('sl');
+        calculatePriceFromPips('tp');
+    });
+}
 
+if (dom['index-selector']) {
+    dom['index-selector'].addEventListener('input', () => {
+        updateRealtimePL();
+        // Changing the instrument SHOULD clear the fields, as pip values change.
+        clearPipAndPriceInputs();
+    });
+}
+
+            // --- ADVANCED PIPS/PRICE EVENT LISTENERS ---
             dom['sl-pips'].addEventListener('input', () => calculatePriceFromPips('sl'));
             dom['tp-pips'].addEventListener('input', () => calculatePriceFromPips('tp'));
+            dom['stop-loss'].addEventListener('input', () => calculatePipsFromPrice('sl'));
+            dom['take-profit'].addEventListener('input', () => calculatePipsFromPrice('tp'));
 
+            // --- Main Buttons ---
             dom['log-trade-btn'].addEventListener('click', handleLogTrade);
             dom['cancel-edit-btn'].addEventListener('click', resetForm);
-            
             dom['save-balance-btn'].addEventListener('click', () => {
                 const newBalance = parseFloat(dom['starting-balance'].value);
                 if (isNaN(newBalance) || newBalance < 0) { showToast('Please enter a valid starting balance.', 'error'); return; }
@@ -2375,21 +2362,18 @@ setupPipAnalysisSettings();
                 refreshUI();
                 showToast('Balance saved!', 'success');
             });
-
             dom['save-data-btn'].addEventListener('click', () => {
                 saveAppData();
                 showToast("Data saved successfully!", "success");
             });
             
-           // ====== REPLACE YOUR OLD SIDEBARLINKS.FOREACH WITH THIS ENTIRE BLOCK ======
+            // --- Sidebar and Page Navigation ---
             dom.sidebarLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     const page = link.dataset.page;
-                    
                     dom.sidebarLinks.forEach(l => l.classList.remove('active'));
                     link.classList.add('active');
-
                     const pageTitles = {
                         journal: { title: 'Journal', subtitle: 'Log and review your trading performance.' },
                         playbook: { title: 'Playbook', subtitle: 'Document and analyze your trading setups.' },
@@ -2397,18 +2381,16 @@ setupPipAnalysisSettings();
                         analytics: { title: 'Analytics', subtitle: 'Deep dive into your trading data.' },
                         chart: { title: 'TradingView Chart', subtitle: 'Live market analysis and charting.' }
                     };
-                    
                     dom['page-title'].textContent = pageTitles[page].title;
                     dom['page-title'].nextElementSibling.textContent = pageTitles[page].subtitle;
-
                     ['journal-page', 'analytics-page', 'goals-page', 'playbook-page', 'chart-page'].forEach(p => {
                         dom[p].classList.toggle('hidden', p !== `${page}-page`);
                     });
-
                     refreshUI();
                 });
             });
             
+            // --- Settings Panel ---
             const settingsMenuBtn = dom['settings-menu-btn'];
             const settingsMenuPanel = dom['settings-menu-panel'];
             settingsMenuBtn.addEventListener('click', (e) => {
@@ -2421,6 +2403,7 @@ setupPipAnalysisSettings();
                 }
             });
             
+            // --- Account Management ---
             dom['manage-accounts-btn'].addEventListener('click', () => { renderAccountsList(); dom['accounts-modal'].classList.add('open'); });
             dom['close-accounts-modal-btn'].addEventListener('click', () => dom['accounts-modal'].classList.remove('open'));
             dom['add-account-btn'].addEventListener('click', () => {
@@ -2430,11 +2413,12 @@ setupPipAnalysisSettings();
             });
             dom['account-switcher'].addEventListener('change', () => switchAccount(dom['account-switcher'].value));
             
-           
+            // --- Data & Reports ---
             dom['export-btn'].addEventListener('click', exportData);
             dom['import-file'].addEventListener('change', importData);
             dom['export-pdf-btn'].addEventListener('click', generatePDF);
 
+            // --- Filters ---
             ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date', 'filter-timeframe'].forEach(id => {
                if(dom[id]) dom[id].addEventListener('change', refreshUI);
             });
@@ -2443,29 +2427,29 @@ setupPipAnalysisSettings();
                 refreshUI();
             });
             
+            // --- Analytics & Tools ---
             dom['run-mc-btn'].addEventListener('click', runMonteCarlo);
-            
             const editor = dom['trade-comments-editor'];
             editor.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); editor.classList.add('dragover'); });
             editor.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); editor.classList.remove('dragover'); });
             editor.addEventListener('drop', handleImageDrop);
             editor.addEventListener('paste', handleImagePaste);
 
+            // --- Goals & Playbook ---
             dom['add-goal-btn'].addEventListener('click', handleSaveGoal);
             dom['cancel-goal-edit-btn'].addEventListener('click', resetGoalForm);
-
             dom['save-play-btn'].addEventListener('click', handleSavePlay);
             dom['cancel-play-edit-btn'].addEventListener('click', resetPlayForm);
             setupImageDropzone('play-before-image', 'play-before-file');
             setupImageDropzone('play-after-image', 'play-after-file');
 
+            // --- Settings ---
             dom['accent-color-picker'].addEventListener('input', (e) => {
                 const newColor = e.target.value;
                 appData.settings.accentColor = newColor;
                 applyAccentColor(newColor);
                 saveAppData();
             });
-
             dom['breakeven-slider'].addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
                 appData.settings.breakevenThreshold = value;
@@ -2473,35 +2457,32 @@ setupPipAnalysisSettings();
                 saveAppData();
                 refreshUI();
             });
-              dom['theme-toggle'].addEventListener('change', (e) => {
-        const newTheme = e.target.checked ? 'light' : 'dark';
-        appData.settings.theme = newTheme;
-        setTheme(newTheme);
-        saveAppData(); // Save the new setting
-    });
-          // New Calendar Event Listeners
+            dom['theme-toggle'].addEventListener('change', (e) => {
+                const newTheme = e.target.checked ? 'light' : 'dark';
+                appData.settings.theme = newTheme;
+                setTheme(newTheme);
+                saveAppData();
+            });
+            
+            // --- Calendar ---
             dom['close-day-modal-btn'].addEventListener('click', () => dom['calendar-day-modal'].classList.remove('open'));
-
             dom['calendar-prev-btn'].addEventListener('click', () => {
                 if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() - 1);
                 else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() - 1);
                 else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() - 10);
                 updateTradeCalendar();
             });
-
             dom['calendar-next-btn'].addEventListener('click', () => {
                 if (calendarViewMode === 'day') calendarDate.setMonth(calendarDate.getMonth() + 1);
                 else if (calendarViewMode === 'month') calendarDate.setFullYear(calendarDate.getFullYear() + 1);
                 else if (calendarViewMode === 'year') calendarDate.setFullYear(calendarDate.getFullYear() + 10);
                 updateTradeCalendar();
             });
-
             dom['calendar-title'].addEventListener('click', () => {
                 if (calendarViewMode === 'day') calendarViewMode = 'month';
                 else if (calendarViewMode === 'month') calendarViewMode = 'year';
                 updateTradeCalendar();
             });
-
             dom['calendar-view-toggle'].addEventListener('click', (e) => {
                 if (e.target.matches('.calendar-view-btn')) {
                     calendarViewMode = e.target.dataset.view;
@@ -2509,69 +2490,54 @@ setupPipAnalysisSettings();
                 }
             });
 
-            // Tag Management Event Listeners
+            // --- Tag Management ---
             setupTagManager('tags', dom['tags-modal'], dom['manage-tags-btn'], dom['close-tags-modal-btn'], dom['add-tag-btn'], dom['new-tag-name'], dom['new-tag-color'], dom['tags-list']);
             setupTagManager('psychologyTags', dom['psychology-tags-modal'], dom['manage-psychology-tags-btn'], dom['close-psychology-tags-modal-btn'], dom['add-psychology-tag-btn'], dom['new-psychology-tag-name'], dom['new-psychology-tag-color'], dom['psychology-tags-list']);
-       // Add these listeners inside the setupEventListeners function
-
-dom['clear-drilldown-btn'].addEventListener('click', clearDrillDown);
-
-// Use event delegation for the dynamically created drill-down links.
-// This one listener on the parent element efficiently handles clicks on any link inside it.
-dom['analytics-page'].addEventListener('click', (e) => {
-    const link = e.target.closest('.drill-down-link');
-    if (link) {
-        e.preventDefault(); // Stop the link from trying to navigate
-        const filterType = link.dataset.filterType;
-        const filterValue = link.dataset.filterValue;
-        applyDrillDown(filterType, filterValue);
-    }
-}); dom['trade-history-body'].addEventListener('click', async (e) => {
-        const detailsBtn = e.target.closest('.details-btn');
-        if (detailsBtn) {
-            detailsBtn.closest('tr').nextElementSibling.classList.toggle('open');
-        }
-
-        const editBtn = e.target.closest('.edit-trade-btn');
-        if (editBtn) {
-            enterEditMode(editBtn.dataset.id);
-        }
-
-        const deleteBtn = e.target.closest('.delete-trade-btn');
-        if (deleteBtn) {
-            const tradeIdToDelete = deleteBtn.dataset.id;
-            const confirmed = await showCustomModal({
-                title: 'Delete Trade',
-                text: 'Are you sure you want to delete this trade? This action cannot be undone.',
-                confirmText: 'Delete',
-            });
-            if (confirmed) {
-                const activeAccount = getActiveAccount();
-                const tradeIndex = activeAccount.trades.findIndex(t => t.id === tradeIdToDelete);
-                if(tradeIndex > -1) {
-                    activeAccount.trades.splice(tradeIndex, 1);
-                    saveAppData();
-                    refreshUI();
-                    showToast("Trade deleted", "info");
+            
+            // --- Drill-Down & Trade History Actions ---
+            dom['clear-drilldown-btn'].addEventListener('click', clearDrillDown);
+            dom['analytics-page'].addEventListener('click', (e) => {
+                const link = e.target.closest('.drill-down-link');
+                if (link) {
+                    e.preventDefault();
+                    applyDrillDown(link.dataset.filterType, link.dataset.filterValue);
                 }
-            }
-        }
-
-        const toggleBtn = e.target.closest('.toggle-review-btn');
-        if (toggleBtn) {
-            const grid = toggleBtn.closest('.trade-details-grid');
-            if (grid) {
-                grid.classList.toggle('review-collapsed');
-                const isCollapsed = grid.classList.contains('review-collapsed');
+            });
+            dom['trade-history-body'].addEventListener('click', async (e) => {
+                const detailsBtn = e.target.closest('.details-btn');
+                if (detailsBtn) detailsBtn.closest('tr').nextElementSibling.classList.toggle('open');
                 
-                toggleBtn.title = isCollapsed ? 'Show Review Panel' : 'Hide Review Panel';
-                toggleBtn.innerHTML = isCollapsed 
-                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>`
-                    : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
-            }
-        }
-    });
-}; 
+                const editBtn = e.target.closest('.edit-trade-btn');
+                if (editBtn) enterEditMode(editBtn.dataset.id);
+
+                const deleteBtn = e.target.closest('.delete-trade-btn');
+                if (deleteBtn) {
+                    const confirmed = await showCustomModal({
+                        title: 'Delete Trade',
+                        text: 'Are you sure you want to delete this trade? This action cannot be undone.',
+                        confirmText: 'Delete',
+                    });
+                    if (confirmed) {
+                        const activeAccount = getActiveAccount();
+                        const tradeIndex = activeAccount.trades.findIndex(t => t.id === deleteBtn.dataset.id);
+                        if(tradeIndex > -1) {
+                            activeAccount.trades.splice(tradeIndex, 1);
+                            saveAppData();
+                            refreshUI();
+                            showToast("Trade deleted", "info");
+                        }
+                    }
+                }
+                const toggleBtn = e.target.closest('.toggle-review-btn');
+                if (toggleBtn) {
+                    const grid = toggleBtn.closest('.trade-details-grid');
+                    grid?.classList.toggle('review-collapsed');
+                    const isCollapsed = grid.classList.contains('review-collapsed');
+                    toggleBtn.title = isCollapsed ? 'Show Review Panel' : 'Hide Review Panel';
+                    toggleBtn.innerHTML = isCollapsed ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+                }
+            });
+        }; 
         
         const handleImageDrop = (e) => {
             e.preventDefault();
@@ -4229,6 +4195,33 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             dom['accent-color-picker'].value = color;
             refreshUI(); // Redraw charts with new color
         };
+        const getPipMultiplier = (instrument) => {
+            if (!instrument) return 1;
+            if (instrument.includes('/')) { // It's Forex
+                return instrument.includes('JPY') ? 0.01 : 0.0001;
+            }
+            // For indices, metals, commodities, etc., 1 point = 1 unit of price
+            return 1;
+        };
+
+        const calculatePipsFromPrice = (type) => {
+            const entryPrice = parseFloat(dom['entry-price'].value);
+            const levelPrice = parseFloat(dom[type === 'sl' ? 'stop-loss' : 'take-profit'].value);
+            const instrument = dom['index-selector'].value;
+
+            if (isNaN(entryPrice) || isNaN(levelPrice)) {
+                if (isNaN(levelPrice)) dom[`${type}-pips`].value = '';
+                return;
+            }
+
+            const multiplier = getPipMultiplier(instrument);
+            if (multiplier === 0) return;
+
+            const priceDiff = Math.abs(entryPrice - levelPrice);
+            const pips = priceDiff / multiplier;
+
+            dom[`${type}-pips`].value = pips.toFixed(1);
+        };
 
         const clearPipInputs = () => {
             dom['sl-pips'].value = '';
@@ -4240,26 +4233,26 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             const pips = parseFloat(dom[`${type}-pips`].value);
             const instrument = dom['index-selector'].value;
 
+            const priceInput = dom[type === 'sl' ? 'stop-loss' : 'take-profit'];
+
             if (isNaN(entryPrice) || isNaN(pips)) {
+                if (isNaN(pips)) priceInput.value = '';
                 return;
             }
 
-            let multiplier = 1;
-            if (instrument.includes('/')) {
-                multiplier = instrument.includes('JPY') ? 0.01 : 0.0001;
-            }
-
-            let priceChange = pips * multiplier;
+            const multiplier = getPipMultiplier(instrument);
+            const priceChange = pips * multiplier;
             let finalPrice;
 
             if (type === 'sl') {
                 finalPrice = tradeType === 'Buy' ? entryPrice - priceChange : entryPrice + priceChange;
-            } else {
+            } else { // 'tp'
                 finalPrice = tradeType === 'Buy' ? entryPrice + priceChange : entryPrice - priceChange;
             }
             
+            // Determine decimal places from entry price to ensure correct formatting
             const decimalPlaces = (entryPrice.toString().split('.')[1] || '').length;
-            dom[`${type === 'sl' ? 'stop-loss' : 'take-profit'}`].value = finalPrice.toFixed(decimalPlaces);
+            priceInput.value = finalPrice.toFixed(decimalPlaces);
         };
 
         const updateRiskConsistencyTracker = (allTrades) => {
