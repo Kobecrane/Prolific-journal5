@@ -216,6 +216,15 @@
             border-color: var(--accent-color);
             box-shadow: 0 0 0 3px var(--tw-ring-color);
         }
+        /* Add this for Zebra Striping */
+#trade-history-body tr:nth-child(even) {
+    background-color: var(--bg-tertiary);
+}
+
+/* Optional: Add a hover effect for better tracking */
+#trade-history-body tr:hover {
+    background-color: var(--border-color);
+}
 
         input[type="number"] { -moz-appearance: textfield; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -2764,7 +2773,10 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
 
         row.innerHTML = `
             <td class="px-4 py-3 align-top">
-                <div class="font-medium text-text-primary">${trade.indexName}</div>
+                <div class="font-medium text-text-primary flex items-center gap-2">
+    ${trade.indexName}
+    ${!isClosed ? '<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Trade is Open"></span>' : ''}
+</div>
                 <div class="text-xs text-text-secondary">${tradeDate}</div>
                  <div class="text-xs font-semibold text-accent-color mt-1">${trade.timeframe || ''}</div>
                 ${tagSpans}
@@ -4283,92 +4295,93 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
         };
         // ===== REPLACE THE OLD getPipMultiplier WITH THIS NEW VERSION =====
 
-        const getPipMultiplier = (instrument) => {
-            if (!instrument) return 1;
+        // REPLACE your old getPipMultiplier function with this one
+const getPipMultiplier = (instrument, entryPrice) => {
+    if (!instrument) return 1;
 
-            // --- Forex Pairs ---
-            if (instrument.includes('/')) { 
-                return instrument.includes('JPY') ? 0.01 : 0.0001;
-            }
+    // --- Forex Pairs ---
+    if (instrument.includes('/')) { 
+        // JPY pairs have 2 decimal pips, others have 4.
+        return instrument.includes('JPY') ? 0.01 : 0.0001;
+    }
+    
+    // --- NEW: Handle DEX Indices specifically ---
+    if (instrument.includes('DEX')) {
+        // DEX indices have 3 decimal places for their point value.
+        return 0.001;
+    }
             
-            // --- Deriv Volatility Indices (Standard) ---
-            // For VIX 75, a 1 point move is $1, so multiplier is 1.
-            // But for VIX 10, a 0.01 price move is a "pip", so multiplier is 0.01.
-            if (instrument.startsWith('Volatility')) {
-                const number = parseInt(instrument.match(/\d+/)[0]);
-                // This is a common structure, but might need tweaking
-                // based on specific contract specs.
-                if (number >= 50) return 1; // V50, V75, V100 are often 1:1
-                return 0.01; // V10, V25 often have smaller ticks
-            }
-            
-            // --- Deriv Crash/Boom ---
-            // For these, the value is the "point" itself.
-            if (instrument.includes('Crash') || instrument.includes('Boom')) {
-                return 1;
-            }
+    // --- NEW: Smarter logic for Volatility Indices ---
+    // Instead of guessing, we check the actual decimal places of the entry price.
+    if (instrument.startsWith('Volatility')) {
+        const priceStr = (entryPrice || 0).toString();
+        if (priceStr.includes('.')) {
+            const decimalPlaces = priceStr.split('.')[1].length;
+            // If it has 2 or more decimals, the multiplier is 0.01. Otherwise, it's 1.
+            return decimalPlaces >= 2 ? 0.01 : 1;
+        }
+        // If no decimal point, it's a whole number index.
+        return 1;
+    }
 
-            // --- Deriv Jump & Other Synthetics ---
-            // Most other synthetics also use points as the base unit.
-            if (instrument.includes('Jump') || instrument.includes('Step') || instrument.includes('Range Break')) {
-                return 1;
-            }
+    // --- Default for everything else (Crash, Boom, Gold, US 500, etc.) ---
+    // For these, 1 point of movement = a price change of 1.
+    return 1;
+};
 
-            // --- Standard Indices & Commodities (Default fallback) ---
-            // For Gold, US 500, etc., 1 point = 1 unit of price
-            return 1;
-        };
+       // REPLACE this function
+const calculatePipsFromPrice = (type) => {
+    const entryPrice = parseFloat(dom['entry-price'].value);
+    const levelPrice = parseFloat(dom[type === 'sl' ? 'stop-loss' : 'take-profit'].value);
+    const instrument = dom['index-selector'].value;
 
-        const calculatePipsFromPrice = (type) => {
-            const entryPrice = parseFloat(dom['entry-price'].value);
-            const levelPrice = parseFloat(dom[type === 'sl' ? 'stop-loss' : 'take-profit'].value);
-            const instrument = dom['index-selector'].value;
+    if (isNaN(entryPrice) || isNaN(levelPrice)) {
+        if (isNaN(levelPrice)) dom[`${type}-pips`].value = '';
+        return;
+    }
 
-            if (isNaN(entryPrice) || isNaN(levelPrice)) {
-                if (isNaN(levelPrice)) dom[`${type}-pips`].value = '';
-                return;
-            }
+    // This is the updated line
+    const multiplier = getPipMultiplier(instrument, entryPrice);
+    if (multiplier === 0) return;
 
-            const multiplier = getPipMultiplier(instrument);
-            if (multiplier === 0) return;
+    const priceDiff = Math.abs(entryPrice - levelPrice);
+    const pips = priceDiff / multiplier;
 
-            const priceDiff = Math.abs(entryPrice - levelPrice);
-            const pips = priceDiff / multiplier;
-
-            dom[`${type}-pips`].value = pips.toFixed(1);
-        };
+    dom[`${type}-pips`].value = pips.toFixed(1);
+};
 
         const clearPipInputs = () => {
             dom['sl-pips'].value = '';
             dom['tp-pips'].value = '';
         };
 
-        const calculatePriceFromPips = (type) => {
-            const entryPrice = parseFloat(dom['entry-price'].value);
-            const pips = parseFloat(dom[`${type}-pips`].value);
-            const instrument = dom['index-selector'].value;
+        // REPLACE this function
+const calculatePriceFromPips = (type) => {
+    const entryPrice = parseFloat(dom['entry-price'].value);
+    const pips = parseFloat(dom[`${type}-pips`].value);
+    const instrument = dom['index-selector'].value;
 
-            const priceInput = dom[type === 'sl' ? 'stop-loss' : 'take-profit'];
+    const priceInput = dom[type === 'sl' ? 'stop-loss' : 'take-profit'];
 
-            if (isNaN(entryPrice) || isNaN(pips)) {
-                if (isNaN(pips)) priceInput.value = '';
-                return;
-            }
+    if (isNaN(entryPrice) || isNaN(pips)) {
+        if (isNaN(pips)) priceInput.value = '';
+        return;
+    }
 
-            const multiplier = getPipMultiplier(instrument);
-            const priceChange = pips * multiplier;
-            let finalPrice;
+    // This is the updated line
+    const multiplier = getPipMultiplier(instrument, entryPrice);
+    const priceChange = pips * multiplier;
+    let finalPrice;
 
-            if (type === 'sl') {
-                finalPrice = tradeType === 'Buy' ? entryPrice - priceChange : entryPrice + priceChange;
-            } else { // 'tp'
-                finalPrice = tradeType === 'Buy' ? entryPrice + priceChange : entryPrice - priceChange;
-            }
-            
-            // Determine decimal places from entry price to ensure correct formatting
-            const decimalPlaces = (entryPrice.toString().split('.')[1] || '').length;
-            priceInput.value = finalPrice.toFixed(decimalPlaces);
-        };
+    if (type === 'sl') {
+        finalPrice = tradeType === 'Buy' ? entryPrice - priceChange : entryPrice + priceChange;
+    } else { // 'tp'
+        finalPrice = tradeType === 'Buy' ? entryPrice + priceChange : entryPrice - priceChange;
+    }
+    
+    const decimalPlaces = (entryPrice.toString().split('.')[1] || '').length;
+    priceInput.value = finalPrice.toFixed(decimalPlaces);
+};
 
         const updateRiskConsistencyTracker = (allTrades) => {
            const riskTrades = allTrades
