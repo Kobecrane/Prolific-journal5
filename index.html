@@ -681,6 +681,23 @@
                                 </div>
                             </div>
                             <div id="realtime-pl-display" class="p-2 text-center rounded-lg h-10 transition-all"></div>
+                            <div class="grid grid-cols-2 gap-4">
+    <div>
+        <label for="lot-size" class="block text-sm font-medium text-text-secondary">Lot Size</label>
+        <input type="number" id="lot-size" placeholder="e.g., 0.2" class="form-input mt-1 w-full p-2 rounded-lg">
+    </div>
+     <div id="num-positions-container">
+        <label for="num-positions" class="block text-sm font-medium text-text-secondary">No. of Positions</label>
+        <input type="number" id="num-positions" value="1" min="1" class="form-input mt-1 w-full p-2 rounded-lg">
+    </div>
+</div>
+                             <div class="p-3 rounded-lg border border-border-color bg-tertiary/50 space-y-3 mb-4">
+    <label class="block text-sm font-bold text-accent-color">Risk to SL Calculator</label>
+    <div class="flex items-center gap-2">
+        <input type="number" id="risk-percentage" placeholder="Risk %" class="form-input w-full p-2 rounded-lg text-sm">
+        <button id="calculate-sl-from-risk-btn" class="btn btn-primary text-white font-semibold py-2 px-4 rounded-lg w-full">Calculate SL</button>
+    </div>
+</div>
                               <div>
                                 <label for="stop-loss" class="block text-sm font-medium text-text-secondary">Stop Loss</label>
                                 <div class="flex items-center gap-2">
@@ -1131,7 +1148,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value'
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
 
 ];
         
@@ -1506,7 +1523,58 @@ const setTheme = (theme) => {
             });
         };
 
-       
+        // PASTE THIS ENTIRE NEW FUNCTION
+const handleCalculateSLFromRisk = () => {
+    // 1. Get all necessary values from the form
+    const riskPercent = parseFloat(dom['risk-percentage'].value);
+    const currentBalanceText = dom['current-balance'].textContent.replace(/[^0-9.-]+/g, "");
+    const currentBalance = parseFloat(currentBalanceText);
+    const entryPrice = parseFloat(dom['entry-price'].value);
+    const lotSize = parseFloat(dom['lot-size'].value);
+    const instrument = dom['index-selector'].value;
+
+    // 2. Validate the inputs
+    if (isNaN(riskPercent) || riskPercent <= 0) {
+        showToast("Please enter a valid Risk %.", "error");
+        return;
+    }
+    if (isNaN(currentBalance) || currentBalance <= 0) {
+        showToast("Cannot calculate risk without a Current Balance.", "error");
+        return;
+    }
+    if (isNaN(entryPrice) || isNaN(lotSize)) {
+        showToast("Entry Price and Lot Size must be set to calculate SL.", "error");
+        return;
+    }
+
+    // 3. Calculate the risk amount in dollars
+    const riskAmount = currentBalance * (riskPercent / 100);
+
+    // 4. Determine the required price difference for that risk amount
+    let priceDifference;
+    if (instrument.includes('/')) { // Handle Forex
+        priceDifference = riskAmount / (100000 * lotSize);
+    } else { // Handle Deriv Assets, Indices, Gold, etc.
+        priceDifference = riskAmount / lotSize;
+    }
+    
+    // 5. Calculate the final Stop Loss price based on trade type
+    let stopLossPrice;
+    if (tradeType === 'Buy') {
+        stopLossPrice = entryPrice - priceDifference;
+    } else { // Sell
+        stopLossPrice = entryPrice + priceDifference;
+    }
+
+    // 6. Update the UI with the results
+    const decimalPlaces = (entryPrice.toString().split('.')[1] || '').length;
+    dom['stop-loss'].value = stopLossPrice.toFixed(decimalPlaces);
+    
+    // Also update the pips box automatically for a great user experience
+    calculatePipsFromPrice('sl'); 
+    
+    showToast(`Stop Loss set to ${stopLossPrice.toFixed(decimalPlaces)} for a $${riskAmount.toFixed(2)} risk.`, "success");
+};
         const calculatePL = (type, lot, entry, exit, index) => {
             if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) {
                 return { profit: null, movement: null };
@@ -2119,6 +2187,7 @@ const updateAdviser = (allTrades) => {
             dom['exit-price'].value = tradeToEdit.exitPrice !== null ? tradeToEdit.exitPrice : '';
             dom['stop-loss'].value = tradeToEdit.stopLoss || '';
             dom['take-profit'].value = tradeToEdit.takeProfit || '';
+           dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFromRisk);
             calculatePipsFromPrice('sl');
             calculatePipsFromPrice('tp');
             dom['peak-price'].value = tradeToEdit.peakPrice !== null ? tradeToEdit.peakPrice : '';
@@ -2436,6 +2505,8 @@ if (dom['index-selector']) {
             dom['take-profit'].addEventListener('input', () => calculatePipsFromPrice('tp'));
 
             // --- Main Buttons ---
+            // Add this line inside the setupEventListeners function
+dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFromRisk);
             dom['log-trade-btn'].addEventListener('click', handleLogTrade);
             dom['cancel-edit-btn'].addEventListener('click', resetForm);
             dom['save-balance-btn'].addEventListener('click', () => {
