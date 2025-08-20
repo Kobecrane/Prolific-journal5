@@ -81,6 +81,31 @@
         .theme-switch input {
             display:none;
         }
+        /* Collapsible Section Styles */
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 0.75rem 0; /* Increased padding for better click area */
+    user-select: none;
+}
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out;
+}
+.collapsible-container.open .collapsible-content {
+    max-height: 500px; /* Adjust if your content is taller */
+    margin-top: 0.5rem;
+    padding-bottom: 0.75rem;
+}
+.collapsible-icon {
+    transition: transform 0.3s ease-in-out;
+}
+.collapsible-container.open .collapsible-icon {
+    transform: rotate(180deg);
+}
         .slider {
             background-color: var(--bg-tertiary);
             border: 1px solid var(--border-color);
@@ -599,28 +624,36 @@
         <option value="W">Weekly</option>
     </select>
 </div>
-                            <div>
-                  <div class="flex justify-between items-center">
-                      <label class="block text-sm font-medium text-text-secondary">Pre-Trade Checklist</label>
-                      <button id="manage-checklist-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage</button>
-                  </div>
-                  <div id="trade-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto">
-                      </div>
-              </div>
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <label class="block text-sm font-medium text-text-secondary">Strategy Tags</label>
-                                    <button id="manage-tags-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage Tags</button>
-                                </div>
-                                <div id="tags-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
+                            <div class="collapsible-container border-y border-border-color" id="checklist-collapsible">
+                            <div class="collapsible-header">
+                                <label class="block text-sm font-medium text-text-secondary">Pre-Trade Checklist</label>
+                                <svg class="collapsible-icon w-4 h-4 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
                             </div>
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <label class="block text-sm font-medium text-text-secondary">Psychology Tags</label>
-                                    <button id="manage-psychology-tags-btn" class="text-xs text-accent-color font-semibold hover:underline">Manage Psychology Tags</button>
-                                </div>
-                                <div id="psychology-tags-checklist" class="mt-1 w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
+                            <div class="collapsible-content">
+                                <button id="manage-checklist-btn" class="text-xs text-accent-color font-semibold hover:underline mb-2">Manage</button>
+                                <div id="trade-checklist" class="w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
                             </div>
+                        </div>
+                            <div class="collapsible-container border-b border-border-color" id="strategy-tags-collapsible">
+                            <div class="collapsible-header">
+                                <label class="block text-sm font-medium text-text-secondary">Strategy Tags</label>
+                                <svg class="collapsible-icon w-4 h-4 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <button id="manage-tags-btn" class="text-xs text-accent-color font-semibold hover:underline mb-2">Manage Tags</button>
+                                <div id="tags-checklist" class="w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
+                            </div>
+                        </div>
+                        <div class="collapsible-container border-b border-border-color" id="psychology-tags-collapsible">
+                            <div class="collapsible-header">
+                                <label class="block text-sm font-medium text-text-secondary">Psychology Tags</label>
+                                <svg class="collapsible-icon w-4 h-4 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <button id="manage-psychology-tags-btn" class="text-xs text-accent-color font-semibold hover:underline mb-2">Manage Psychology Tags</button>
+                                <div id="psychology-tags-checklist" class="w-full p-2 form-input rounded-lg max-h-[150px] overflow-y-auto"></div>
+                            </div>
+                        </div>
                             <div>
                                 <label class="block text-sm font-medium text-text-secondary">Trade Type</label>
                                 <div class="mt-1 grid grid-cols-2 gap-2">
@@ -628,17 +661,7 @@
                                       <button id="sell-btn" class="trade-type-btn bg-tertiary text-text-secondary p-2 rounded-lg btn">Sell</button>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="lot-size" class="block text-sm font-medium text-text-secondary">Lot Size</label>
-                                    <input type="number" id="lot-size" placeholder="e.g., 0.2" class="form-input mt-1 w-full p-2 rounded-lg">
-                                </div>
-                                 <div id="num-positions-container">
-                                    <label for="num-positions" class="block text-sm font-medium text-text-secondary">No. of Positions</label>
-                                    <input type="number" id="num-positions" value="1" min="1" class="form-input mt-1 w-full p-2 rounded-lg">
-                                </div>
-                            </div>
-                              <div class="grid grid-cols-2 gap-4">
+                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                    <label for="entry-price" class="block text-sm font-medium text-text-secondary">Entry Price</label>
                                    <input type="number" id="entry-price" placeholder="e.g., 12345.6" class="form-input mt-1 w-full p-2 rounded-lg">
@@ -663,20 +686,28 @@
                                     <input type="number" id="tp-pips" placeholder="pips/pts" class="form-input mt-1 w-20 p-2 rounded-lg text-sm">
                                 </div>
                             </div>
-                              <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="peak-price" class="block text-sm font-medium text-text-secondary">Peak Profit Price (MFE)</label>
-                                    <input type="number" id="peak-price" placeholder="For losing trades" class="form-input mt-1 w-full p-2 rounded-lg">
+                              <div class="collapsible-container border-t border-border-color mt-4" id="advanced-options-collapsible">
+                            <div class="collapsible-header">
+                                <label class="block text-sm font-medium text-text-secondary">Advanced Options</label>
+                                <svg class="collapsible-icon w-4 h-4 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                            <div class="collapsible-content space-y-4">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="peak-price" class="block text-sm font-medium text-text-secondary">Peak Profit Price (MFE)</label>
+                                        <input type="number" id="peak-price" placeholder="For losing trades" class="form-input mt-1 w-full p-2 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label for="mae-price" class="block text-sm font-medium text-text-secondary">Peak Drawdown Price (MAE)</label>
+                                        <input type="number" id="mae-price" placeholder="For winning trades" class="form-input mt-1 w-full p-2 rounded-lg">
+                                    </div>
                                 </div>
                                 <div>
-                                    <label for="mae-price" class="block text-sm font-medium text-text-secondary">Peak Drawdown Price (MAE)</label>
-                                    <input type="number" id="mae-price" placeholder="For winning trades" class="form-input mt-1 w-full p-2 rounded-lg">
+                                    <label for="fees" class="block text-sm font-medium text-text-secondary">Commissions & Fees</label>
+                                    <input type="number" id="fees" placeholder="e.g., 5.50" class="form-input mt-1 w-full p-2 rounded-lg">
                                 </div>
                             </div>
-                              <div>
-                                <label for="fees" class="block text-sm font-medium text-text-secondary">Commissions & Fees</label>
-                                <input type="number" id="fees" placeholder="e.g., 5.50" class="form-input mt-1 w-full p-2 rounded-lg">
-                            </div>
+                        </div>
                             <div>
                                 <label for="trade-comments-editor" class="block text-sm font-medium text-text-secondary">Comments & Screenshots</label>
                                 <div id="trade-comments-editor" contenteditable="true" class="form-input mt-1 w-full p-2 rounded-lg max-h-[400px] overflow-y-auto" data-placeholder="Add notes, paste or drag images here..."></div>
@@ -1049,7 +1080,7 @@
         
         // --- All DOM Element IDs used in the script ---
         const elementIds = [
-            'sidebar', 'main-content', 'page-title',
+            'sidebar', 'main-content', 'page-title', 
             'buy-btn', 'sell-btn', 'log-trade-btn', 'cancel-edit-btn', 'save-balance-btn', 'save-data-btn',
             'settings-menu-btn', 'settings-menu-panel', 'manage-accounts-btn', 'close-accounts-modal-btn', 'add-account-btn', 'account-switcher', 'close-day-modal-btn', 'export-btn', 'import-file',
             'export-pdf-btn', 'reset-filters-btn', 'run-mc-btn', 'trade-comments-editor', 'lot-size', 'entry-price',
@@ -1466,25 +1497,40 @@ const setTheme = (theme) => {
             });
         };
 
-
-        // --- Calculations ---
+       
         const calculatePL = (type, lot, entry, exit, index) => {
-            if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) return { profit: null, movement: null };
-            
-            let diff = exit - entry;
-            if (type === 'Sell') diff = entry - exit;
-
-            let profit;
-            if (index.includes('/')) {
-                profit = diff * 100000 * lot;
-            } 
-            else {
-                profit = diff * lot;
+            if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) {
+                return { profit: null, movement: null };
             }
             
-            let movement = Math.abs(exit - entry);
+            let diff = (type === 'Buy') ? exit - entry : entry - exit;
+            let profit;
+
+            // --- Determine the point/pip value based on the instrument ---
+            // This logic now mirrors getPipMultiplier for consistency
             if (index.includes('/')) {
-                movement *= (index.includes('JPY') ? 100 : 10000);
+                // Standard Forex calculation (100,000 units per lot)
+                profit = diff * 100000 * lot;
+            } else if (index.startsWith('Volatility')) {
+                // For most VIX, contract size is 1, so profit is diff * lot.
+                // This is a common spec, but you can adjust if needed.
+                profit = diff * lot;
+            } else if (index.includes('Crash') || index.includes('Boom')) {
+                // 1 point movement = $1 profit change per lot
+                profit = diff * lot;
+            } else if (index.includes('Jump') || index.includes('Step') || index.includes('DEX')) {
+                 // 1 point movement = $1 profit change per lot
+                profit = diff * lot;
+            } else {
+                // Default for other indices (Gold, US 500, etc.)
+                profit = diff * lot;
+            }
+
+            // Calculate movement in pips/points
+            let movement = Math.abs(exit - entry);
+            const multiplier = getPipMultiplier(index); // Reuse our multiplier function
+            if (multiplier !== 0) {
+                movement = movement / multiplier;
             }
 
             return { profit, movement };
@@ -2290,7 +2336,39 @@ const updateChecklistAnalysis = (trades) => {
         ${createStatCard('Compliant Trades', compliantTrades, 'bg-green-900/20')}
         ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
     `;
-};        const setupEventListeners = () => {
+};
+const setupCollapsibleSections = () => {
+        // Key for localStorage
+        const storageKey = 'collapsibleStates';
+        let states = JSON.parse(localStorage.getItem(storageKey)) || {};
+
+        const collapsibleContainers = document.querySelectorAll('.collapsible-container');
+
+        collapsibleContainers.forEach(container => {
+            const header = container.querySelector('.collapsible-header');
+            const content = container.querySelector('.collapsible-content');
+            const id = container.id;
+
+            // Apply saved state on load. If a state is not saved, default to closed.
+            if (id && states[id] === true) {
+                container.classList.add('open');
+            }
+
+            if (header && content) {
+                header.addEventListener('click', () => {
+                    const isOpen = container.classList.toggle('open');
+
+                    // Save the new state
+                    if (id) {
+                        states[id] = isOpen;
+                        localStorage.setItem(storageKey, JSON.stringify(states));
+                    }
+                });
+            }
+        });
+    };
+        const setupEventListeners = () => {
+           
             // Helper to clear inputs
             const clearPipAndPriceInputs = () => {
                 ['stop-loss', 'sl-pips', 'take-profit', 'tp-pips'].forEach(id => dom[id].value = '');
@@ -2299,7 +2377,7 @@ const updateChecklistAnalysis = (trades) => {
             // Analytics Page Tab Logic
             const tabButtons = document.querySelectorAll('.analytics-tabs .tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
-
+            setupCollapsibleSections();
             tabButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     tabButtons.forEach(btn => btn.classList.remove('active'));
