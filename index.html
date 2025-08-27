@@ -2118,7 +2118,7 @@ const updateAdviser = (allTrades) => {
                     </ol>
                 </div>`;
     }
-    
+    html += updateRiskOptimizationEngine(closedTrades, breakevenThreshold);
     html += `</div>`;
     content.innerHTML = html;
 };
@@ -4743,7 +4743,130 @@ const updatePipAnalysis = (allTrades) => {
             </div>
         </div>
     `;
-};    
+}; 
+// ====== PASTE THIS ENTIRE NEW FUNCTION INTO YOUR SCRIPT ======
+const updateRiskOptimizationEngine = (allTrades, breakevenThreshold) => {
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null && t.stopLoss !== null && t.entryPrice !== null);
+
+    if (closedTrades.length < 15) {
+        return ''; // Not enough data for a meaningful analysis
+    }
+
+    let recommendationsHTML = '';
+
+    // --- 1. STOP LOSS ANALYSIS (MAE) ---
+    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold && t.maePrice !== null);
+    if (winningTrades.length > 5) {
+        let totalRiskEfficiency = 0;
+        winningTrades.forEach(trade => {
+            const plannedRiskDistance = Math.abs(trade.entryPrice - trade.stopLoss);
+            const maxDrawdownDistance = Math.abs(trade.entryPrice - trade.maePrice);
+            if (plannedRiskDistance > 0) {
+                totalRiskEfficiency += (maxDrawdownDistance / plannedRiskDistance) * 100;
+            }
+        });
+        const avgRiskEfficiency = totalRiskEfficiency / winningTrades.length;
+
+        if (avgRiskEfficiency > 75) {
+            recommendationsHTML += `
+                <div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-yellow-400">🛡️ Stop Loss Recommendation: Consider Widening Stops</h3>
+                    <p class="text-sm text-text-secondary mt-1">
+                        <strong>The Data:</strong> On your winning trades, you are experiencing an average drawdown of **${avgRiskEfficiency.toFixed(0)}%** of your planned risk. This means your good trades are frequently coming close to being stopped out.
+                    </p>
+                    <p class="text-sm text-text-secondary mt-2">
+                        <strong>Actionable Advice:</strong> Try widening your stop loss by 10-15% or placing it more definitively behind a recent swing high/low. This may prevent you from being "shaken out" of otherwise profitable trades.
+                    </p>
+                </div>`;
+        } else if (avgRiskEfficiency < 30) {
+             recommendationsHTML += `
+                <div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-yellow-400">🛡️ Stop Loss Recommendation: Consider Tighter Stops</h3>
+                    <p class="text-sm text-text-secondary mt-1">
+                        <strong>The Data:</strong> Your winning trades experience very little drawdown, averaging only **${avgRiskEfficiency.toFixed(0)}%** of your planned risk. You are consistently over-estimating the room your trades need.
+                    </p>
+                    <p class="text-sm text-text-secondary mt-2">
+                        <strong>Actionable Advice:</strong> A tighter stop loss would increase your R:R ratio and make your capital more efficient. Look for opportunities to place your stop closer to your entry structure.
+                    </p>
+                </div>`;
+        }
+    }
+
+    // --- 2. TAKE PROFIT ANALYSIS (MFE) ---
+    const winningTradesWithMFE = closedTrades.filter(t => t.profitLoss > breakevenThreshold && t.peakPrice !== null);
+    if (winningTradesWithMFE.length > 5) {
+        let totalUnrealizedGains = 0;
+        let totalActualProfit = 0;
+
+        winningTradesWithMFE.forEach(trade => {
+            const peakProfit = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit || 0;
+            if (peakProfit > trade.profitLoss) {
+                totalUnrealizedGains += (peakProfit - trade.profitLoss);
+            }
+            totalActualProfit += trade.profitLoss;
+        });
+
+        if (totalActualProfit > 0) {
+            const unrealizedPercentage = (totalUnrealizedGains / totalActualProfit) * 100;
+            if (unrealizedPercentage > 25) { // If more than 25% of profit is being left on the table
+                 recommendationsHTML += `
+                <div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-yellow-400">🎯 Target Recommendation: Consider Increasing Targets</h3>
+                    <p class="text-sm text-text-secondary mt-1">
+                        <strong>The Data:</strong> Your winning trades run for an additional **${unrealizedPercentage.toFixed(0)}%** in profit, on average, after you have already exited. You are leaving significant money on the table.
+                    </p>
+                    <p class="text-sm text-text-secondary mt-2">
+                        <strong>Actionable Advice:</strong> Consider using a multi-target strategy: secure partial profit at your original target, then let the rest of the position run with a trailing stop or to a higher structural level.
+                    </p>
+                </div>`;
+            }
+        }
+    }
+    
+    // --- 3. AMBITIOUS TARGET ANALYSIS (REVERSALS) ---
+    const reversedTrades = closedTrades.filter(t => t.profitLoss <= breakevenThreshold && t.peakPrice !== null);
+    if (reversedTrades.length > 5) {
+        let slippedProfit = 0;
+        let reversedCount = 0;
+        reversedTrades.forEach(trade => {
+            const peakProfit = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit || 0;
+            const initialRisk = Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName).profit || 1);
+
+            // A "significant" reversal is one where the trade reached at least 1R in profit
+            if (peakProfit > initialRisk) {
+                reversedCount++;
+                slippedProfit += peakProfit - (trade.profitLoss > 0 ? trade.profitLoss : 0);
+            }
+        });
+        
+        if (reversedCount > 0 && (reversedCount / closedTrades.filter(t=>t.profitLoss <= breakevenThreshold).length) > 0.20) { // If >20% of losers were once winners
+             recommendationsHTML += `
+                <div class="border-t border-border-color pt-4">
+                    <h3 class="text-base font-bold text-yellow-400">🎯 Target Recommendation: Consider Securing Profits Sooner</h3>
+                    <p class="text-sm text-text-secondary mt-1">
+                        <strong>The Data:</strong> **${reversedCount}** of your losing/breakeven trades were once in profit by at least 1R before reversing. This has cost you **\$${slippedProfit.toFixed(2)}** in potential gains.
+                    </p>
+                    <p class="text-sm text-text-secondary mt-2">
+                        <strong>Actionable Advice:</strong> Your targets may be too ambitious for current market conditions. Implement a mandatory rule to move your stop loss to breakeven once a trade hits 1R. This will protect your capital from turning winners into losers.
+                    </p>
+                </div>`;
+        }
+    }
+
+
+    if (recommendationsHTML !== '') {
+        return `
+            <div class="border-t border-border-color pt-4">
+                 <h2 class="text-xl font-semibold mb-2 text-text-primary flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M12 6V3m0 18v-3m6-9h3m-18 0h3m12.364 6.364l-1.414 1.414M6.343 6.343l-1.414 1.414m12.728 0l-1.414-1.414M6.343 17.657l-1.414-1.414M12 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Risk & Target Optimization</span>
+                </h2>
+                <div class="space-y-4">${recommendationsHTML}</div>
+            </div>`;
+    }
+
+    return ''; // Return empty string if no specific recommendations are triggered
+};   
 </script>
 </body>
 </html>
