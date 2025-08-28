@@ -2119,6 +2119,7 @@ const updateAdviser = (allTrades) => {
                 </div>`;
     }
     html += updateRiskOptimizationEngine(closedTrades, breakevenThreshold);
+    html += updateOptimalExitEngine(closedTrades, breakevelThreshold);
     html += `</div>`;
     content.innerHTML = html;
 };
@@ -4866,6 +4867,104 @@ const updateRiskOptimizationEngine = (allTrades, breakevenThreshold) => {
     }
 
     return ''; // Return empty string if no specific recommendations are triggered
+};
+// ====== PASTE THIS ENTIRE NEW FUNCTION INTO YOUR SCRIPT ======
+
+const updateOptimalExitEngine = (allTrades, breakevenThreshold) => {
+    const MIN_TRADES_FOR_ANALYSIS = 7;
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+
+    if (closedTrades.length < MIN_TRADES_FOR_ANALYSIS) {
+        return ''; // Not enough data
+    }
+
+    // --- 1. Find the most profitable and frequently traded Playbook setup ---
+    const playbookStats = closedTrades.reduce((acc, trade) => {
+        if (trade.playId) {
+            if (!acc[trade.playId]) {
+                acc[trade.playId] = { count: 0, totalPL: 0, playTitle: '' };
+            }
+            acc[trade.playId].count++;
+            acc[trade.playId].totalPL += trade.profitLoss;
+            
+            // Store the title for later use
+            const play = getActiveAccount()?.playbook.find(p => p.id === trade.playId);
+            if(play) acc[trade.playId].playTitle = play.title;
+        }
+        return acc;
+    }, {});
+
+    const topSetup = Object.entries(playbookStats)
+        .filter(([id, stats]) => stats.count >= MIN_TRADES_FOR_ANALYSIS && stats.totalPL > 0)
+        .sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
+
+    if (!topSetup) {
+        return ''; // No single setup has enough data or is profitable
+    }
+
+    const [topSetupId, topSetupStats] = topSetup;
+    const setupTitle = topSetupStats.playTitle || 'Top Setup';
+
+    // --- 2. Analyze only the winning trades from that top setup ---
+    const winningTradesForSetup = closedTrades.filter(t => 
+        t.playId === topSetupId && 
+        t.profitLoss > breakevenThreshold && 
+        t.peakPrice !== null
+    );
+
+    if (winningTradesForSetup.length < 5) { // Need at least 5 wins for this analysis
+        return '';
+    }
+
+    // --- 3. Calculate how much money was "left on the table" (MFE analysis) ---
+    let totalUnrealizedGains = 0;
+    let totalActualProfit = 0;
+
+    winningTradesForSetup.forEach(trade => {
+        const peakProfit = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit || 0;
+        if (peakProfit > trade.profitLoss) {
+            totalUnrealizedGains += (peakProfit - trade.profitLoss);
+        }
+        totalActualProfit += trade.profitLoss;
+    });
+
+    if (totalActualProfit === 0) return '';
+    
+    const unrealizedPercentage = (totalUnrealizedGains / totalActualProfit) * 100;
+
+    // --- 4. Generate the specific recommendation based on the data ---
+    let suggestion = '';
+    let suggestionTitle = '';
+
+    if (unrealizedPercentage > 40) {
+        suggestionTitle = 'Use a Trailing Stop-Loss';
+        suggestion = `After your trade hits its first target, consider activating a trailing stop (e.g., behind the previous candle's low/high). This will help you capture the extra momentum your setup often provides.`;
+    } else if (unrealizedPercentage < 15) {
+        suggestionTitle = 'Hold to Your Target';
+        suggestion = `Your profit targets for this setup are incredibly accurate. The market rarely moves much further in your favor after you exit. Continue to trust your analysis and hold to your planned Take Profit.`;
+    } else { // Between 15% and 40%
+        suggestionTitle = 'Take Partial Profits';
+        suggestion = `This setup often continues to run, but not always smoothly. Consider securing partial profits (e.g., 50%) at your first target, move your stop to breakeven, and let the rest of the position run to a second, higher target.`;
+    }
+    
+    // --- 5. Return the formatted HTML ---
+    return `
+        <div class="border-t border-border-color pt-4">
+             <h2 class="text-xl font-semibold mb-2 text-text-primary flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <span>Optimal Exit Engine</span>
+            </h2>
+            <div class="p-4 bg-tertiary/50 rounded-lg border border-border-color">
+                <h3 class="font-bold text-base text-yellow-400">Analysis of "${setupTitle}"</h3>
+                <p class="text-sm text-text-secondary mt-1">
+                    The data shows that for your best setup, you are leaving an average of **${unrealizedPercentage.toFixed(0)}% additional profit** on the table after you exit your winning trades.
+                </p>
+                <div class="mt-3 pt-3 border-t border-border-color">
+                    <p class="text-sm font-semibold text-text-primary">Suggestion: ${suggestionTitle}</p>
+                    <p class="text-xs text-text-secondary mt-1">${suggestion}</p>
+                </div>
+            </div>
+        </div>`;
 };   
 </script>
 </body>
