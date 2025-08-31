@@ -15,7 +15,7 @@
     <!-- jsPDF and html2canvas for PDF Export -->
 <script src="https://unpkg.com/@popperjs/core@2"></script>
 <script src="https://unpkg.com/tippy.js@6"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/2.9.6/dom-to-image-more.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -966,7 +966,7 @@
                             </div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden"><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-red-400">MAE on Winners</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. MAE</span><span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total MAE</span><span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span><span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span><span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
-                            <div class="card p-6 rounded-xl shadow-sm"><div class="flex justify-between items-center mb-4"><div><h2 class="text-xl font-semibold text-text-primary">Target vs. Stop Pip Analysis</h2><p class="text-xs text-text-secondary -mt-1">Compares pip movement for trades that hit their TP vs. SL.</p></div><div class="relative"><button id="pip-analysis-settings-btn" class="p-1.5 rounded-full hover:bg-tertiary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM17 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" /></svg></button><div id="pip-analysis-settings-panel" class="hidden absolute top-full right-0 mt-2 w-64 bg-bg-primary border border-border-color p-4 rounded-lg shadow-xl z-10"><p class="text-sm font-semibold mb-2">Analysis Mode</p><div class="space-y-2"><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Strict Mode (Exact Hit)</span></label><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="flexible" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Flexible Mode</span></label></div><div id="pip-analysis-tolerance-container" class="mt-3 hidden"><label for="pip-analysis-tolerance" class="text-xs font-medium text-text-secondary">Tolerance (<span id="pip-analysis-tolerance-value">10</span>% of SL distance)</label><input type="range" id="pip-analysis-tolerance" min="1" max="50" value="10" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer mt-1"></div></div></div></div><div id="pip-analysis-body"></div></div>
+                           
                         </div>
                     </div>
 
@@ -3090,43 +3090,73 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
     }
 };
 
-        const generatePDF = async () => {
-             toggleLoader(true);
-             const { jsPDF } = window.jspdf;
-             const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: 'a4', hotfixes: ['px_scaling'] });
+        // ====== REPLACE THE OLD `generatePDF` FUNCTION WITH THIS UPGRADED ONE ======
 
-             const content = dom['analytics-content-for-pdf'];
-             
-             await new Promise(resolve => setTimeout(resolve, 100));
+const generatePDF = async () => {
+    toggleLoader(true);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'px',
+        format: 'a4',
+        hotfixes: ['px_scaling']
+    });
 
-             try {
-                 const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#1a1c23', useCORS: true, windowWidth: 1200 });
-                 const imgData = canvas.toDataURL('image/jpeg', 0.9);
-                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                 const pdfHeight = pdf.internal.pageSize.getHeight();
-                 const imgProps = pdf.getImageProperties(imgData);
-                 const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                 let heightLeft = imgHeight;
-                 let position = 0;
+    const content = dom['analytics-content-for-pdf'];
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const originalBackgroundColor = document.documentElement.style.getPropertyValue('--bg-primary');
 
-                 pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-                 heightLeft -= pdfHeight;
+    try {
+        // Temporarily set a solid background for the capture
+        document.documentElement.style.setProperty('--bg-primary', 
+            document.documentElement.classList.contains('light') ? '#f3f4f6' : '#1a1c23'
+        );
 
-                 while (heightLeft > 0) {
-                     position = heightLeft - imgHeight;
-                     pdf.addPage();
-                     pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-                     heightLeft -= pdfHeight;
-                 }
-                 pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
-                 showToast("PDF report generated!", "success");
-             } catch(e) {
-                 showToast("Error generating PDF.", "error");
-                 console.error(e);
-             } finally {
-                 toggleLoader(false);
-             }
-        };
+        // Give the DOM a moment to apply the style change
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Use domtoimage.toPng for better image handling
+        const dataUrl = await domtoimage.toPng(content, {
+            quality: 0.95,
+            bgcolor: document.documentElement.style.getPropertyValue('--bg-primary'),
+            width: 1200, // Use a fixed wide width for better layout
+            style: {
+                // Ensure animations don't interfere with the capture
+                'animation': 'none',
+                'transition': 'none'
+            }
+        });
+
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // Add the first page
+        pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+
+        // Add subsequent pages if the content is longer than one page
+        while (heightLeft > 0) {
+            position = -pdfHeight + (imgHeight - heightLeft);
+            pdf.addPage();
+            pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= pdfHeight;
+        }
+
+        pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast("PDF report generated!", "success");
+
+    } catch (e) {
+        showToast("Error generating PDF. Check console for details.", "error");
+        console.error("PDF Generation Error:", e);
+    } finally {
+        // Restore the original background color
+        document.documentElement.style.setProperty('--bg-primary', originalBackgroundColor);
+        toggleLoader(false);
+    }
+};
         
         const addAccount = async (accountName) => {
             accountName = accountName.trim();
