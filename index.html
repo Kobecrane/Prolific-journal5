@@ -3090,7 +3090,7 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
     }
 };
 
-        // ====== REPLACE THE OLD `generatePDF` FUNCTION WITH THIS UPGRADED ONE ======
+        // ====== REPLACE THE OLD `generatePDF` FUNCTION WITH THIS DEFINITIVE VERSION ======
 
 const generatePDF = async () => {
     toggleLoader(true);
@@ -3105,39 +3105,40 @@ const generatePDF = async () => {
     const content = dom['analytics-content-for-pdf'];
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const originalBackgroundColor = document.documentElement.style.getPropertyValue('--bg-primary');
+    const originalAnimationSetting = Chart.defaults.animation; // Store original animation setting
 
     try {
-        // Temporarily set a solid background for the capture
+        // 1. Disable chart animations globally
+        Chart.defaults.animation = false;
+        
+        // 2. Force a redraw of all UI elements with animations disabled
+        refreshUI();
+
+        // 3. Temporarily set a solid background for the capture
         document.documentElement.style.setProperty('--bg-primary', 
             document.documentElement.classList.contains('light') ? '#f3f4f6' : '#1a1c23'
         );
 
-        // Give the DOM a moment to apply the style change
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // 4. Give the browser a moment to fully render the static charts
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Use domtoimage.toPng for better image handling
+        // 5. Capture the static content as an image
         const dataUrl = await domtoimage.toPng(content, {
             quality: 0.95,
             bgcolor: document.documentElement.style.getPropertyValue('--bg-primary'),
-            width: 1200, // Use a fixed wide width for better layout
-            style: {
-                // Ensure animations don't interfere with the capture
-                'animation': 'none',
-                'transition': 'none'
-            }
+            width: 1200, 
         });
 
+        // 6. Assemble the PDF from the captured image
         const imgProps = pdf.getImageProperties(dataUrl);
         const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
         const pdfHeight = pdf.internal.pageSize.getHeight();
         let heightLeft = imgHeight;
         let position = 0;
 
-        // Add the first page
         pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
         heightLeft -= pdfHeight;
 
-        // Add subsequent pages if the content is longer than one page
         while (heightLeft > 0) {
             position = -pdfHeight + (imgHeight - heightLeft);
             pdf.addPage();
@@ -3145,6 +3146,7 @@ const generatePDF = async () => {
             heightLeft -= pdfHeight;
         }
 
+        // 7. Save the PDF
         pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
         showToast("PDF report generated!", "success");
 
@@ -3152,8 +3154,10 @@ const generatePDF = async () => {
         showToast("Error generating PDF. Check console for details.", "error");
         console.error("PDF Generation Error:", e);
     } finally {
-        // Restore the original background color
+        // 8. Restore everything back to normal for the user
         document.documentElement.style.setProperty('--bg-primary', originalBackgroundColor);
+        Chart.defaults.animation = originalAnimationSetting; // Restore animations
+        refreshUI(); // Redraw the UI with animations back on
         toggleLoader(false);
     }
 };
