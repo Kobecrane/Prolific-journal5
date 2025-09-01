@@ -15,7 +15,7 @@
     <!-- jsPDF and html2canvas for PDF Export -->
 <script src="https://unpkg.com/@popperjs/core@2"></script>
 <script src="https://unpkg.com/tippy.js@6"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/2.9.6/dom-to-image-more.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -966,14 +966,7 @@
                             </div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden"><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-red-400">MAE on Winners</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. MAE</span><span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total MAE</span><span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span><span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span><span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
-                            <div class="card p-6 rounded-xl shadow-sm">
-    <h2 class="text-xl font-semibold mb-2 text-text-primary">R-Multiple Distribution</h2>
-    <p class="text-xs text-text-secondary mb-4 -mt-1">Visualizes trade outcomes based on initial risk (R).</p>
-    <div class="h-64 mb-4">
-        <canvas id="rMultipleChart"></canvas>
-    </div>
-    <div id="r-multiple-analysis-text" class="text-sm space-y-2"></div>
-</div>
+                            <div class="card p-6 rounded-xl shadow-sm"><div class="flex justify-between items-center mb-4"><div><h2 class="text-xl font-semibold text-text-primary">Target vs. Stop Pip Analysis</h2><p class="text-xs text-text-secondary -mt-1">Compares pip movement for trades that hit their TP vs. SL.</p></div><div class="relative"><button id="pip-analysis-settings-btn" class="p-1.5 rounded-full hover:bg-tertiary transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM17 4a1 1 0 10-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4z" /></svg></button><div id="pip-analysis-settings-panel" class="hidden absolute top-full right-0 mt-2 w-64 bg-bg-primary border border-border-color p-4 rounded-lg shadow-xl z-10"><p class="text-sm font-semibold mb-2">Analysis Mode</p><div class="space-y-2"><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Strict Mode (Exact Hit)</span></label><label class="flex items-center text-sm"><input type="radio" name="pip-analysis-mode" value="flexible" class="text-accent-color focus:ring-accent-color"><span class="ml-2">Flexible Mode</span></label></div><div id="pip-analysis-tolerance-container" class="mt-3 hidden"><label for="pip-analysis-tolerance" class="text-xs font-medium text-text-secondary">Tolerance (<span id="pip-analysis-tolerance-value">10</span>% of SL distance)</label><input type="range" id="pip-analysis-tolerance" min="1" max="50" value="10" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer mt-1"></div></div></div></div><div id="pip-analysis-body"></div></div>
                         </div>
                     </div>
 
@@ -1109,7 +1102,7 @@
         let calendarDate = new Date();
         let calendarViewMode = 'day';
         let analyticsDrillDownFilter = null;
-        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null, rMultipleChart = null;
+        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
         
         // --- All DOM Element IDs used in the script ---
         const elementIds = [
@@ -1155,7 +1148,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn', 'rMultipleChart', 'r-multiple-analysis-text', 
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
 
 ];
         
@@ -2126,7 +2119,6 @@ const updateAdviser = (allTrades) => {
                 </div>`;
     }
     html += updateRiskOptimizationEngine(closedTrades, breakevenThreshold);
-    html += updateOptimalExitEngine(closedTrades, breakevenThreshold);
     html += `</div>`;
     content.innerHTML = html;
 };
@@ -2798,11 +2790,10 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
-            updateChecklistAnalysis(tradesForAnalytics);
-            updateRMultipleDistribution(tradesForAnalytics);
-            updatePipAnalysis(tradesForAnalytics);
-            
-           }
+             updateChecklistAnalysis(tradesForAnalytics);
+             updatePipAnalysis(tradesForAnalytics);
+            // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
+        }
     }, 0);
 }
             if (!dom['goals-page'].classList.contains('hidden')) {
@@ -3099,88 +3090,41 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
 };
 
         const generatePDF = async () => {
-            toggleLoader(true);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: 'a4',
-                hotfixes: ['px_scaling']
-            });
+             toggleLoader(true);
+             const { jsPDF } = window.jspdf;
+             const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: 'a4', hotfixes: ['px_scaling'] });
 
-            const originalAnimationSetting = Chart.defaults.animation;
-            let clonedContent = null; // Declare here to be accessible in the finally block
+             const content = dom['analytics-content-for-pdf'];
+             
+             await new Promise(resolve => setTimeout(resolve, 100));
 
-            try {
-                // --- STEP 1: Prepare the original, on-screen content FIRST ---
-                // This ensures all charts are in their final, static state before we copy them.
-                Chart.defaults.animation = false;
-                refreshUI();
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait for charts to fully render
+             try {
+                 const canvas = await html2canvas(content, { scale: 2, backgroundColor: '#1a1c23', useCORS: true, windowWidth: 1200 });
+                 const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                 const pdfWidth = pdf.internal.pageSize.getWidth();
+                 const pdfHeight = pdf.internal.pageSize.getHeight();
+                 const imgProps = pdf.getImageProperties(imgData);
+                 const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                 let heightLeft = imgHeight;
+                 let position = 0;
 
-                // --- STEP 2: NOW, create the off-screen clone for capturing ---
-                const originalContent = dom['analytics-content-for-pdf'];
-                clonedContent = originalContent.cloneNode(true); // Assign to the outer variable
+                 pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                 heightLeft -= pdfHeight;
 
-                // Embed SVG definitions into the clone so gradients/shadows render correctly.
-                const svgDefs = document.querySelector('body > svg > defs');
-                if (svgDefs) {
-                    const svgClone = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    svgClone.style.width = '0';
-                    svgClone.style.height = '0';
-                    svgClone.style.position = 'absolute';
-                    svgClone.appendChild(svgDefs.cloneNode(true));
-                    clonedContent.prepend(svgClone);
-                }
-
-                // Style the clone and add it to the body to be rendered off-screen.
-                clonedContent.style.position = 'absolute';
-                clonedContent.style.left = '-9999px';
-                clonedContent.style.top = '0px';
-                clonedContent.style.width = '1200px';
-                clonedContent.style.backgroundColor = document.documentElement.classList.contains('light') ? '#f3f4f6' : '#1a1c23';
-                document.body.appendChild(clonedContent);
-
-                // --- STEP 3: Capture the fully prepared clone ---
-                const dataUrl = await domtoimage.toPng(clonedContent, {
-                    quality: 0.95,
-                });
-
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const imgProps = pdf.getImageProperties(dataUrl);
-                const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
-
-                while (heightLeft > 0) {
-                    position = -pdfHeight + (imgHeight - heightLeft);
-                    pdf.addPage();
-                    pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
-                    heightLeft -= pdfHeight;
-                }
-
-                pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
-                showToast("PDF report generated!", "success");
-
-            } catch (e) {
-                showToast("Error generating PDF. Check console for details.", "error");
-                console.error("PDF Generation Error:", e);
-            } finally {
-                // --- STEP 4: GUARANTEED CLEANUP ---
-                // Remove the temporary clone from the DOM if it exists.
-                if (clonedContent) {
-                    document.body.removeChild(clonedContent);
-                }
-                
-                // Restore original settings for the user.
-                Chart.defaults.animation = originalAnimationSetting;
-                refreshUI();
-                toggleLoader(false);
-            }
+                 while (heightLeft > 0) {
+                     position = heightLeft - imgHeight;
+                     pdf.addPage();
+                     pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+                     heightLeft -= pdfHeight;
+                 }
+                 pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
+                 showToast("PDF report generated!", "success");
+             } catch(e) {
+                 showToast("Error generating PDF.", "error");
+                 console.error(e);
+             } finally {
+                 toggleLoader(false);
+             }
         };
         
         const addAccount = async (accountName) => {
@@ -4922,202 +4866,6 @@ const updateRiskOptimizationEngine = (allTrades, breakevenThreshold) => {
     }
 
     return ''; // Return empty string if no specific recommendations are triggered
-};
-// ====== PASTE THIS ENTIRE NEW FUNCTION INTO YOUR SCRIPT ======
-
-const updateOptimalExitEngine = (allTrades, breakevenThreshold) => {
-    const MIN_TRADES_FOR_ANALYSIS = 7;
-    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-
-    if (closedTrades.length < MIN_TRADES_FOR_ANALYSIS) {
-        return ''; // Not enough data
-    }
-
-    // --- 1. Find the most profitable and frequently traded Playbook setup ---
-    const playbookStats = closedTrades.reduce((acc, trade) => {
-        if (trade.playId) {
-            if (!acc[trade.playId]) {
-                acc[trade.playId] = { count: 0, totalPL: 0, playTitle: '' };
-            }
-            acc[trade.playId].count++;
-            acc[trade.playId].totalPL += trade.profitLoss;
-            
-            // Store the title for later use
-            const play = getActiveAccount()?.playbook.find(p => p.id === trade.playId);
-            if(play) acc[trade.playId].playTitle = play.title;
-        }
-        return acc;
-    }, {});
-
-    const topSetup = Object.entries(playbookStats)
-        .filter(([id, stats]) => stats.count >= MIN_TRADES_FOR_ANALYSIS && stats.totalPL > 0)
-        .sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-
-    if (!topSetup) {
-        return ''; // No single setup has enough data or is profitable
-    }
-
-    const [topSetupId, topSetupStats] = topSetup;
-    const setupTitle = topSetupStats.playTitle || 'Top Setup';
-
-    // --- 2. Analyze only the winning trades from that top setup ---
-    const winningTradesForSetup = closedTrades.filter(t => 
-        t.playId === topSetupId && 
-        t.profitLoss > breakevenThreshold && 
-        t.peakPrice !== null
-    );
-
-    if (winningTradesForSetup.length < 5) { // Need at least 5 wins for this analysis
-        return '';
-    }
-
-    // --- 3. Calculate how much money was "left on the table" (MFE analysis) ---
-    let totalUnrealizedGains = 0;
-    let totalActualProfit = 0;
-
-    winningTradesForSetup.forEach(trade => {
-        const peakProfit = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit || 0;
-        if (peakProfit > trade.profitLoss) {
-            totalUnrealizedGains += (peakProfit - trade.profitLoss);
-        }
-        totalActualProfit += trade.profitLoss;
-    });
-
-    if (totalActualProfit === 0) return '';
-    
-    const unrealizedPercentage = (totalUnrealizedGains / totalActualProfit) * 100;
-
-    // --- 4. Generate the specific recommendation based on the data ---
-    let suggestion = '';
-    let suggestionTitle = '';
-
-    if (unrealizedPercentage > 40) {
-        suggestionTitle = 'Use a Trailing Stop-Loss';
-        suggestion = `After your trade hits its first target, consider activating a trailing stop (e.g., behind the previous candle's low/high). This will help you capture the extra momentum your setup often provides.`;
-    } else if (unrealizedPercentage < 15) {
-        suggestionTitle = 'Hold to Your Target';
-        suggestion = `Your profit targets for this setup are incredibly accurate. The market rarely moves much further in your favor after you exit. Continue to trust your analysis and hold to your planned Take Profit.`;
-    } else { // Between 15% and 40%
-        suggestionTitle = 'Take Partial Profits';
-        suggestion = `This setup often continues to run, but not always smoothly. Consider securing partial profits (e.g., 50%) at your first target, move your stop to breakeven, and let the rest of the position run to a second, higher target.`;
-    }
-    
-    // --- 5. Return the formatted HTML ---
-    return `
-        <div class="border-t border-border-color pt-4">
-             <h2 class="text-xl font-semibold mb-2 text-text-primary flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                <span>Optimal Exit Engine</span>
-            </h2>
-            <div class="p-4 bg-tertiary/50 rounded-lg border border-border-color">
-                <h3 class="font-bold text-base text-yellow-400">Analysis of "${setupTitle}"</h3>
-                <p class="text-sm text-text-secondary mt-1">
-                    The data shows that for your best setup, you are leaving an average of **${unrealizedPercentage.toFixed(0)}% additional profit** on the table after you exit your winning trades.
-                </p>
-                <div class="mt-3 pt-3 border-t border-border-color">
-                    <p class="text-sm font-semibold text-text-primary">Suggestion: ${suggestionTitle}</p>
-                    <p class="text-xs text-text-secondary mt-1">${suggestion}</p>
-                </div>
-            </div>
-        </div>`;
-const updateRMultipleDistribution = (allTrades) => {
-    const body = dom['r-multiple-analysis-text'];
-    const canvas = dom['rMultipleChart'];
-    body.innerHTML = '';
-
-    const riskTrades = allTrades.filter(t => t.profitLoss !== null && t.stopLoss !== null && t.entryPrice !== null);
-
-    if (riskTrades.length < 5) {
-        body.innerHTML = '<p class="text-center text-text-secondary">At least 5 trades with a defined Stop Loss are needed for this analysis.</p>';
-        if (rMultipleChart) rMultipleChart.destroy();
-        return;
-    }
-
-    const rMultiples = riskTrades.map(trade => {
-        const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
-        const initialRisk = Math.abs(riskInDollars || 0);
-        if (initialRisk === 0) return 0;
-        return trade.profitLoss / initialRisk;
-    });
-
-    // 1. Bin the data
-    const bins = {
-        '<-2R': 0, '-2R to -1.1R': 0, '-1R': 0, '-0.9R to 0R': 0,
-        '0R to 0.9R': 0, '1R': 0, '1.1R to 2R': 0, '2.1R to 3R': 0, '>3R': 0
-    };
-
-    rMultiples.forEach(r => {
-        if (r <= -2.1) bins['<-2R']++;
-        else if (r <= -1.1) bins['-2R to -1.1R']++;
-        else if (r <= -0.9) bins['-1R']++;
-        else if (r < 0) bins['-0.9R to 0R']++;
-        else if (r < 1) bins['0R to 0.9R']++;
-        else if (r <= 1.1) bins['1R']++;
-        else if (r <= 2) bins['1.1R to 2R']++;
-        else if (r <= 3) bins['2.1R to 3R']++;
-        else bins['>3R']++;
-    });
-    
-    // 2. Render the chart
-    if (rMultipleChart) rMultipleChart.destroy();
-    const chartColors = getChartColors();
-    const labels = Object.keys(bins);
-    const data = Object.values(bins);
-    const backgroundColors = labels.map(label => label.includes('-') ? 'rgba(239, 68, 68, 0.6)' : 'rgba(34, 197, 94, 0.6)');
-
-    rMultipleChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '# of Trades',
-                data: data,
-                backgroundColor: backgroundColors,
-                borderColor: labels.map(label => label.includes('-') ? 'rgba(239, 68, 68, 1)' : 'rgba(34, 197, 94, 1)'),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Number of Trades', color: chartColors.textColor }, grid: { color: chartColors.gridColor }, ticks: { color: chartColors.textColor } },
-                x: { grid: { display: false }, ticks: { color: chartColors.textColor } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
-
-    // 3. Generate textual analysis
-    const winningR = rMultiples.filter(r => r > 0);
-    const losingR = rMultiples.filter(r => r < 0);
-    const avgWinR = winningR.length > 0 ? winningR.reduce((a, b) => a + b, 0) / winningR.length : 0;
-    const avgLossR = losingR.length > 0 ? losingR.reduce((a, b) => a + b, 0) / losingR.length : 0;
-    
-    const bigWinners = rMultiples.filter(r => r > 2).length;
-    const bigLosers = rMultiples.filter(r => r < -1.1).length;
-    
-    let insight = '';
-    let advice = '';
-
-    if (avgWinR > 1.5 && (bigWinners / winningR.length) > 0.25) {
-        insight = 'Your system generates significant "home run" trades. Profitability relies on capturing these outsized winners.';
-        advice = 'Focus on maximizing these high-R opportunities. When a trade is clearly working, consider using a trailing stop to capture as much of the trend as possible.';
-    } else {
-        insight = 'Your system is built on consistency, capturing frequent small-to-medium sized wins.';
-        advice = 'Your edge is in your win rate. Ensure you are cutting losses strictly at -1R to protect your profits, as "home run" trades are less common in your strategy.';
-    }
-
-    if ((bigLosers / losingR.length) > 0.20) {
-        advice += ' **Crucially, you have a tendency to let losers run past your planned -1R stop. This is the single biggest drain on your profitability. Enforce a hard stop-loss rule.**';
-    }
-
-    body.innerHTML = `
-        <div class="p-3 bg-tertiary/50 rounded-lg border border-border-color">
-            <p><strong class="text-text-primary">Key Insight:</strong> ${insight}</p>
-            <p class="mt-2"><strong class="text-accent-color">Actionable Advice:</strong> ${advice}</p>
-        </div>
-    `;
 };   
 </script>
 </body>
