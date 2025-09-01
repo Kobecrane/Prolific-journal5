@@ -966,14 +966,7 @@
                             </div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden"><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-red-400">MAE on Winners</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. MAE</span><span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total MAE</span><span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span><span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span><span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
-                            <div class="card p-6 rounded-xl shadow-sm">
-    <h2 class="text-xl font-semibold mb-2 text-text-primary">R-Multiple Distribution</h2>
-    <p class="text-xs text-text-secondary mb-4 -mt-1">Visualizes trade outcomes based on initial risk (R).</p>
-    <div class="h-64 mb-4">
-        <canvas id="rMultipleChart"></canvas>
-    </div>
-    <div id="r-multiple-analysis-text" class="text-sm space-y-2"></div>
-</div>
+                           
                         </div>
                     </div>
 
@@ -1109,7 +1102,7 @@
         let calendarDate = new Date();
         let calendarViewMode = 'day';
         let analyticsDrillDownFilter = null;
-        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null, rMultipleChart = null;
+        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
         
         // --- All DOM Element IDs used in the script ---
         const elementIds = [
@@ -1155,7 +1148,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn', 'rMultipleChart', 'r-multiple-analysis-text', 
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
 
 ];
         
@@ -2798,11 +2791,10 @@ updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
-            updateChecklistAnalysis(tradesForAnalytics);
-            updateRMultipleDistribution(tradesForAnalytics);
-            updatePipAnalysis(tradesForAnalytics);
-            
-           }
+             updateChecklistAnalysis(tradesForAnalytics);
+             updatePipAnalysis(tradesForAnalytics);
+            // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
+        }
     }, 0);
 }
             if (!dom['goals-page'].classList.contains('hidden')) {
@@ -3098,90 +3090,77 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
     }
 };
 
-        const generatePDF = async () => {
-            toggleLoader(true);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
-                format: 'a4',
-                hotfixes: ['px_scaling']
-            });
+        // ====== REPLACE THE OLD `generatePDF` FUNCTION WITH THIS DEFINITIVE VERSION ======
 
-            const originalAnimationSetting = Chart.defaults.animation;
-            let clonedContent = null; // Declare here to be accessible in the finally block
+const generatePDF = async () => {
+    toggleLoader(true);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'px',
+        format: 'a4',
+        hotfixes: ['px_scaling']
+    });
 
-            try {
-                // --- STEP 1: Prepare the original, on-screen content FIRST ---
-                // This ensures all charts are in their final, static state before we copy them.
-                Chart.defaults.animation = false;
-                refreshUI();
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait for charts to fully render
+    const content = dom['analytics-content-for-pdf'];
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const originalBackgroundColor = document.documentElement.style.getPropertyValue('--bg-primary');
+    const originalAnimationSetting = Chart.defaults.animation; // Store original animation setting
 
-                // --- STEP 2: NOW, create the off-screen clone for capturing ---
-                const originalContent = dom['analytics-content-for-pdf'];
-                clonedContent = originalContent.cloneNode(true); // Assign to the outer variable
+    try {
+        // 1. Disable chart animations globally
+        Chart.defaults.animation = false;
+        
+        // 2. Force a redraw of all UI elements with animations disabled
+        refreshUI();
 
-                // Embed SVG definitions into the clone so gradients/shadows render correctly.
-                const svgDefs = document.querySelector('body > svg > defs');
-                if (svgDefs) {
-                    const svgClone = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    svgClone.style.width = '0';
-                    svgClone.style.height = '0';
-                    svgClone.style.position = 'absolute';
-                    svgClone.appendChild(svgDefs.cloneNode(true));
-                    clonedContent.prepend(svgClone);
-                }
+        // 3. Temporarily set a solid background for the capture
+        document.documentElement.style.setProperty('--bg-primary', 
+            document.documentElement.classList.contains('light') ? '#f3f4f6' : '#1a1c23'
+        );
 
-                // Style the clone and add it to the body to be rendered off-screen.
-                clonedContent.style.position = 'absolute';
-                clonedContent.style.left = '-9999px';
-                clonedContent.style.top = '0px';
-                clonedContent.style.width = '1200px';
-                clonedContent.style.backgroundColor = document.documentElement.classList.contains('light') ? '#f3f4f6' : '#1a1c23';
-                document.body.appendChild(clonedContent);
+        // 4. Give the browser a moment to fully render the static charts
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-                // --- STEP 3: Capture the fully prepared clone ---
-                const dataUrl = await domtoimage.toPng(clonedContent, {
-                    quality: 0.95,
-                });
+        // 5. Capture the static content as an image
+        const dataUrl = await domtoimage.toPng(content, {
+            quality: 0.95,
+            bgcolor: document.documentElement.style.getPropertyValue('--bg-primary'),
+            width: 1200, 
+        });
 
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const imgProps = pdf.getImageProperties(dataUrl);
-                const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                let heightLeft = imgHeight;
-                let position = 0;
+        // 6. Assemble the PDF from the captured image
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        let heightLeft = imgHeight;
+        let position = 0;
 
-                pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
+        pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
 
-                while (heightLeft > 0) {
-                    position = -pdfHeight + (imgHeight - heightLeft);
-                    pdf.addPage();
-                    pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
-                    heightLeft -= pdfHeight;
-                }
+        while (heightLeft > 0) {
+            position = -pdfHeight + (imgHeight - heightLeft);
+            pdf.addPage();
+            pdf.addImage(dataUrl, 'PNG', 0, position, pdfWidth, imgHeight);
+            heightLeft -= pdfHeight;
+        }
 
-                pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
-                showToast("PDF report generated!", "success");
+        // 7. Save the PDF
+        pdf.save(`prolific-journal-report-${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast("PDF report generated!", "success");
 
-            } catch (e) {
-                showToast("Error generating PDF. Check console for details.", "error");
-                console.error("PDF Generation Error:", e);
-            } finally {
-                // --- STEP 4: GUARANTEED CLEANUP ---
-                // Remove the temporary clone from the DOM if it exists.
-                if (clonedContent) {
-                    document.body.removeChild(clonedContent);
-                }
-                
-                // Restore original settings for the user.
-                Chart.defaults.animation = originalAnimationSetting;
-                refreshUI();
-                toggleLoader(false);
-            }
-        };
+    } catch (e) {
+        showToast("Error generating PDF. Check console for details.", "error");
+        console.error("PDF Generation Error:", e);
+    } finally {
+        // 8. Restore everything back to normal for the user
+        document.documentElement.style.setProperty('--bg-primary', originalBackgroundColor);
+        Chart.defaults.animation = originalAnimationSetting; // Restore animations
+        refreshUI(); // Redraw the UI with animations back on
+        toggleLoader(false);
+    }
+};
         
         const addAccount = async (accountName) => {
             accountName = accountName.trim();
@@ -5020,105 +4999,6 @@ const updateOptimalExitEngine = (allTrades, breakevenThreshold) => {
                 </div>
             </div>
         </div>`;
-const updateRMultipleDistribution = (allTrades) => {
-    const body = dom['r-multiple-analysis-text'];
-    const canvas = dom['rMultipleChart'];
-    body.innerHTML = '';
-
-    const riskTrades = allTrades.filter(t => t.profitLoss !== null && t.stopLoss !== null && t.entryPrice !== null);
-
-    if (riskTrades.length < 5) {
-        body.innerHTML = '<p class="text-center text-text-secondary">At least 5 trades with a defined Stop Loss are needed for this analysis.</p>';
-        if (rMultipleChart) rMultipleChart.destroy();
-        return;
-    }
-
-    const rMultiples = riskTrades.map(trade => {
-        const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
-        const initialRisk = Math.abs(riskInDollars || 0);
-        if (initialRisk === 0) return 0;
-        return trade.profitLoss / initialRisk;
-    });
-
-    // 1. Bin the data
-    const bins = {
-        '<-2R': 0, '-2R to -1.1R': 0, '-1R': 0, '-0.9R to 0R': 0,
-        '0R to 0.9R': 0, '1R': 0, '1.1R to 2R': 0, '2.1R to 3R': 0, '>3R': 0
-    };
-
-    rMultiples.forEach(r => {
-        if (r <= -2.1) bins['<-2R']++;
-        else if (r <= -1.1) bins['-2R to -1.1R']++;
-        else if (r <= -0.9) bins['-1R']++;
-        else if (r < 0) bins['-0.9R to 0R']++;
-        else if (r < 1) bins['0R to 0.9R']++;
-        else if (r <= 1.1) bins['1R']++;
-        else if (r <= 2) bins['1.1R to 2R']++;
-        else if (r <= 3) bins['2.1R to 3R']++;
-        else bins['>3R']++;
-    });
-    
-    // 2. Render the chart
-    if (rMultipleChart) rMultipleChart.destroy();
-    const chartColors = getChartColors();
-    const labels = Object.keys(bins);
-    const data = Object.values(bins);
-    const backgroundColors = labels.map(label => label.includes('-') ? 'rgba(239, 68, 68, 0.6)' : 'rgba(34, 197, 94, 0.6)');
-
-    rMultipleChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '# of Trades',
-                data: data,
-                backgroundColor: backgroundColors,
-                borderColor: labels.map(label => label.includes('-') ? 'rgba(239, 68, 68, 1)' : 'rgba(34, 197, 94, 1)'),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'Number of Trades', color: chartColors.textColor }, grid: { color: chartColors.gridColor }, ticks: { color: chartColors.textColor } },
-                x: { grid: { display: false }, ticks: { color: chartColors.textColor } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
-
-    // 3. Generate textual analysis
-    const winningR = rMultiples.filter(r => r > 0);
-    const losingR = rMultiples.filter(r => r < 0);
-    const avgWinR = winningR.length > 0 ? winningR.reduce((a, b) => a + b, 0) / winningR.length : 0;
-    const avgLossR = losingR.length > 0 ? losingR.reduce((a, b) => a + b, 0) / losingR.length : 0;
-    
-    const bigWinners = rMultiples.filter(r => r > 2).length;
-    const bigLosers = rMultiples.filter(r => r < -1.1).length;
-    
-    let insight = '';
-    let advice = '';
-
-    if (avgWinR > 1.5 && (bigWinners / winningR.length) > 0.25) {
-        insight = 'Your system generates significant "home run" trades. Profitability relies on capturing these outsized winners.';
-        advice = 'Focus on maximizing these high-R opportunities. When a trade is clearly working, consider using a trailing stop to capture as much of the trend as possible.';
-    } else {
-        insight = 'Your system is built on consistency, capturing frequent small-to-medium sized wins.';
-        advice = 'Your edge is in your win rate. Ensure you are cutting losses strictly at -1R to protect your profits, as "home run" trades are less common in your strategy.';
-    }
-
-    if ((bigLosers / losingR.length) > 0.20) {
-        advice += ' **Crucially, you have a tendency to let losers run past your planned -1R stop. This is the single biggest drain on your profitability. Enforce a hard stop-loss rule.**';
-    }
-
-    body.innerHTML = `
-        <div class="p-3 bg-tertiary/50 rounded-lg border border-border-color">
-            <p><strong class="text-text-primary">Key Insight:</strong> ${insight}</p>
-            <p class="mt-2"><strong class="text-accent-color">Actionable Advice:</strong> ${advice}</p>
-        </div>
-    `;
-};
 };   
 </script>
 </body>
