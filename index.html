@@ -971,7 +971,52 @@
                                 <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Planned Risk : Reward Analysis</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p><div id="rr-analysis-body"></div></div>
                                 <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Planned R:R</h2><div id="rr-performance-body" class="space-y-4"></div></div>
                             </div>
-                            <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden"><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-red-400">MAE on Winners</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. MAE</span><span id="avg-mae-winners" class="text-2xl font-bold text-red-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total MAE</span><span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div><div class="bg-bg-secondary p-4"><h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3><p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p><div class="flex justify-between items-baseline"><span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span><span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">$0.00</span></div><div class="flex justify-between items-baseline mt-1"><span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span><span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span></div><div class="mt-3"><p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p><div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1"><div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div></div></div></div></div></div>
+                            <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden">
+
+    <div class="bg-bg-secondary p-4">
+        <h3 class="font-semibold text-center text-red-400">MAE on Winners</h3>
+        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p>
+
+        <div class="flex justify-between items-baseline">
+            <span class="text-sm font-medium text-text-secondary">Avg. MAE</span>
+            <span id="avg-mae-winners" class="text-2xl font-bold text-red-400">
+                </span>
+        </div>
+
+        <div class="flex justify-between items-baseline mt-1">
+            <span class="text-sm font-medium text-text-secondary">Total MAE</span>
+            <span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span>
+        </div>
+        <div class="mt-3">
+            <p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p>
+            <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
+                <div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-bg-secondary p-4">
+        <h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3>
+        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p>
+
+        <div class="flex justify-between items-baseline">
+            <span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span>
+            <span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">
+                </span>
+        </div>
+
+        <div class="flex justify-between items-baseline mt-1">
+            <span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span>
+            <span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span>
+        </div>
+        <div class="mt-3">
+            <p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p>
+            <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
+                <div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
                             
                         </div>
@@ -2472,6 +2517,24 @@ const setupCollapsibleSections = () => {
                 });
             });
             setupChecklistManager();
+dom['analytics-page'].addEventListener('click', (e) => {
+                const toggleBtn = e.target.closest('[data-excursion-toggle]');
+                if (toggleBtn) {
+                    const type = toggleBtn.dataset.excursionToggle; // 'mae' or 'mfe'
+                    const usdEl = document.querySelector(`.${type}-value-usd`);
+                    const pctEl = document.querySelector(`.${type}-value-pct`);
+                    if (usdEl && pctEl) {
+                        usdEl.classList.toggle('hidden');
+                        pctEl.classList.toggle('hidden');
+                    }
+                }
+                
+                const link = e.target.closest('.drill-down-link');
+                if (link) {
+                    e.preventDefault();
+                    applyDrillDown(link.dataset.filterType, link.dataset.filterValue);
+                }
+            });
 
             // --- Trade Type Buttons ---
             // --- Replace with this new block ---
@@ -3582,6 +3645,7 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
             const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
 
+            // --- MAE on Winners Calculation ---
             const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
             let totalMAE = 0;
             maeTrades.forEach(trade => {
@@ -3589,7 +3653,9 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
             });
             const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
-            
+            const avgMAEPercentage = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
+
+            // --- MFE on Losers Calculation ---
             const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
             let totalMFE = 0;
             mfeTrades.forEach(trade => {
@@ -3597,15 +3663,32 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 if(peakProfit > 0) totalMFE += peakProfit;
             });
             const avgMFE = mfeTrades.length > 0 ? totalMFE / mfeTrades.length : 0;
+            const avgMFEPercentage = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
 
-            dom['avg-mae-winners'].textContent = `$${avgMAE.toFixed(2)}`;
+            // --- Update DOM Elements ---
+            const maeValueContainer = document.getElementById('avg-mae-winners');
+            if (maeValueContainer) {
+                maeValueContainer.innerHTML = `
+                    <span class="mae-value-usd">${'$' + avgMAE.toFixed(2)}</span>
+                    <span class="mae-value-pct hidden">${avgMAEPercentage.toFixed(1)}%</span>
+                    <svg data-excursion-toggle="mae" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 cursor-pointer text-text-secondary hover:text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" title="Toggle between dollar and percentage view"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                `;
+            }
+
             dom['total-mae-winners'].textContent = `$${totalMAE.toFixed(2)}`;
-            dom['avg-mfe-losers'].textContent = `$${avgMFE.toFixed(2)}`;
-            dom['total-mfe-losers'].textContent = `$${totalMFE.toFixed(2)}`;
-
             const maeRatio = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
             dom['mae-comparison-bar'].style.width = `${Math.min(100, maeRatio)}%`;
-
+            
+            const mfeValueContainer = document.getElementById('avg-mfe-losers');
+            if(mfeValueContainer) {
+                mfeValueContainer.innerHTML = `
+                    <span class="mfe-value-usd">${'$' + avgMFE.toFixed(2)}</span>
+                    <span class="mfe-value-pct hidden">${avgMFEPercentage.toFixed(1)}%</span>
+                    <svg data-excursion-toggle="mfe" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 cursor-pointer text-text-secondary hover:text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" title="Toggle between dollar and percentage view"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                `;
+            }
+            
+            dom['total-mfe-losers'].textContent = `$${totalMFE.toFixed(2)}`;
             const mfeRatio = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
             dom['mfe-comparison-bar'].style.width = `${Math.min(100, mfeRatio)}%`;
         };
