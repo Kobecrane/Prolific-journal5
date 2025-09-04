@@ -3659,11 +3659,14 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
             let totalMFE = 0;
             mfeTrades.forEach(trade => {
-                const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
-                if(peakProfit > 0) totalMFE += peakProfit;
-            });
+            const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
+            if(peakProfit > 0) totalMFE += peakProfit;
+         });
             const avgMFE = mfeTrades.length > 0 ? totalMFE / mfeTrades.length : 0;
-            const avgMFEPercentage = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
+
+// Corrected logic for a more intuitive percentage
+            const totalReversalSwing = avgMFE + avgLoss;
+            const avgMFEPercentage = totalReversalSwing > 0 ? (avgMFE / totalReversalSwing) * 100 : 0;
 
             // --- Update DOM Elements ---
             const maeValueContainer = document.getElementById('avg-mae-winners');
