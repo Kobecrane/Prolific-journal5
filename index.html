@@ -4326,7 +4326,7 @@ const updateEquityCurveChart = (allTrades) => {
                             pointRadius: 0,
                             tension: 0.1,
                             fill: {
-                                target: '0', // Correctly fill between this dataset and dataset 0 (HWM)
+                                target: {value: highWaterMark},
                                 above: 'rgba(79, 70, 229, 0.05)', // Fill color when equity > HWM
                                 below: drawdownGradient // Fill color when equity < HWM (drawdown)
                             },
@@ -4360,8 +4360,9 @@ const updateEquityCurveChart = (allTrades) => {
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: {
-                        mode: 'index',
-                        intersect: false,
+                        mode: 'nearest',
+                        intersect: true,
+                        axis: 'x'
                     },
                     scales: {
                         x: {
