@@ -932,6 +932,24 @@
                 <div id="analytics-content-for-pdf">
                     <div id="overview-tab" class="tab-content active animate-fade-in">
                         <div class="space-y-6">
+                            <div class="card p-6 rounded-xl shadow-sm">
+    <div class="flex flex-wrap justify-between items-center gap-y-2 mb-4">
+        <h2 class="text-xl font-semibold text-text-primary">Equity Curve Analysis</h2>
+        <div id="equity-curve-toggles" class="flex items-center gap-4 text-xs font-medium">
+            <label class="flex items-center cursor-pointer hover:text-text-primary transition-colors">
+                <input type="checkbox" id="toggle-hwm" class="w-4 h-4 text-accent-color bg-tertiary border-border-color rounded focus:ring-accent-color" checked>
+                <span class="ml-2 text-text-secondary">High-Water Mark</span>
+            </label>
+            <label class="flex items-center cursor-pointer hover:text-text-primary transition-colors">
+                <input type="checkbox" id="toggle-trades" class="w-4 h-4 text-accent-color bg-tertiary border-border-color rounded focus:ring-accent-color" checked>
+                <span class="ml-2 text-text-secondary">Show Trades</span>
+            </label>
+        </div>
+    </div>
+    <div class="h-96">
+        <canvas id="equityCurveChart"></canvas>
+    </div>
+</div>
                             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                                 <div class="card p-4 rounded-xl shadow-sm"><div class="flex items-center justify-between"><p class="text-sm font-medium text-text-secondary">Profit Factor</p><svg data-tippy-content="Gross Profit / Gross Loss. Measures how many dollars you make for every dollar you lose. A value > 1 is profitable." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p id="profit-factor" class="text-2xl font-bold text-text-primary">0.00</p></div>
                                 <div class="card p-4 rounded-xl shadow-sm"><div class="flex items-center justify-between"><p class="text-sm font-medium text-text-secondary">Expectancy</p><svg data-tippy-content="The average amount you can expect to win or lose per trade. Calculated as (Win Rate * Avg Win) - (Loss Rate * Avg Loss)." xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-secondary cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div><p id="expectancy" class="text-2xl font-bold text-text-primary">$0.00</p></div>
@@ -1154,7 +1172,7 @@
         let calendarDate = new Date();
         let calendarViewMode = 'day';
         let analyticsDrillDownFilter = null;
-        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null;
+        let dailyPerfChart = null, hourlyPerfChart = null, mcChart = null, drawdownChart = null, riskConsistencyChart = null, equityCurveChart = null;
         
         // --- All DOM Element IDs used in the script ---
         const elementIds = [
@@ -2847,7 +2865,8 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
         if (!dom['analytics-page'].classList.contains('hidden')) {
             // updateEquityCurveChart(tradesForAnalytics); // Commented out until we build it
             const { maxDrawdownUSD } = updateDrawdownAnalysis(tradesForAnalytics);
-updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
+            updateEquityCurveChart(tradesForAnalytics);
+            updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
             updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
             updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
@@ -4222,6 +4241,172 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
             });
        return { maxDrawdownUSD };
  };
+const updateEquityCurveChart = (allTrades) => {
+    const canvas = document.getElementById('equityCurveChart');
+    if (!canvas) return;
+
+    const closedTrades = allTrades
+        .filter(t => t.profitLoss !== null)
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+    if (equityCurveChart) {
+        equityCurveChart.destroy();
+    }
+    
+    if (closedTrades.length < 2) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = getChartColors().textColor;
+        ctx.fillText('At least 2 closed trades are needed to render the equity curve.', canvas.width / 2, canvas.height / 2);
+        ctx.restore();
+        return;
+    }
+
+    const initialBalance = getActiveAccount().startingBalance || 0;
+    let cumulativeEquity = initialBalance;
+    let highWaterMark = initialBalance;
+
+    const chartData = {
+        equity: [{ x: new Date(closedTrades[0].timestamp).getTime() - 86400000, y: initialBalance }], // Start one day before first trade
+        hwm: [{ x: new Date(closedTrades[0].timestamp).getTime() - 86400000, y: initialBalance }],
+        winPoints: [],
+        lossPoints: []
+    };
+
+    closedTrades.forEach(trade => {
+        const tradeDate = new Date(trade.timestamp).getTime();
+        const prevEquity = cumulativeEquity;
+        cumulativeEquity += trade.profitLoss;
+        
+        if (cumulativeEquity > highWaterMark) {
+            highWaterMark = cumulativeEquity;
+        }
+
+        chartData.equity.push({ x: tradeDate, y: cumulativeEquity, trade: trade });
+        chartData.hwm.push({ x: tradeDate, y: highWaterMark });
+        
+        if (trade.profitLoss > (appData.settings.breakevenThreshold || 2.0)) {
+            chartData.winPoints.push({ x: tradeDate, y: cumulativeEquity, trade: trade });
+        } else if (trade.profitLoss <= 0) {
+            chartData.lossPoints.push({ x: tradeDate, y: cumulativeEquity, trade: trade });
+        }
+    });
+
+    const chartColors = getChartColors();
+    const drawdownGradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 400);
+    drawdownGradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+    drawdownGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+    equityCurveChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'High-Water Mark',
+                    data: chartData.hwm,
+                    borderColor: chartColors.gridColor,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    borderDash: [5, 5],
+                    fill: false,
+                    order: 1,
+                },
+                {
+                    label: 'Equity',
+                    data: chartData.equity,
+                    borderColor: 'var(--accent-color)',
+                    backgroundColor: drawdownGradient,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    tension: 0.4, // For smooth curves
+                    fill: {
+                        target: 0, // Fill between equity line and HWM
+                        above: 'rgba(79, 70, 229, 0.05)', // Optional fill for growth periods
+                        below: drawdownGradient // Fill for drawdown periods
+                    },
+                    order: 2
+                },
+                {
+                    label: 'Winning Trades',
+                    data: chartData.winPoints,
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    borderWidth: 1,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    type: 'bubble',
+                    order: 0,
+                },
+                {
+                    label: 'Losing Trades',
+                    data: chartData.lossPoints,
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    borderWidth: 1,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    type: 'bubble',
+                    order: 0,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day' },
+                    grid: { color: 'transparent' },
+                    ticks: { color: chartColors.textColor }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: chartColors.gridColor },
+                    ticks: { 
+                        color: chartColors.textColor,
+                        callback: (value) => `$${value.toLocaleString()}`
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (context) => new Date(context[0].parsed.x).toLocaleDateString(),
+                        label: (context) => {
+                            const point = context.dataset.data[context.dataIndex];
+                            if (point.trade) { // This is a win/loss point
+                                const { tradeType, indexName, profitLoss } = point.trade;
+                                const outcome = profitLoss > 0 ? 'Win' : 'Loss';
+                                return `${outcome}: $${profitLoss.toFixed(2)} (${tradeType} on ${indexName})`;
+                            }
+                            // This is the equity line or HWM
+                            return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Add event listeners for the toggles
+    document.getElementById('toggle-hwm').onchange = (e) => {
+        equityCurveChart.setDatasetVisibility(0, e.target.checked); // Dataset 0 is HWM
+        equityCurveChart.update();
+    };
+    document.getElementById('toggle-trades').onchange = (e) => {
+        equityCurveChart.setDatasetVisibility(2, e.target.checked); // Dataset 2 is Wins
+        equityCurveChart.setDatasetVisibility(3, e.target.checked); // Dataset 3 is Losses
+        equityCurveChart.update();
+    };
+};
         
         const handleSavePlay = () => {
              const editingId = dom['editing-play-id'].value;
