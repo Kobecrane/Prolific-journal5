@@ -3471,34 +3471,30 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
             body.innerHTML = '';
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
-            const MIN_TRADES = 3; // Minimum trades for a synergy to be considered significant
+            const MIN_TRADES_FOR_SIGNIFICANCE = 3; // We will use this to flag, not to filter
             const synergyStats = new Map();
 
             const closedTrades = allTrades.filter(t => t.profitLoss !== null);
 
-            if (closedTrades.length < 10) {
-                 body.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">Log at least 10 trades with varied tags and checklist items to generate synergy analysis.</p>`;
+            if (closedTrades.length < 5) { // Lowered threshold to show data sooner
+                 body.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">Log at least 5 trades with varied tags to generate synergy analysis.</p>`;
                  return;
             }
 
             closedTrades.forEach(trade => {
-                // Combine all factors into one array with prefixes for clarity
                 const factors = [
                     ...(trade.checklistMet || []).map(item => `CLS:${item}`),
                     ...(trade.tags || []).map(item => `STR:${item}`),
                     ...(trade.psychologyTags || []).map(item => `PSY:${item}`)
-                ].sort(); // Sort to ensure combinations are consistent
+                ].sort(); 
 
                 if (factors.length < 2) return;
 
-                // Generate combinations (pairs and triplets)
                 const combinations = new Set();
                 for (let i = 0; i < factors.length; i++) {
                     for (let j = i + 1; j < factors.length; j++) {
-                        // Add pairs
                         combinations.add([factors[i], factors[j]].join('|'));
                         for (let k = j + 1; k < factors.length; k++) {
-                            // Add triplets
                             combinations.add([factors[i], factors[j], factors[k]].join('|'));
                         }
                     }
@@ -3517,38 +3513,45 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                 });
             });
 
+            // *** MODIFIED LOGIC: Don't filter, just sort ***
             const allSynergies = Array.from(synergyStats.entries())
-                .map(([key, stats]) => ({ key, ...stats }))
-                .filter(s => s.count >= MIN_TRADES);
+                .map(([key, stats]) => ({ key, ...stats }));
 
             const profitableSynergies = allSynergies.filter(s => s.totalPL > 0).sort((a, b) => b.totalPL - a.totalPL);
-            const leakingSynergies = allSynergies.filter(s => s.totalPL < 0).sort((a, b) => a.totalPL - b.totalPL);
+            const leakingSynergies = allSynergies.filter(s => s.totalPL <= 0).sort((a, b) => a.totalPL - b.totalPL);
 
             const renderSynergyColumn = (synergies, title, isProfitable) => {
-                if (synergies.length === 0) {
+                const topSynergies = synergies.slice(0, 5); // Always show up to the top 5
+
+                if (topSynergies.length === 0) {
                     return `<div>
                                 <h3 class="font-bold text-lg mb-3 ${isProfitable ? 'text-green-400' : 'text-red-400'}">${title}</h3>
-                                <p class="text-sm text-text-secondary">No significant synergies found.</p>
+                                <p class="text-sm text-text-secondary">No ${isProfitable ? 'profitable' : 'leaking'} combinations found.</p>
                             </div>`;
                 }
 
-                const itemsHTML = synergies.slice(0, 7).map(synergy => {
+                const itemsHTML = topSynergies.map(synergy => {
                     const factors = synergy.key.split('|');
                     const winRate = (synergy.count > 0 ? (synergy.wins / synergy.count) * 100 : 0).toFixed(1);
+                    const isSignificant = synergy.count >= MIN_TRADES_FOR_SIGNIFICANCE;
                     
-                   const factorSpans = factors.map(f => {
-                   const typeIndex = f.indexOf(':');
-                   const type = f.substring(0, typeIndex);
-                   const name = f.substring(typeIndex + 1);
-                   let colorClass = 'bg-gray-500/20 text-gray-300';
+                    const factorSpans = factors.map(f => {
+                       const typeIndex = f.indexOf(':');
+                       const type = f.substring(0, typeIndex);
+                       const name = f.substring(typeIndex + 1);
+                       let colorClass = 'bg-gray-500/20 text-gray-300';
                         if (type === 'STR') colorClass = 'bg-indigo-500/20 text-indigo-300';
                         if (type === 'PSY') colorClass = 'bg-pink-500/20 text-pink-300';
                         if (type === 'CLS') colorClass = 'bg-amber-500/20 text-amber-300';
                         return `<span class="text-xs px-2 py-1 rounded-full font-semibold ${colorClass}">${name}</span>`;
                     }).join('');
 
-                    return `<div class="bg-tertiary/50 p-3 rounded-lg border border-border-color">
-                                <div class="flex flex-wrap gap-1.5 mb-2">${factorSpans}</div>
+                    // *** NEW: Add warning icon for insignificant data ***
+                    return `<div class="bg-tertiary/50 p-3 rounded-lg border ${isSignificant ? 'border-border-color' : 'border-amber-500/50 border-dashed'}">
+                                <div class="flex flex-wrap gap-1.5 mb-2 items-center">
+                                    ${factorSpans}
+                                    ${!isSignificant ? `<span data-tippy-content="Low sample size. This pattern is not yet statistically significant." class="text-amber-400 font-bold text-lg cursor-help ml-2">!</span>` : ''}
+                                </div>
                                 <div class="grid grid-cols-3 text-center text-sm">
                                     <div>
                                         <div class="text-xs text-text-secondary">Total P/L</div>
@@ -3581,6 +3584,12 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                 ${renderSynergyColumn(profitableSynergies, 'Top Profitable Synergies', true)}
                 ${renderSynergyColumn(leakingSynergies, 'Top Leaking Synergies', false)}
             `;
+            
+            // Re-initialize Tippy.js tooltips for the new warning icons
+            tippy('#synergy-analysis-body [data-tippy-content]', {
+              animation: 'scale-subtle',
+              theme: 'light-border',
+            });
         };       
         const updateTagAnalysis = (allTrades, tagType, bodyElement) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
