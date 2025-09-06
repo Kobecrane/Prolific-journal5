@@ -2309,8 +2309,7 @@ const updateAdviser = (allTrades) => {
             dom['entry-timeframe'].value = tradeToEdit.timeframe || '15m'; // Default to 15m if not set
            setTradeTypeUI(tradeToEdit.tradeType);
             console.log('Editing trade, checklist data:', tradeToEdit.checklistMet);   
-            renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
-            renderChecklistOnForm(tradeToEdit.checklistMet || []);
+            renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || [], tradeToEdit.checklistMet || []);
             updateRealtimePL();
         };
         
