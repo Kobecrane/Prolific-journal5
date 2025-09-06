@@ -902,7 +902,7 @@
                      </div>
                 </div>
             </div>
-  <div id="page-content" class="animate-fade-in">
+  
             <div id="chart-page" class="hidden">
                 <div id="tradingview-widget-container" class="h-[85vh] w-full"></div>
             </div>
@@ -975,6 +975,12 @@
 
                     <div id="deep-dive-tab" class="tab-content animate-fade-in">
                         <div class="space-y-6">
+                            <div class="card p-6 rounded-xl shadow-sm">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Synergy Analysis</h2>
+    <p class="text-xs text-text-secondary mb-4 -mt-3">Identifies powerful combinations of your checklist items, strategy, and psychology tags.</p>
+    <div id="synergy-analysis-body" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        </div>
+</div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2><div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Strategy Tag</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom strategy tags.</p><div id="tag-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Psychology & Performance Analysis</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p><div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
@@ -1036,8 +1042,14 @@
     </div>
 </div>
 
-</div>                                
+</div>
 <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
+<div class="card p-6 rounded-xl shadow-sm">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Pre-Trade Checklist Analysis</h2>
+    <p class="text-xs text-text-secondary mb-4 -mt-3">Compares the performance of trades that met your checklist criteria vs. those that didn't.</p>
+    <div id="checklist-analysis-body" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+</div>  
                             
                         </div>
                     </div>
@@ -1046,11 +1058,14 @@
                         <div class="space-y-6">
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Monte Carlo Simulation</h2><div class="flex flex-wrap items-end gap-4 mb-4"><div><label for="mc-trades" class="block text-sm font-medium text-text-secondary">Trades to Project</label><input type="number" id="mc-trades" value="252" class="form-input mt-1 p-2 rounded-lg w-32"></div><div><label for="mc-simulations" class="block text-sm font-medium text-text-secondary">Simulations</label><input type="number" id="mc-simulations" value="1000" class="form-input mt-1 p-2 rounded-lg w-32"></div><button id="run-mc-btn" class="font-semibold py-2 px-4 rounded-lg btn btn-primary text-white">Run Simulation</button></div><div id="mc-results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"><canvas id="mcChart"></canvas><div id="mc-stats" class="text-sm"></div></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2><div class="flex items-center justify-between mb-4"><button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button><h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3><button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button></div><div class="flex justify-center mb-4"><div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg"><button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button><button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button><button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button></div></div><div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div><div id="calendar-body" class="grid gap-2"></div></div>
+
                         </div>
                     </div>
                 </div>
             </div>
-    </main>
+        </div>
+    </div>
+</main>
     
     <!-- Modals and Overlays -->
     <div id="settings-menu-panel" class="hidden fixed top-16 right-6 w-80 bg-secondary rounded-lg shadow-xl z-50 border border-border-color p-4 space-y-4">
@@ -1220,7 +1235,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn', 'synergy-analysis-body',
 
 ];
         
@@ -2883,9 +2898,9 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
-             updateChecklistAnalysis(tradesForAnalytics);
-             updatePipAnalysis(tradesForAnalytics);
-            // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
+            updateChecklistAnalysis(tradesForAnalytics);
+            updatePipAnalysis(tradesForAnalytics);
+            updateSynergyAnalysis(tradesForAnalytics);
         }
     }, 0);
 }
@@ -3428,7 +3443,123 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
         options: { scales: { y: { beginAtZero: true, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } }, x: { grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } } }, plugins: { legend: { display: false } } }
     });
 };
-        
+
+ const updateSynergyAnalysis = (allTrades) => {
+            const body = document.getElementById('synergy-analysis-body');
+            if (!body) return;
+            body.innerHTML = '';
+            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+
+            const MIN_TRADES = 3; // Minimum trades for a synergy to be considered significant
+            const synergyStats = new Map();
+
+            const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+
+            if (closedTrades.length < 10) {
+                 body.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">Log at least 10 trades with varied tags and checklist items to generate synergy analysis.</p>`;
+                 return;
+            }
+
+            closedTrades.forEach(trade => {
+                // Combine all factors into one array with prefixes for clarity
+                const factors = [
+                    ...(trade.checklistMet || []).map(item => `CLS:${item}`),
+                    ...(trade.tags || []).map(item => `STR:${item}`),
+                    ...(trade.psychologyTags || []).map(item => `PSY:${item}`)
+                ].sort(); // Sort to ensure combinations are consistent
+
+                if (factors.length < 2) return;
+
+                // Generate combinations (pairs and triplets)
+                const combinations = new Set();
+                for (let i = 0; i < factors.length; i++) {
+                    for (let j = i + 1; j < factors.length; j++) {
+                        // Add pairs
+                        combinations.add([factors[i], factors[j]].join('|'));
+                        for (let k = j + 1; k < factors.length; k++) {
+                            // Add triplets
+                            combinations.add([factors[i], factors[j], factors[k]].join('|'));
+                        }
+                    }
+                }
+                
+                combinations.forEach(key => {
+                    if (!synergyStats.has(key)) {
+                        synergyStats.set(key, { totalPL: 0, count: 0, wins: 0 });
+                    }
+                    const stats = synergyStats.get(key);
+                    stats.totalPL += trade.profitLoss;
+                    stats.count++;
+                    if (trade.profitLoss > breakevenThreshold) {
+                        stats.wins++;
+                    }
+                });
+            });
+
+            const allSynergies = Array.from(synergyStats.entries())
+                .map(([key, stats]) => ({ key, ...stats }))
+                .filter(s => s.count >= MIN_TRADES);
+
+            const profitableSynergies = allSynergies.filter(s => s.totalPL > 0).sort((a, b) => b.totalPL - a.totalPL);
+            const leakingSynergies = allSynergies.filter(s => s.totalPL < 0).sort((a, b) => a.totalPL - b.totalPL);
+
+            const renderSynergyColumn = (synergies, title, isProfitable) => {
+                if (synergies.length === 0) {
+                    return `<div>
+                                <h3 class="font-bold text-lg mb-3 ${isProfitable ? 'text-green-400' : 'text-red-400'}">${title}</h3>
+                                <p class="text-sm text-text-secondary">No significant synergies found.</p>
+                            </div>`;
+                }
+
+                const itemsHTML = synergies.slice(0, 7).map(synergy => {
+                    const factors = synergy.key.split('|');
+                    const winRate = (synergy.count > 0 ? (synergy.wins / synergy.count) * 100 : 0).toFixed(1);
+                    
+                    const factorSpans = factors.map(f => {
+                        const [type, ...nameParts] = f.split(':');
+                        const name = nameParts.join(':');
+                        let colorClass = 'bg-gray-500/20 text-gray-300';
+                        if (type === 'STR') colorClass = 'bg-indigo-500/20 text-indigo-300';
+                        if (type === 'PSY') colorClass = 'bg-pink-500/20 text-pink-300';
+                        if (type === 'CLS') colorClass = 'bg-amber-500/20 text-amber-300';
+                        return `<span class="text-xs px-2 py-1 rounded-full font-semibold ${colorClass}">${name}</span>`;
+                    }).join('');
+
+                    return `<div class="bg-tertiary/50 p-3 rounded-lg border border-border-color">
+                                <div class="flex flex-wrap gap-1.5 mb-2">${factorSpans}</div>
+                                <div class="grid grid-cols-3 text-center text-sm">
+                                    <div>
+                                        <div class="text-xs text-text-secondary">Total P/L</div>
+                                        <div class="font-bold ${isProfitable ? 'text-green-500' : 'text-red-500'}">$${synergy.totalPL.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-text-secondary">Win Rate</div>
+                                        <div class="font-semibold">${winRate}%</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs text-text-secondary">Trades</div>
+                                        <div class="font-semibold">${synergy.count}</div>
+                                    </div>
+                                </div>
+                            </div>`;
+                }).join('');
+
+                return `<div>
+                            <h3 class="font-bold text-lg mb-3 ${isProfitable ? 'text-green-400' : 'text-red-400'}">${title}</h3>
+                            <div class="space-y-3">${itemsHTML}</div>
+                        </div>`;
+            };
+
+            if (profitableSynergies.length === 0 && leakingSynergies.length === 0) {
+                body.innerHTML = `<p class="text-center text-text-secondary py-4 col-span-full">Not enough recurring patterns found to perform synergy analysis. Try adding more consistent tags to your trades.</p>`;
+                return;
+            }
+
+            body.innerHTML = `
+                ${renderSynergyColumn(profitableSynergies, 'Top Profitable Synergies', true)}
+                ${renderSynergyColumn(leakingSynergies, 'Top Leaking Synergies', false)}
+            `;
+        };       
         const updateTagAnalysis = (allTrades, tagType, bodyElement) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             bodyElement.innerHTML = '';
