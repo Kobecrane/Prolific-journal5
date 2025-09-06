@@ -3515,10 +3515,11 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                     const factors = synergy.key.split('|');
                     const winRate = (synergy.count > 0 ? (synergy.wins / synergy.count) * 100 : 0).toFixed(1);
                     
-                    const factorSpans = factors.map(f => {
-                        const [type, ...nameParts] = f.split(':');
-                        const name = nameParts.join(':');
-                        let colorClass = 'bg-gray-500/20 text-gray-300';
+                   const factorSpans = factors.map(f => {
+                   const typeIndex = f.indexOf(':');
+                   const type = f.substring(0, typeIndex);
+                   const name = f.substring(typeIndex + 1);
+                   let colorClass = 'bg-gray-500/20 text-gray-300';
                         if (type === 'STR') colorClass = 'bg-indigo-500/20 text-indigo-300';
                         if (type === 'PSY') colorClass = 'bg-pink-500/20 text-pink-300';
                         if (type === 'CLS') colorClass = 'bg-amber-500/20 text-amber-300';
