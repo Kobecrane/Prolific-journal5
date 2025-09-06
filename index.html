@@ -1440,6 +1440,7 @@ const setTheme = (theme) => {
                     breakevenThreshold: 2.0,
                     calendarSummaryMode: 'monthly',
                     theme: 'dark',
+                      
                 };
                 await saveData('settings', settings);
             }
@@ -2056,7 +2057,13 @@ const updateAdviser = (allTrades) => {
         .sort((a, b) => b[1].totalPL - a[1].totalPL);
     
     metrics.topTagPair = significantPairs.length > 0 ? significantPairs[0] : null;
-    // *** END OF NEW LOGIC ***
+    // *** NEW: Find the most significant LOSING pairs ***
+    const significantLosingPairs = Object.entries(tagPairStats)
+        .filter(([key, data]) => data.count >= MIN_PAIR_TRADES && data.totalPL < 0)
+        .sort((a, b) => a[1].totalPL - b[1].totalPL); // Sorts to find the most negative P/L
+    
+    metrics.worstTagPair = significantLosingPairs.length > 0 ? significantLosingPairs[0] : null;
+    
     
     // Timeframe Performance
     const timeframeStats = closedTrades.reduce((acc, trade) => {
@@ -2089,6 +2096,18 @@ const updateAdviser = (allTrades) => {
 
 
     // --- WEAKNESS IDENTIFICATION ---
+    if (metrics.worstTagPair) {
+        const pairName = metrics.worstTagPair[0].replace('|', ' & ');
+        const pairData = metrics.worstTagPair[1];
+        weaknesses.push({ 
+            id: 'toxicCombo', 
+            score: 88, // High priority
+            impact: Math.abs(pairData.totalPL), 
+            category: 'Patterns', 
+            title: `Toxic Combination: '${pairName}'`, 
+            description: `The combination of these two strategy tags is a significant leak in your performance, costing you $${Math.abs(pairData.totalPL).toFixed(2)} over ${pairData.count} trades.` 
+        });
+    } 
     if (metrics.profitFactor < 1) weaknesses.push({ id: 'unprofitable', score: 100, impact: Math.abs(metrics.totalProfit + metrics.totalLoss), category: 'Profitability', title: "System is Unprofitable", description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. This is the most critical issue as your total losses currently outweigh your total profits.` });
     if (metrics.realizedRR < 1 && metrics.avgLoss > 0) weaknesses.push({ id: 'negativeRR', score: 90, impact: metrics.avgLoss - metrics.avgWin, category: 'Risk Management', title: "Negative Risk:Reward", description: `Your average loss ($${metrics.avgLoss.toFixed(2)}) is bigger than your average win ($${metrics.avgWin.toFixed(2)}), making long-term profitability very difficult.` });
     if (metrics.riskConsistencyRatio > 0.6) weaknesses.push({ id: 'badSizing', score: 85, impact: metrics.riskStdDev, category: 'Risk Management', title: "Inconsistent Position Sizing", description: `Your risk per trade is highly erratic. This makes your equity curve unpredictable and suggests emotional sizing.` });
@@ -2138,6 +2157,11 @@ const updateAdviser = (allTrades) => {
     else if (weaknesses.find(w => w.id === 'noDiscipline') || weaknesses.find(w => w.id === 'psychology')) persona = "You are an Emotional Trader whose psychology is the biggest barrier to profitability.";
 
     const actionPlan = {
+        'toxicCombo': [
+            `1. <strong>Deep Dive Analysis:</strong> Review every single trade where '${metrics.worstTagPair ? metrics.worstTagPair[0].replace('|', ' & ') : ''}' occurred.`,
+            `2. <strong>Identify the Conflict:</strong> Why does this combination fail? Are the signals contradictory? Does one setup invalidate the other under certain conditions?`,
+            `3. <strong>Create a Hard Rule:</strong> For the next month, you are forbidden from taking trades where both of these conditions are met simultaneously.`
+        ],
         'unprofitable': ["1. **Stop Trading Live.** Go back to demo or paper trading immediately.", "2. **Focus on ONE setup** from your playbook. Master it.", "3. **Do not proceed** until you can achieve a Profit Factor > 1.2 over 50+ trades."],
         'negativeRR': ["1. **Mandatory R:R Check:** Before every trade, explicitly state your planned R:R. If it's below 1.5, reject the trade.", "2. **Review Your Top 5 Losses:** Find the exact point you should have exited. Was it a break of structure? A candle close? Define this as a hard exit rule.", "3. **Let Winners Run:** Trust your Take Profit. Use smaller position sizes if you feel fear about giving back profits."],
         'badSizing': ["1. **Use a Position Size Calculator:** This is non-negotiable. Use one for EVERY trade.", "2. **Define Fixed Risk:** Decide on a fixed % (e.g., 1%) or fixed dollar amount (e.g., $100) to risk per trade.", "3. **Lock It In:** Write this risk amount on a sticky note and put it on your monitor. Do not deviate."],
