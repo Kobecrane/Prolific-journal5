@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -977,6 +978,12 @@
                         <div class="space-y-6">
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2><div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Strategy Tag</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom strategy tags.</p><div id="tag-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
+                            <div class="card p-6 rounded-xl shadow-sm">
+    <h2 class="text-xl font-semibold mb-4 text-text-primary">Pre-Trade Checklist Analysis</h2>
+    <p class="text-xs text-text-secondary mb-4 -mt-3">Compares performance between trades that followed the checklist and those that did not.</p>
+    <div id="checklist-analysis-body" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+</div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Psychology & Performance Analysis</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p><div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Entry Timeframe</h2><div id="timeframe-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                     </div>
@@ -1220,7 +1227,7 @@
 'checklist-list',
 'new-checklist-item-name',
 'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
+'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn', 'checklist-analysis-body', 
 
 ];
         
@@ -2294,6 +2301,7 @@ const updateAdviser = (allTrades) => {
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
              const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
               const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
+              const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
  console.log('Items checked on save:', checkedChecklistItems); 
              if (isNaN(lotSize) || isNaN(entryPrice) || lotSize <= 0) { showToast("Please enter a valid Lot Size and Entry Price.", "error"); return; }
              
@@ -2312,7 +2320,7 @@ const updateAdviser = (allTrades) => {
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems, timeframe  };
+                      activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML, checklistMet: checkedChecklistItems, timeframe, checklistMet: checkedChecklistItems  };
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
@@ -2325,7 +2333,7 @@ const updateAdviser = (allTrades) => {
                            id: crypto.randomUUID(),
                            timestamp: new Date().toISOString(),
                            exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe
+                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe, checklistMet: checkedChecklistItems
                        });
                    }
                    showToast(`${numPositions} trade(s) logged successfully!`, "success");
@@ -2883,6 +2891,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
             updateTradeDurationPerformance(tradesForAnalytics);
+            updateChecklistAnalysis(tradesForAnalytics); // <-- Add this line
              updateChecklistAnalysis(tradesForAnalytics);
              updatePipAnalysis(tradesForAnalytics);
             // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
@@ -3429,6 +3438,42 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
     });
 };
         
+        const updateChecklistAnalysis = (trades) => {
+    const body = dom['checklist-analysis-body'];
+    const checklist = getActiveAccount()?.checklist || [];
+    body.innerHTML = '';
+
+    if (checklist.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist items defined to perform analysis.</p>';
+        return;
+    }
+
+    const compliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length === checklist.length);
+    const nonCompliantTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet?.length !== checklist.length);
+
+    const createStatCard = (title, tradeSet, bgColor) => {
+        const totalPL = tradeSet.reduce((sum, t) => sum + t.profitLoss, 0);
+        const wins = tradeSet.filter(t => t.profitLoss > (appData.settings.breakevenThreshold || 2.0)).length;
+        const winRate = tradeSet.length > 0 ? (wins / tradeSet.length) * 100 : 0;
+        const plClass = totalPL >= 0 ? 'text-green-500' : 'text-red-500';
+
+        return `
+            <div class="${bgColor} p-4 rounded-lg border border-border-color">
+                <h3 class="font-bold text-lg text-text-primary">${title}</h3>
+                <p class="text-xs text-text-secondary mb-2">${tradeSet.length} Trades</p>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between"><span>Total P/L:</span><span class="font-semibold ${plClass}">$${totalPL.toFixed(2)}</span></div>
+                    <div class="flex justify-between"><span>Win Rate:</span><span class="font-semibold">${winRate.toFixed(1)}%</span></div>
+                </div>
+            </div>
+        `;
+    };
+
+    body.innerHTML = `
+        ${createStatCard('Compliant Trades', compliantTrades, 'bg-green-900/20')}
+        ${createStatCard('Non-Compliant Trades', nonCompliantTrades, 'bg-red-900/20')}
+    `;
+};  
         const updateTagAnalysis = (allTrades, tagType, bodyElement) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             bodyElement.innerHTML = '';
