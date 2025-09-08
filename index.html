@@ -2472,18 +2472,18 @@ const updateChecklistAnalysis = (trades) => {
         return;
     }
 
-    // --- START OF FIX ---
-    // First, only consider closed trades that actually have checklist data.
-    const analyzableTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet !== undefined);
-    // --- END OF FIX ---
+    // --- FIX: Only filter for closed trades, don't require checklistMet to exist ---
+    const analyzableTrades = trades.filter(t => t.profitLoss !== null);
 
     if (analyzableTrades.length === 0) {
         body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No closed trades with checklist data to analyze. Edit old trades to include them.</p>';
         return;
     }
-
-    const compliantTrades = analyzableTrades.filter(t => t.checklistMet.length === checklist.length);
-    const nonCompliantTrades = analyzableTrades.filter(t => t.checklistMet.length !== checklist.length);
+    
+    // --- FIX: Use optional chaining (?.) and nullish coalescing (??) for safety ---
+    // This treats a missing `checklistMet` property as an empty array, which is correct for old trades.
+    const compliantTrades = analyzableTrades.filter(t => (t.checklistMet?.length ?? 0) === checklist.length);
+    const nonCompliantTrades = analyzableTrades.filter(t => (t.checklistMet?.length ?? 0) !== checklist.length);
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
     const calculateStats = (tradeSet) => {
@@ -2502,7 +2502,7 @@ const updateChecklistAnalysis = (trades) => {
     }, {});
 
     nonCompliantTrades.forEach(trade => {
-        const checkedItems = trade.checklistMet || [];
+        const checkedItems = trade.checklistMet || []; // This correctly handles undefined
         const skippedItems = checklist.filter(item => !checkedItems.includes(item));
         skippedItems.forEach(item => {
             itemAnalysis[item].skipped++;
@@ -2576,6 +2576,7 @@ const updateChecklistAnalysis = (trades) => {
         </div>
     `;
 };
+
 const setupCollapsibleSections = () => {
         // Key for localStorage
         const storageKey = 'collapsibleStates';
