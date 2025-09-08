@@ -1907,65 +1907,7 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
     `;
 };
 
-        const updateTradeDurationPerformance = (allTrades) => {
-    const body = dom['trade-duration-performance-body'];
-    body.innerHTML = '';
-    const closedTrades = allTrades.filter(t => t.profitLoss !== null && t.exitTimestamp !== null);
-
-    if (closedTrades.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary">No closed trades with duration data to analyze.</p>';
-        return;
-    }
-
-    // Define duration buckets in milliseconds
-    const durationBuckets = {
-        'Under 15 min': { min: 0, max: 15 * 60 * 1000, trades: 0, wins: 0, totalPL: 0 },
-        '15-60 min': { min: 15 * 60 * 1000, max: 60 * 60 * 1000, trades: 0, wins: 0, totalPL: 0 },
-        '1-4 hours': { min: 60 * 60 * 1000, max: 4 * 60 * 60 * 1000, trades: 0, wins: 0, totalPL: 0 },
-        '4+ hours': { min: 4 * 60 * 60 * 1000, max: Infinity, trades: 0, wins: 0, totalPL: 0 }
-    };
-  
-
-    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-
-    closedTrades.forEach(trade => {
-        const entryTime = new Date(trade.timestamp).getTime();
-        const exitTime = new Date(trade.exitTimestamp).getTime();
-        const duration = exitTime - entryTime; // Duration in milliseconds
-
-        for (const bucketName in durationBuckets) {
-            const bucket = durationBuckets[bucketName];
-            if (duration >= bucket.min && duration < bucket.max) {
-                bucket.trades++;
-                bucket.totalPL += trade.profitLoss;
-                if (trade.profitLoss > breakevenThreshold) {
-                    bucket.wins++;
-                }
-                break; // Assign to the first matching bucket
-            }
-        }
-    });
-
-    const fragment = document.createDocumentFragment();
-    for (const [bucketName, stats] of Object.entries(durationBuckets)) {
-        if (stats.trades === 0) continue;
-
-        const winRate = (stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0).toFixed(1);
-        const plClass = stats.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
-
-        const bucketEl = document.createElement('div');
-        bucketEl.className = 'grid grid-cols-4 items-center bg-tertiary/50 p-3 rounded-lg text-sm';
-        bucketEl.innerHTML = `
-            <div class="font-bold text-text-primary col-span-1">${bucketName}</div>
-            <div class="text-center"><span class="font-semibold text-text-primary">${stats.trades}</span> <span class="text-text-secondary">trades</span></div>
-            <div class="text-center"><span class="font-semibold text-text-primary">${winRate}%</span> <span class="text-text-secondary">win rate</span></div>
-            <div class="text-right font-bold ${plClass}">$${stats.totalPL.toFixed(2)}</div>
-        `;
-        fragment.appendChild(bucketEl);
-    }
-    body.appendChild(fragment);
-};
- // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE "SUPER ADVANCED" VERSION ======
+        
 
 // ====== REPLACE YOUR OLD `updateAdviser` FUNCTION WITH THIS ENTIRE "SUPER ADVANCED" VERSION ======
 
@@ -2987,10 +2929,8 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateExcursionAnalysis(tradesForAnalytics);
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
-            updateTradeDurationPerformance(tradesForAnalytics);
-             updateChecklistAnalysis(tradesForAnalytics);
-             updatePipAnalysis(tradesForAnalytics);
-            // updateMistakeAnalysis(tradesForAnalytics); // Commented out until we build it
+            updateChecklistAnalysis(tradesForAnalytics);
+            updatePipAnalysis(tradesForAnalytics);
         }
     }, 0);
 }
