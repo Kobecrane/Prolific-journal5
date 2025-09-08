@@ -1460,7 +1460,14 @@ const setTheme = (theme) => {
                         { name: 'Anxious', color: '#60A5FA' },
                     ],
                     goals: [],
-                    playbook: []
+                    playbook: [],
+                    // --- START FIX: ADDED THE NEW DEFAULT CHECKLIST ---
+                    checklist: [
+                        'Two positions?',
+                        'ATR SL',
+                        'At least 1:1 RR'
+                    ]
+                    // --- END FIX ---
                 };
                 await saveData('accounts', defaultAccount);
                 appData.accounts = { [defaultAccount.accountName]: defaultAccount };
@@ -1471,17 +1478,18 @@ const setTheme = (theme) => {
                 }, {});
 
                 // Ensure all loaded accounts have a checklist array for backward compatibility
-Object.values(appData.accounts).forEach(account => {
-    if (!account.checklist) {
-        console.log(`Initializing default checklist for older account: ${account.accountName}`);
-        account.checklist = [
-            'Setup is in my Playbook',
-            'Risk/Reward is at least 2:1',
-            'Trading during my session',
-            'Not an impulsive entry'
-        ];
-    }
-}); // <-- THIS CLOSING TAG WAS ALSO MISSING
+                Object.values(appData.accounts).forEach(account => {
+                    if (!account.checklist) {
+                        console.log(`Initializing default checklist for older account: ${account.accountName}`);
+                        // --- START FIX: UPDATED THE CHECKLIST FOR OLDER ACCOUNTS ---
+                        account.checklist = [
+                            'Two positions?',
+                            'ATR SL',
+                            'At least 1:1 RR'
+                        ];
+                        // --- END FIX ---
+                    }
+                });
             }
 
             // Set active account
@@ -3334,12 +3342,13 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                 ],
                 goals: [],
                 playbook: [],
+                // --- START FIX: UPDATED THE CHECKLIST FOR NEWLY ADDED ACCOUNTS ---
                 checklist: [ 
-        'Setup is in my Playbook',
-        'Risk/Reward is at least 2:1',
-        'Trading during my session',
-        'Not an impulsive entry'
-    ]
+                    'Two positions?',
+                    'ATR SL',
+                    'At least 1:1 RR'
+                ]
+                // --- END FIX ---
             };
             
             await saveData('accounts', newAccount);
