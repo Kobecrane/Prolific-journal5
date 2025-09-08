@@ -1470,18 +1470,18 @@ const setTheme = (theme) => {
                     return acc;
                 }, {});
 
-                // *** THIS IS THE CORRECTED BLOCK ***
-                Object.values(appData.accounts).forEach(account => {
-                    if (!account.checklist) {
-                        console.log(`Adding default checklist to account: ${account.accountName}`);
-                        account.checklist = [
-                            'Setup is in my Playbook',
-                            'Risk/Reward is at least 2:1',
-                            'Trading during my session',
-                            'Not an impulsive entry'
-                        ];
-                    }
-                }); // <-- THIS CLOSING TAG WAS ALSO MISSING
+                // Ensure all loaded accounts have a checklist array for backward compatibility
+Object.values(appData.accounts).forEach(account => {
+    if (!account.checklist) {
+        console.log(`Initializing default checklist for older account: ${account.accountName}`);
+        account.checklist = [
+            'Setup is in my Playbook',
+            'Risk/Reward is at least 2:1',
+            'Trading during my session',
+            'Not an impulsive entry'
+        ];
+    }
+}); // <-- THIS CLOSING TAG WAS ALSO MISSING
             }
 
             // Set active account
