@@ -1516,17 +1516,36 @@ const setTheme = (theme) => {
         };
 
         const getActiveAccount = () => {
-            if (!appData.activeAccountName || !appData.accounts) return null;
-            const account = appData.accounts[appData.activeAccountName];
-            // Ensure nested arrays exist to prevent errors
-            if (account) {
-                if (!account.tags) account.tags = [];
-                if (!account.psychologyTags) account.psychologyTags = [];
-                if (!account.goals) account.goals = [];
-                if (!account.playbook) account.playbook = [];
-            }
-            return account;
-        };
+    if (!appData.activeAccountName || !appData.accounts) return null;
+    const account = appData.accounts[appData.activeAccountName];
+
+    // --- START OF NEW APPROACH ---
+    // This is the ultimate safety net. It ensures that any function
+    // asking for the active account's data will NEVER fail because an
+    // array is missing. It creates them if they don't exist.
+    if (account) {
+        if (!account.trades) account.trades = [];
+        if (!account.tags) account.tags = [];
+        if (!account.psychologyTags) account.psychologyTags = [];
+        if (!account.goals) account.goals = [];
+        if (!account.playbook) account.playbook = [];
+        
+        // The most critical check: If the checklist array is missing for any reason,
+        // create a default one right now. This is more robust than the one-time
+        // check in loadAppData.
+        if (!Array.isArray(account.checklist)) {
+            console.warn(`Account "${account.accountName}" was missing a valid checklist. Initializing a default one.`);
+            account.checklist = [
+                'Setup is in my Playbook',
+                'Risk/Reward is at least 2:1',
+                'Trading during my session'
+            ];
+        }
+    }
+    // --- END OF NEW APPROACH ---
+    
+    return account;
+};
 
         const getActiveTrades = () => {
             const account = getActiveAccount();
@@ -2387,18 +2406,19 @@ const renderChecklistList = () => {
 const renderChecklistOnForm = (checkedItems) => {
     const container = dom['trade-checklist'];
     
-    // --- START OF FIX: This variable is now correctly scoped ---
-    let itemsToKeepChecked = checkedItems;
+    // --- START OF NEW APPROACH: Simplified & Safer State Preservation ---
+    let itemsToKeepChecked;
 
-    // This logic now correctly handles UI refreshes vs. editing
-    if (checkedItems === undefined) {
-        if (container.innerHTML !== '') {
-            itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
-        } else {
-            itemsToKeepChecked = [];
-        }
+    if (checkedItems !== undefined) {
+        // We are editing a trade. Use the checked items passed from that trade.
+        // `checkedItems` is guaranteed to be an array here (e.g., [] or ['item1']).
+        itemsToKeepChecked = checkedItems;
+    } else {
+        // We are NOT editing. This is a general UI refresh (e.g., theme change).
+        // Preserve whatever the user has already checked on the form.
+        itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
     }
-    // --- END OF FIX ---
+    // --- END OF NEW APPROACH ---
 
     const checklist = getActiveAccount()?.checklist || [];
     container.innerHTML = '';
@@ -2406,8 +2426,9 @@ const renderChecklistOnForm = (checkedItems) => {
         container.innerHTML = `<p class="text-xs text-center text-text-secondary">No checklist items. Click "Manage" to add some.</p>`;
         return;
     }
+
     checklist.forEach(item => {
-        // This line no longer causes an error because itemsToKeepChecked is always defined
+        // This logic is now 100% safe because `itemsToKeepChecked` is always a valid array.
         const isChecked = itemsToKeepChecked.includes(item);
         const id = `checklist-${item.replace(/\s+/g, '-')}`;
         container.innerHTML += `
@@ -2419,25 +2440,28 @@ const renderChecklistOnForm = (checkedItems) => {
 };
 
 // PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
-// PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
 const updateChecklistAnalysis = (trades) => {
     const body = dom['checklist-analysis-body'];
-    const checklist = getActiveAccount()?.checklist || [];
+    // The new getActiveAccount() function guarantees this will be a valid array.
+    const checklist = getActiveAccount().checklist;
     body.innerHTML = '';
 
-    if (checklist.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist items defined. Add items via the main Journal page to enable this analysis.</p>';
+    // --- START OF NEW APPROACH: Intelligent Pre-Check ---
+    // This is the most important fix. We first check if a valid, non-empty
+    // checklist has been defined by the user. If not, we stop and show a
+    // clear message instead of trying to run an analysis with no rules.
+    if (!checklist || checklist.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist rules found for this account. Click "Manage" on the main Journal page to add your rules and enable this analysis.</p>';
         return;
     }
+    // --- END OF NEW APPROACH ---
 
-    // --- START OF CRITICAL FIX ---
-    // The analysis MUST only run on trades that have checklist data.
-    // This correctly excludes old trades created before the feature existed.
-    const analyzableTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet !== undefined);
-    // --- END OF CRITICAL FIX ---
+    // Filter for closed trades that have checklist data saved with them.
+    // This correctly ignores old trades or open trades.
+    const analyzableTrades = trades.filter(t => t.profitLoss !== null && Array.isArray(t.checklistMet));
 
     if (analyzableTrades.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No closed trades with checklist data to analyze. Edit old trades to include them.</p>';
+        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">Log some closed trades with your checklist to see the analysis.</p>';
         return;
     }
 
@@ -2464,14 +2488,15 @@ const updateChecklistAnalysis = (trades) => {
         const checkedItems = trade.checklistMet || [];
         const skippedItems = checklist.filter(item => !checkedItems.includes(item));
         skippedItems.forEach(item => {
-            itemAnalysis[item].skipped++;
-            itemAnalysis[item].totalPL += trade.profitLoss;
+            if (itemAnalysis[item]) {
+                itemAnalysis[item].skipped++;
+                itemAnalysis[item].totalPL += trade.profitLoss;
+            }
         });
     });
     
     const mostSkipped = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => b[1].skipped - a[1].skipped)[0] : ["N/A", {skipped: 0}];
     const mostCostly = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => a[1].totalPL - b[1].totalPL)[0] : ["N/A", {totalPL: 0}];
-
     const complianceRate = analyzableTrades.length > 0 ? (compliantTrades.length / analyzableTrades.length) * 100 : 0;
 
     body.innerHTML = `
