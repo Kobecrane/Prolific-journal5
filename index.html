@@ -2444,12 +2444,11 @@ const renderChecklistList = () => {
 // PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
 const renderChecklistOnForm = (checkedItems) => {
     const container = dom['trade-checklist'];
+    
+    // --- START OF FIX: This variable is now correctly scoped ---
     let itemsToKeepChecked = checkedItems;
 
-    // --- THE FIX IS HERE ---
-    // This condition is now more specific. It only preserves the state if the function
-    // was called with NO arguments (e.g., during a theme change). If an empty array `[]`
-    // is passed (which happens when editing an old trade), it will correctly use it.
+    // This logic now correctly handles UI refreshes vs. editing
     if (checkedItems === undefined) {
         if (container.innerHTML !== '') {
             itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
@@ -2466,6 +2465,7 @@ const renderChecklistOnForm = (checkedItems) => {
         return;
     }
     checklist.forEach(item => {
+        // This line no longer causes an error because itemsToKeepChecked is always defined
         const isChecked = itemsToKeepChecked.includes(item);
         const id = `checklist-${item.replace(/\s+/g, '-')}`;
         container.innerHTML += `
@@ -2477,6 +2477,7 @@ const renderChecklistOnForm = (checkedItems) => {
 };
 
 // PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
+// PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
 const updateChecklistAnalysis = (trades) => {
     const body = dom['checklist-analysis-body'];
     const checklist = getActiveAccount()?.checklist || [];
@@ -2487,18 +2488,19 @@ const updateChecklistAnalysis = (trades) => {
         return;
     }
 
-    // --- FIX: Only filter for closed trades, don't require checklistMet to exist ---
-    const analyzableTrades = trades.filter(t => t.profitLoss !== null);
+    // --- START OF CRITICAL FIX ---
+    // The analysis MUST only run on trades that have checklist data.
+    // This correctly excludes old trades created before the feature existed.
+    const analyzableTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet !== undefined);
+    // --- END OF CRITICAL FIX ---
 
     if (analyzableTrades.length === 0) {
         body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No closed trades with checklist data to analyze. Edit old trades to include them.</p>';
         return;
     }
-    
-    // --- FIX: Use optional chaining (?.) and nullish coalescing (??) for safety ---
-    // This treats a missing `checklistMet` property as an empty array, which is correct for old trades.
-    const compliantTrades = analyzableTrades.filter(t => (t.checklistMet?.length ?? 0) === checklist.length);
-    const nonCompliantTrades = analyzableTrades.filter(t => (t.checklistMet?.length ?? 0) !== checklist.length);
+
+    const compliantTrades = analyzableTrades.filter(t => t.checklistMet.length === checklist.length);
+    const nonCompliantTrades = analyzableTrades.filter(t => t.checklistMet.length !== checklist.length);
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
     const calculateStats = (tradeSet) => {
@@ -2517,7 +2519,7 @@ const updateChecklistAnalysis = (trades) => {
     }, {});
 
     nonCompliantTrades.forEach(trade => {
-        const checkedItems = trade.checklistMet || []; // This correctly handles undefined
+        const checkedItems = trade.checklistMet || [];
         const skippedItems = checklist.filter(item => !checkedItems.includes(item));
         skippedItems.forEach(item => {
             itemAnalysis[item].skipped++;
