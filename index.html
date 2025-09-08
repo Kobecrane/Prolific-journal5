@@ -2472,14 +2472,18 @@ const updateChecklistAnalysis = (trades) => {
         return;
     }
 
-    const closedTrades = trades.filter(t => t.profitLoss !== null);
-    if (closedTrades.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No closed trades to analyze.</p>';
+    // --- START OF FIX ---
+    // First, only consider closed trades that actually have checklist data.
+    const analyzableTrades = trades.filter(t => t.profitLoss !== null && t.checklistMet !== undefined);
+    // --- END OF FIX ---
+
+    if (analyzableTrades.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No closed trades with checklist data to analyze. Edit old trades to include them.</p>';
         return;
     }
 
-    const compliantTrades = closedTrades.filter(t => t.checklistMet?.length === checklist.length);
-    const nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
+    const compliantTrades = analyzableTrades.filter(t => t.checklistMet.length === checklist.length);
+    const nonCompliantTrades = analyzableTrades.filter(t => t.checklistMet.length !== checklist.length);
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
     const calculateStats = (tradeSet) => {
@@ -2492,7 +2496,6 @@ const updateChecklistAnalysis = (trades) => {
     const compliantStats = calculateStats(compliantTrades);
     const nonCompliantStats = calculateStats(nonCompliantTrades);
 
-    // Analyze individual item violations
     const itemAnalysis = checklist.reduce((acc, item) => {
         acc[item] = { skipped: 0, totalPL: 0 };
         return acc;
@@ -2510,8 +2513,7 @@ const updateChecklistAnalysis = (trades) => {
     const mostSkipped = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => b[1].skipped - a[1].skipped)[0] : ["N/A", {skipped: 0}];
     const mostCostly = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => a[1].totalPL - b[1].totalPL)[0] : ["N/A", {totalPL: 0}];
 
-
-    const complianceRate = closedTrades.length > 0 ? (compliantTrades.length / closedTrades.length) * 100 : 0;
+    const complianceRate = analyzableTrades.length > 0 ? (compliantTrades.length / analyzableTrades.length) * 100 : 0;
 
     body.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -2519,7 +2521,7 @@ const updateChecklistAnalysis = (trades) => {
                 <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
                     <h3 class="font-semibold text-text-primary">Overall Compliance</h3>
                     <p class="text-3xl font-bold text-accent-color">${complianceRate.toFixed(1)}%</p>
-                    <p class="text-xs text-text-secondary">${compliantTrades.length} of ${closedTrades.length} trades followed all rules.</p>
+                    <p class="text-xs text-text-secondary">${compliantTrades.length} of ${analyzableTrades.length} tracked trades followed all rules.</p>
                 </div>
                 <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
                      <h3 class="font-semibold text-text-primary">Most Skipped Rule</h3>
