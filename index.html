@@ -2432,16 +2432,23 @@ const renderChecklistList = () => {
     }));
 };
 
-const renderChecklistOnForm = (checkedItems = []) => {
+// PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
+const renderChecklistOnForm = (checkedItems) => {
     const container = dom['trade-checklist'];
-    // --- START FIX ---
-    // If checkedItems is not provided (like during a theme refresh),
-    // preserve the current state before redrawing the element.
     let itemsToKeepChecked = checkedItems;
-    if (itemsToKeepChecked.length === 0 && container.innerHTML !== '') {
-        itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+
+    // --- THE FIX IS HERE ---
+    // This condition is now more specific. It only preserves the state if the function
+    // was called with NO arguments (e.g., during a theme change). If an empty array `[]`
+    // is passed (which happens when editing an old trade), it will correctly use it.
+    if (checkedItems === undefined) {
+        if (container.innerHTML !== '') {
+            itemsToKeepChecked = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+        } else {
+            itemsToKeepChecked = [];
+        }
     }
-    // --- END FIX ---
+    // --- END OF FIX ---
 
     const checklist = getActiveAccount()?.checklist || [];
     container.innerHTML = '';
@@ -2450,7 +2457,6 @@ const renderChecklistOnForm = (checkedItems = []) => {
         return;
     }
     checklist.forEach(item => {
-        // Use the preserved list (itemsToKeepChecked) to set the checked status
         const isChecked = itemsToKeepChecked.includes(item);
         const id = `checklist-${item.replace(/\s+/g, '-')}`;
         container.innerHTML += `
