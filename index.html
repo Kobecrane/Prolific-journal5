@@ -2320,7 +2320,7 @@ const updateAdviser = (allTrades) => {
                       if(profitLoss !== null) profitLoss -= fees;
                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
                       
-                      // THIS IS THE CORRECTED LINE
+                     // THIS IS THE CORRECTED LINE
 activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, exitTimestamp, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, notesHTML, playId, checklistMet: checkedChecklistItems, timeframe };
                       showToast("Trade updated successfully!", "success");
                   }
