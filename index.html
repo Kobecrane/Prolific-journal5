@@ -3083,7 +3083,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
 };
    const renderChecklistAnalysis = (allTrades) => {
     const body = dom['checklist-analysis-body'];
-    body.innerHTML = '';
+    body.innerHTML = ''; // Clear the body before rendering
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
     const checklist = getActiveAccount()?.checklist || [];
 
@@ -3092,7 +3092,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
         return;
     }
 
-    // New code for overall compliance analysis
+    // Overall compliance analysis
     const fullyCompliantTrades = closedTrades.filter(trade => {
         const metItems = new Set(trade.checklistMet || []);
         return metItems.size === checklist.length && checklist.length > 0;
@@ -3126,10 +3126,10 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             </div>
         </div>
     `;
+    body.insertAdjacentHTML('beforeend', summaryHTML);
 
-    // Append the new summary at the top
-    body.insertAdjacentHTML('afterbegin', summaryHTML);
 
+    // Individual checklist item analysis
     const checklistStats = checklist.map(item => ({
         ...item,
         compliantTrades: [],
