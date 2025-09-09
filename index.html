@@ -977,12 +977,7 @@
                     <div id="deep-dive-tab" class="tab-content animate-fade-in">
                         <div class="space-y-6">
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Instrument</h2><div id="index-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
-                            <div class="card p-6 rounded-xl shadow-sm">
-    <h2 class="text-xl font-semibold mb-4 text-text-primary">Pre-Trade Discipline Analysis</h2>
-    <p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes the financial impact of adhering to your pre-trade checklist.</p>
-    <div id="checklist-analysis-body">
-        </div>
-</div>
+                            
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Strategy Tag</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your custom strategy tags.</p><div id="tag-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Psychology & Performance Analysis</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes performance based on your psychology tags.</p><div id="psychology-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Entry Timeframe</h2><div id="timeframe-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
@@ -1226,8 +1221,7 @@
 'close-checklist-modal-btn',
 'checklist-list',
 'new-checklist-item-name',
-'add-checklist-item-btn',
-'checklist-analysis-body', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
+'add-checklist-item-btn', 'prolific-score', 'prolific-score-gauge', 'chart-page', 'tradingview-widget-container', 'adviser-panel', 'adviser-content', 'entry-timeframe', 'filter-timeframe', 'timeframe-performance-body', 'pip-analysis-body', 'pip-analysis-settings-btn', 'pip-analysis-settings-panel', 'pip-analysis-tolerance-container', 'pip-analysis-tolerance', 'pip-analysis-tolerance-value',  'risk-percentage', 'calculate-sl-from-risk-btn',
 
 ];
         
@@ -2914,7 +2908,7 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
         
             updateSummary(filteredTrades);
             updateAccountGrowth(allTrades);
-            renderChecklistAnalysis(allTrades);
+            
             
           
 // PASTE THIS CORRECTED BLOCK IN ITS PLACE
@@ -2957,7 +2951,6 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateExcursionAnalysis(tradesForAnalytics);
             updateRiskConsistencyTracker(tradesForAnalytics);
             updateAvgWinLossComparison(tradesForAnalytics);
-            updateChecklistAnalysis(tradesForAnalytics);
             updatePipAnalysis(tradesForAnalytics);
         }
     }, 0);
@@ -3081,106 +3074,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
 
     tradeHistoryBody.appendChild(fragment);
 };
-   const renderChecklistAnalysis = (allTrades) => {
-    const body = dom['checklist-analysis-body'];
-    body.innerHTML = ''; // Clear the body before rendering
-    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-    const checklist = getActiveAccount()?.checklist || [];
-
-    if (closedTrades.length === 0 || checklist.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">Log trades and set up your pre-trade checklist to enable this analysis.</p>';
-        return;
-    }
-
-    // Overall compliance analysis
-    const fullyCompliantTrades = closedTrades.filter(trade => {
-        const metItems = new Set(trade.checklistMet || []);
-        return metItems.size === checklist.length && checklist.length > 0;
-    });
-
-    const otherTrades = closedTrades.filter(trade => {
-        const metItems = new Set(trade.checklistMet || []);
-        return metItems.size < checklist.length || checklist.length === 0;
-    });
-
-    const compliantPL = fullyCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-    const otherPL = otherTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-
-    const avgCompliantPL = fullyCompliantTrades.length > 0 ? compliantPL / fullyCompliantTrades.length : 0;
-    const avgOtherPL = otherTrades.length > 0 ? otherPL / otherTrades.length : 0;
-
-    const summaryHTML = `
-        <div class="card p-4 rounded-xl shadow-sm mb-4">
-            <h3 class="font-semibold text-lg text-text-primary mb-2">Overall Discipline Summary</h3>
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="p-3 rounded-lg bg-tertiary">
-                    <p class="text-sm text-text-secondary">Avg P/L (100% Compliant)</p>
-                    <p class="text-xl font-bold ${avgCompliantPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${avgCompliantPL.toFixed(2)}</p>
-                    <p class="text-xs text-text-secondary">${fullyCompliantTrades.length} trades</p>
-                </div>
-                <div class="p-3 rounded-lg bg-tertiary">
-                    <p class="text-sm text-text-secondary">Avg P/L (Partial/Non-Compliant)</p>
-                    <p class="text-xl font-bold ${avgOtherPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${avgOtherPL.toFixed(2)}</p>
-                    <p class="text-xs text-text-secondary">${otherTrades.length} trades</p>
-                </div>
-            </div>
-        </div>
-    `;
-    body.insertAdjacentHTML('beforeend', summaryHTML);
-
-
-    // Individual checklist item analysis
-    const checklistStats = checklist.map(item => ({
-        ...item,
-        compliantTrades: [],
-        nonCompliantTrades: []
-    }));
-
-    closedTrades.forEach(trade => {
-        const metItems = new Set(trade.checklistMet || []);
-        checklist.forEach((item, index) => {
-            if (metItems.has(item.id)) {
-                checklistStats[index].compliantTrades.push(trade);
-            } else {
-                checklistStats[index].nonCompliantTrades.push(trade);
-            }
-        });
-    });
-
-    const fragment = document.createDocumentFragment();
-
-    checklistStats.forEach(item => {
-        const compliantPL = item.compliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-        const nonCompliantPL = item.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-        const avgCompliantPL = item.compliantTrades.length > 0 ? compliantPL / item.compliantTrades.length : 0;
-        const avgNonCompliantPL = item.nonCompliantTrades.length > 0 ? nonCompliantPL / item.nonCompliantTrades.length : 0;
-
-        const container = document.createElement('div');
-        container.className = 'card p-4 rounded-xl shadow-sm mb-4';
-
-        const compliantPLClass = avgCompliantPL >= 0 ? 'text-green-500' : 'text-red-500';
-        const nonCompliantPLClass = avgNonCompliantPL >= 0 ? 'text-green-500' : 'text-red-500';
-
-        container.innerHTML = `
-            <h3 class="font-semibold text-lg text-text-primary mb-2">${item.text}</h3>
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="p-3 rounded-lg bg-tertiary">
-                    <p class="text-sm text-text-secondary">Avg P/L (Compliant)</p>
-                    <p class="text-xl font-bold ${compliantPLClass}">$${avgCompliantPL.toFixed(2)}</p>
-                    <p class="text-xs text-text-secondary">${item.compliantTrades.length} trades</p>
-                </div>
-                <div class="p-3 rounded-lg bg-tertiary">
-                    <p class="text-sm text-text-secondary">Avg P/L (Non-Compliant)</p>
-                    <p class="text-xl font-bold ${nonCompliantPLClass}">$${avgNonCompliantPL.toFixed(2)}</p>
-                    <p class="text-xs text-text-secondary">${item.nonCompliantTrades.length} trades</p>
-                </div>
-            </div>
-        `;
-        fragment.appendChild(container);
-    });
-
-    body.appendChild(fragment);
-};     
+        
      const updateSummary = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     dom['total-trades'].textContent = allTrades.length;
@@ -5325,3 +5219,4 @@ const updateRiskOptimizationEngine = (allTrades, breakevenThreshold) => {
 </script>
 </body>
 </html>
+
