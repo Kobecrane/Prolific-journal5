@@ -3092,6 +3092,44 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
         return;
     }
 
+    // New code for overall compliance analysis
+    const fullyCompliantTrades = closedTrades.filter(trade => {
+        const metItems = new Set(trade.checklistMet || []);
+        return metItems.size === checklist.length && checklist.length > 0;
+    });
+
+    const otherTrades = closedTrades.filter(trade => {
+        const metItems = new Set(trade.checklistMet || []);
+        return metItems.size < checklist.length || checklist.length === 0;
+    });
+
+    const compliantPL = fullyCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+    const otherPL = otherTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+
+    const avgCompliantPL = fullyCompliantTrades.length > 0 ? compliantPL / fullyCompliantTrades.length : 0;
+    const avgOtherPL = otherTrades.length > 0 ? otherPL / otherTrades.length : 0;
+
+    const summaryHTML = `
+        <div class="card p-4 rounded-xl shadow-sm mb-4">
+            <h3 class="font-semibold text-lg text-text-primary mb-2">Overall Discipline Summary</h3>
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="p-3 rounded-lg bg-tertiary">
+                    <p class="text-sm text-text-secondary">Avg P/L (100% Compliant)</p>
+                    <p class="text-xl font-bold ${avgCompliantPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${avgCompliantPL.toFixed(2)}</p>
+                    <p class="text-xs text-text-secondary">${fullyCompliantTrades.length} trades</p>
+                </div>
+                <div class="p-3 rounded-lg bg-tertiary">
+                    <p class="text-sm text-text-secondary">Avg P/L (Partial/Non-Compliant)</p>
+                    <p class="text-xl font-bold ${avgOtherPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${avgOtherPL.toFixed(2)}</p>
+                    <p class="text-xs text-text-secondary">${otherTrades.length} trades</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Append the new summary at the top
+    body.insertAdjacentHTML('afterbegin', summaryHTML);
+
     const checklistStats = checklist.map(item => ({
         ...item,
         compliantTrades: [],
