@@ -2914,8 +2914,9 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
         
             updateSummary(filteredTrades);
             updateAccountGrowth(allTrades);
+            renderChecklistAnalysis(allTrades);
             
-          // Replace the entire 'analytics-page' block in your refreshUI function with this
+          
 // PASTE THIS CORRECTED BLOCK IN ITS PLACE
 
 if (!dom['analytics-page'].classList.contains('hidden')) {
@@ -3080,7 +3081,68 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
 
     tradeHistoryBody.appendChild(fragment);
 };
-        
+   const renderChecklistAnalysis = (allTrades) => {
+    const body = dom['checklist-analysis-body'];
+    body.innerHTML = '';
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+    const checklist = getActiveAccount()?.checklist || [];
+
+    if (closedTrades.length === 0 || checklist.length === 0) {
+        body.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">Log trades and set up your pre-trade checklist to enable this analysis.</p>';
+        return;
+    }
+
+    const checklistStats = checklist.map(item => ({
+        ...item,
+        compliantTrades: [],
+        nonCompliantTrades: []
+    }));
+
+    closedTrades.forEach(trade => {
+        const metItems = new Set(trade.checklistMet || []);
+        checklist.forEach((item, index) => {
+            if (metItems.has(item.id)) {
+                checklistStats[index].compliantTrades.push(trade);
+            } else {
+                checklistStats[index].nonCompliantTrades.push(trade);
+            }
+        });
+    });
+
+    const fragment = document.createDocumentFragment();
+
+    checklistStats.forEach(item => {
+        const compliantPL = item.compliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+        const nonCompliantPL = item.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+        const avgCompliantPL = item.compliantTrades.length > 0 ? compliantPL / item.compliantTrades.length : 0;
+        const avgNonCompliantPL = item.nonCompliantTrades.length > 0 ? nonCompliantPL / item.nonCompliantTrades.length : 0;
+
+        const container = document.createElement('div');
+        container.className = 'card p-4 rounded-xl shadow-sm mb-4';
+
+        const compliantPLClass = avgCompliantPL >= 0 ? 'text-green-500' : 'text-red-500';
+        const nonCompliantPLClass = avgNonCompliantPL >= 0 ? 'text-green-500' : 'text-red-500';
+
+        container.innerHTML = `
+            <h3 class="font-semibold text-lg text-text-primary mb-2">${item.text}</h3>
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="p-3 rounded-lg bg-tertiary">
+                    <p class="text-sm text-text-secondary">Avg P/L (Compliant)</p>
+                    <p class="text-xl font-bold ${compliantPLClass}">$${avgCompliantPL.toFixed(2)}</p>
+                    <p class="text-xs text-text-secondary">${item.compliantTrades.length} trades</p>
+                </div>
+                <div class="p-3 rounded-lg bg-tertiary">
+                    <p class="text-sm text-text-secondary">Avg P/L (Non-Compliant)</p>
+                    <p class="text-xl font-bold ${nonCompliantPLClass}">$${avgNonCompliantPL.toFixed(2)}</p>
+                    <p class="text-xs text-text-secondary">${item.nonCompliantTrades.length} trades</p>
+                </div>
+            </div>
+        `;
+        fragment.appendChild(container);
+    });
+
+    body.appendChild(fragment);
+};     
      const updateSummary = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     dom['total-trades'].textContent = allTrades.length;
