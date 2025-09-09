@@ -1515,37 +1515,37 @@ const setTheme = (theme) => {
             saveData('settings', appData.settings).catch(err => console.error("Failed to save settings:", err));
         };
 
-        const getActiveAccount = () => {
-    if (!appData.activeAccountName || !appData.accounts) return null;
-    const account = appData.accounts[appData.activeAccountName];
+       const getActiveAccount = () => {
+            if (!appData.activeAccountName || !appData.accounts) return null;
+            const account = appData.accounts[appData.activeAccountName];
 
-    // --- START OF NEW APPROACH ---
-    // This is the ultimate safety net. It ensures that any function
-    // asking for the active account's data will NEVER fail because an
-    // array is missing. It creates them if they don't exist.
-    if (account) {
-        if (!account.trades) account.trades = [];
-        if (!account.tags) account.tags = [];
-        if (!account.psychologyTags) account.psychologyTags = [];
-        if (!account.goals) account.goals = [];
-        if (!account.playbook) account.playbook = [];
-        
-        // The most critical check: If the checklist array is missing for any reason,
-        // create a default one right now. This is more robust than the one-time
-        // check in loadAppData.
-        if (!Array.isArray(account.checklist)) {
-            console.warn(`Account "${account.accountName}" was missing a valid checklist. Initializing a default one.`);
-            account.checklist = [
-                'Setup is in my Playbook',
-                'Risk/Reward is at least 2:1',
-                'Trading during my session'
-            ];
-        }
-    }
-    // --- END OF NEW APPROACH ---
-    
-    return account;
-};
+            // --- START OF NEW APPROACH ---
+            // This is the ultimate safety net. It ensures that any function
+            // asking for the active account's data will NEVER fail because an
+            // array is missing. It creates them if they don't exist.
+            if (account) {
+                if (!account.trades) account.trades = [];
+                if (!account.tags) account.tags = [];
+                if (!account.psychologyTags) account.psychologyTags = [];
+                if (!account.goals) account.goals = [];
+                if (!account.playbook) account.playbook = [];
+                
+                // The most critical check: If the checklist array is missing for any reason,
+                // create a default one right now. This is more robust than the one-time
+                // check in loadAppData.
+                if (!Array.isArray(account.checklist)) {
+                    console.warn(`Account "${account.accountName}" was missing a valid checklist. Initializing a default one.`);
+                    account.checklist = [
+                        'Setup is in my Playbook',
+                        'Risk/Reward is at least 2:1',
+                        'Trading during my session'
+                    ];
+                }
+            }
+            // --- END OF NEW APPROACH ---
+            
+            return account;
+        };
 
         const getActiveTrades = () => {
             const account = getActiveAccount();
@@ -2439,127 +2439,129 @@ const renderChecklistOnForm = (checkedItems) => {
     });
 };
 
-// PASTE THIS ENTIRE CORRECTED FUNCTION IN PLACE OF THE OLD ONE
 const updateChecklistAnalysis = (trades) => {
-    const body = dom['checklist-analysis-body'];
-    // The new getActiveAccount() function guarantees this will be a valid array.
-    const checklist = getActiveAccount().checklist;
-    body.innerHTML = '';
+            const body = dom['checklist-analysis-body'];
+            const checklist = getActiveAccount().checklist;
+            body.innerHTML = '';
 
-    // --- START OF NEW APPROACH: Intelligent Pre-Check ---
-    // This is the most important fix. We first check if a valid, non-empty
-    // checklist has been defined by the user. If not, we stop and show a
-    // clear message instead of trying to run an analysis with no rules.
-    if (!checklist || checklist.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist rules found for this account. Click "Manage" on the main Journal page to add your rules and enable this analysis.</p>';
-        return;
-    }
-    // --- END OF NEW APPROACH ---
-
-    // Filter for closed trades that have checklist data saved with them.
-    // This correctly ignores old trades or open trades.
-    const analyzableTrades = trades.filter(t => t.profitLoss !== null && Array.isArray(t.checklistMet));
-
-    if (analyzableTrades.length === 0) {
-        body.innerHTML = '<p class="text-center text-text-secondary col-span-full">Log some closed trades with your checklist to see the analysis.</p>';
-        return;
-    }
-
-    const compliantTrades = analyzableTrades.filter(t => t.checklistMet.length === checklist.length);
-    const nonCompliantTrades = analyzableTrades.filter(t => t.checklistMet.length !== checklist.length);
-    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-
-    const calculateStats = (tradeSet) => {
-        const totalPL = tradeSet.reduce((sum, t) => sum + t.profitLoss, 0);
-        const wins = tradeSet.filter(t => t.profitLoss > breakevenThreshold).length;
-        const winRate = tradeSet.length > 0 ? (wins / tradeSet.length) * 100 : 0;
-        return { totalPL, winRate };
-    };
-
-    const compliantStats = calculateStats(compliantTrades);
-    const nonCompliantStats = calculateStats(nonCompliantTrades);
-
-    const itemAnalysis = checklist.reduce((acc, item) => {
-        acc[item] = { skipped: 0, totalPL: 0 };
-        return acc;
-    }, {});
-
-    nonCompliantTrades.forEach(trade => {
-        const checkedItems = trade.checklistMet || [];
-        const skippedItems = checklist.filter(item => !checkedItems.includes(item));
-        skippedItems.forEach(item => {
-            if (itemAnalysis[item]) {
-                itemAnalysis[item].skipped++;
-                itemAnalysis[item].totalPL += trade.profitLoss;
+            if (!checklist || checklist.length === 0) {
+                body.innerHTML = '<p class="text-center text-text-secondary col-span-full">No checklist rules found for this account. Click "Manage" on the main Journal page to add your rules and enable this analysis.</p>';
+                return;
             }
-        });
-    });
-    
-    const mostSkipped = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => b[1].skipped - a[1].skipped)[0] : ["N/A", {skipped: 0}];
-    const mostCostly = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => a[1].totalPL - b[1].totalPL)[0] : ["N/A", {totalPL: 0}];
-    const complianceRate = analyzableTrades.length > 0 ? (compliantTrades.length / analyzableTrades.length) * 100 : 0;
 
-    body.innerHTML = `
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div class="lg:col-span-1 space-y-4">
-                <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
-                    <h3 class="font-semibold text-text-primary">Overall Compliance</h3>
-                    <p class="text-3xl font-bold text-accent-color">${complianceRate.toFixed(1)}%</p>
-                    <p class="text-xs text-text-secondary">${compliantTrades.length} of ${analyzableTrades.length} tracked trades followed all rules.</p>
-                </div>
-                <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
-                     <h3 class="font-semibold text-text-primary">Most Skipped Rule</h3>
-                     <p class="text-sm font-bold text-yellow-400 mt-1">"${mostSkipped[0]}"</p>
-                     <p class="text-xs text-text-secondary">Skipped on ${mostSkipped[1].skipped} non-compliant trades.</p>
-                </div>
-                 <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
-                     <h3 class="font-semibold text-text-primary">Most Costly Skipped Rule</h3>
-                     <p class="text-sm font-bold text-red-400 mt-1">"${mostCostly[0]}"</p>
-                     <p class="text-xs text-text-secondary">Resulted in a P/L of <span class="font-semibold">$${mostCostly[1].totalPL.toFixed(2)}</span> when skipped.</p>
-                </div>
-            </div>
+            const analyzableTrades = trades.filter(t => t.profitLoss !== null && Array.isArray(t.checklistMet));
 
-            <div class="lg:col-span-2 bg-tertiary/50 p-4 rounded-lg border border-border-color">
-                <h3 class="font-semibold text-text-primary mb-3">Financial Impact of Discipline</h3>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <h4 class="font-semibold text-green-400">Compliant Trades (${compliantTrades.length})</h4>
-                            <div class="text-right">
-                                 <p class="text-lg font-bold text-green-400">$${compliantStats.totalPL.toFixed(2)}</p>
-                                 <p class="text-xs text-text-secondary">${compliantStats.winRate.toFixed(1)}% Win Rate</p>
-                            </div>
+            if (analyzableTrades.length === 0) {
+                body.innerHTML = '<p class="text-center text-text-secondary col-span-full">Log some closed trades with your checklist to see the analysis.</p>';
+                return;
+            }
+
+            // --- START OF THE CORRECTED LOGIC ---
+            // Instead of just comparing the number of items, we now check if every item
+            // from the current master checklist is included in the trade's saved items.
+            // This correctly handles cases where you add new rules to your master list later on.
+            const compliantTrades = analyzableTrades.filter(trade => {
+                return checklist.every(masterItem => trade.checklistMet.includes(masterItem));
+            });
+            
+            // A non-compliant trade is simply one that isn't in the compliant list.
+            const nonCompliantTrades = analyzableTrades.filter(trade => !compliantTrades.includes(trade));
+            // --- END OF THE CORRECTED LOGIC ---
+
+            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+
+            const calculateStats = (tradeSet) => {
+                const totalPL = tradeSet.reduce((sum, t) => sum + t.profitLoss, 0);
+                const wins = tradeSet.filter(t => t.profitLoss > breakevenThreshold).length;
+                const winRate = tradeSet.length > 0 ? (wins / tradeSet.length) * 100 : 0;
+                return { totalPL, winRate };
+            };
+
+            const compliantStats = calculateStats(compliantTrades);
+            const nonCompliantStats = calculateStats(nonCompliantTrades);
+
+            const itemAnalysis = checklist.reduce((acc, item) => {
+                acc[item] = { skipped: 0, totalPL: 0 };
+                return acc;
+            }, {});
+
+            nonCompliantTrades.forEach(trade => {
+                const checkedItems = trade.checklistMet || [];
+                // This part correctly finds which items from the CURRENT master list were skipped
+                const skippedItems = checklist.filter(item => !checkedItems.includes(item));
+                skippedItems.forEach(item => {
+                    if (itemAnalysis[item]) {
+                        itemAnalysis[item].skipped++;
+                        itemAnalysis[item].totalPL += trade.profitLoss;
+                    }
+                });
+            });
+            
+            const mostSkipped = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => b[1].skipped - a[1].skipped)[0] : ["N/A", {skipped: 0}];
+            const mostCostly = Object.keys(itemAnalysis).length > 0 ? Object.entries(itemAnalysis).sort((a, b) => a[1].totalPL - b[1].totalPL)[0] : ["N/A", {totalPL: 0}];
+            const complianceRate = analyzableTrades.length > 0 ? (compliantTrades.length / analyzableTrades.length) * 100 : 0;
+
+            body.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
+                            <h3 class="font-semibold text-text-primary">Overall Compliance</h3>
+                            <p class="text-3xl font-bold text-accent-color">${complianceRate.toFixed(1)}%</p>
+                            <p class="text-xs text-text-secondary">${compliantTrades.length} of ${analyzableTrades.length} tracked trades followed all rules.</p>
+                        </div>
+                        <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
+                             <h3 class="font-semibold text-text-primary">Most Skipped Rule</h3>
+                             <p class="text-sm font-bold text-yellow-400 mt-1">"${mostSkipped[0]}"</p>
+                             <p class="text-xs text-text-secondary">Skipped on ${mostSkipped[1].skipped} non-compliant trades.</p>
+                        </div>
+                         <div class="bg-tertiary/50 p-4 rounded-lg border border-border-color">
+                             <h3 class="font-semibold text-text-primary">Most Costly Skipped Rule</h3>
+                             <p class="text-sm font-bold text-red-400 mt-1">"${mostCostly[0]}"</p>
+                             <p class="text-xs text-text-secondary">Resulted in a P/L of <span class="font-semibold">$${mostCostly[1].totalPL.toFixed(2)}</span> when skipped.</p>
                         </div>
                     </div>
-                     <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <h4 class="font-semibold text-red-400">Non-Compliant Trades (${nonCompliantTrades.length})</h4>
-                             <div class="text-right">
-                                 <p class="text-lg font-bold text-red-400">$${nonCompliantStats.totalPL.toFixed(2)}</p>
-                                 <p class="text-xs text-text-secondary">${nonCompliantStats.winRate.toFixed(1)}% Win Rate</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <hr class="border-border-color my-4">
-                 <h3 class="font-semibold text-text-primary mb-3">Individual Rule Performance</h3>
-                 <div class="space-y-2 text-xs">
-                    ${Object.entries(itemAnalysis).map(([item, data]) => `
-                        <div class="grid grid-cols-3 items-center gap-2">
-                            <span class="truncate text-text-secondary col-span-1" title="${item}">${item}</span>
-                            <div class="col-span-2 flex items-center gap-2">
-                                <div class="w-full bg-bg-tertiary rounded-full h-2.5">
-                                    <div class="bg-red-500/50 h-2.5 rounded-full" style="width: ${nonCompliantTrades.length > 0 ? (data.skipped / nonCompliantTrades.length) * 100 : 0}%" title="${data.skipped} times skipped"></div>
+
+                    <div class="lg:col-span-2 bg-tertiary/50 p-4 rounded-lg border border-border-color">
+                        <h3 class="font-semibold text-text-primary mb-3">Financial Impact of Discipline</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <h4 class="font-semibold text-green-400">Compliant Trades (${compliantTrades.length})</h4>
+                                    <div class="text-right">
+                                         <p class="text-lg font-bold text-green-400">$${compliantStats.totalPL.toFixed(2)}</p>
+                                         <p class="text-xs text-text-secondary">${compliantStats.winRate.toFixed(1)}% Win Rate</p>
+                                    </div>
                                 </div>
-                                <span class="font-mono w-20 text-right ${data.totalPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${data.totalPL.toFixed(0)}</span>
+                            </div>
+                             <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <h4 class="font-semibold text-red-400">Non-Compliant Trades (${nonCompliantTrades.length})</h4>
+                                     <div class="text-right">
+                                         <p class="text-lg font-bold text-red-400">$${nonCompliantStats.totalPL.toFixed(2)}</p>
+                                         <p class="text-xs text-text-secondary">${nonCompliantStats.winRate.toFixed(1)}% Win Rate</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    `).join('')}
-                 </div>
-            </div>
-        </div>
-    `;
-};
+                         <hr class="border-border-color my-4">
+                         <h3 class="font-semibold text-text-primary mb-3">Individual Rule Performance</h3>
+                         <div class="space-y-2 text-xs">
+                            ${Object.entries(itemAnalysis).map(([item, data]) => `
+                                <div class="grid grid-cols-3 items-center gap-2">
+                                    <span class="truncate text-text-secondary col-span-1" title="${item}">${item}</span>
+                                    <div class="col-span-2 flex items-center gap-2">
+                                        <div class="w-full bg-bg-tertiary rounded-full h-2.5">
+                                            <div class="bg-red-500/50 h-2.5 rounded-full" style="width: ${nonCompliantTrades.length > 0 ? (data.skipped / nonCompliantTrades.length) * 100 : 0}%" title="${data.skipped} times skipped"></div>
+                                        </div>
+                                        <span class="font-mono w-20 text-right ${data.totalPL >= 0 ? 'text-green-500' : 'text-red-500'}">$${data.totalPL.toFixed(0)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                         </div>
+                    </div>
+                </div>
+            `;
+        };
 
 const setupCollapsibleSections = () => {
         // Key for localStorage
