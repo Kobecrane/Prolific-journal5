@@ -1964,15 +1964,20 @@ const updateAdviser = (allTrades) => {
         metrics.riskConsistencyRatio = metrics.avgRisk > 0 ? metrics.riskStdDev / metrics.avgRisk : 0;
     } else { metrics.riskConsistencyRatio = 0; }
     
-    // Checklist Adherence
-    const checklist = getActiveAccount()?.checklist || [];
-    metrics.nonCompliantTrades = [];
-    if (checklist.length > 0) {
-        metrics.nonCompliantTrades = closedTrades.filter(t => t.checklistMet?.length !== checklist.length);
-        if (metrics.nonCompliantTrades.length > 0) {
-            metrics.nonCompliantPL = metrics.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-        }
+    // --- Checklist Adherence
+const checklist = getActiveAccount()?.checklist || [];
+metrics.nonCompliantTrades = [];
+if (checklist.length > 0) {
+    // CORRECTED LOGIC: A trade is non-compliant if not every master rule is found in the trade's checklist.
+    metrics.nonCompliantTrades = closedTrades.filter(trade => {
+        const checkedItems = trade.checklistMet || [];
+        return !checklist.every(masterRule => checkedItems.includes(masterRule));
+    });
+
+    if (metrics.nonCompliantTrades.length > 0) {
+        metrics.nonCompliantPL = metrics.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
     }
+}
 
     // Psychology
     const psychologyStats = {};
@@ -5219,4 +5224,3 @@ const updateRiskOptimizationEngine = (allTrades, breakevenThreshold) => {
 </script>
 </body>
 </html>
-
