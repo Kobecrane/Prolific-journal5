@@ -3588,7 +3588,7 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             bodyElement.innerHTML = '';
             // Change layout from grid to a vertical flex container
-            bodyElement.className = 'flex flex-col gap-4';
+           bodyElement.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4';
 
             const tradesWithTags = allTrades.filter(t => t.profitLoss !== null && t[tagType] && t[tagType].length > 0);
             if(tradesWithTags.length === 0) { 
@@ -3668,7 +3668,7 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
        // ADD this new function where the old one was
 const updateGenericBreakdownAnalysis = (trades, property, bodyElement, title) => {
             bodyElement.innerHTML = '';
-            bodyElement.className = 'flex flex-col gap-4'; // Set new layout
+            bodyElement.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'; // Set new layout
             const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
             const closedTrades = trades.filter(t => t.profitLoss !== null && t[property]);
 
