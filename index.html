@@ -88,6 +88,10 @@
             display:none;
         }
         /* Collapsible Section Styles */
+/* ADD THIS NEW RULE for the adviser panel */
+#adviser-panel > .collapsible-header {
+    padding: 0; /* Removes default padding to fit nicely in the card */
+} 
 .collapsible-header {
     display: flex;
     justify-content: space-between;
@@ -102,9 +106,9 @@
     transition: max-height 0.3s ease-in-out, margin-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out;
 }
 .collapsible-container.open .collapsible-content {
-    max-height: 500px; /* Adjust if your content is taller */
-    margin-top: 0.5rem;
-    padding-bottom: 0.75rem;
+    max-height: 1500px; /* Increased max-height for adviser content */
+    margin-top: 1rem;
+    padding-bottom: 0;
 }
 .collapsible-icon {
     transition: transform 0.3s ease-in-out;
@@ -998,13 +1002,26 @@
                     <button id="clear-drilldown-btn" class="font-bold text-lg hover:text/white">&times;</button>
                 </div>
 
-                <div id="adviser-panel" class="card p-6 rounded-xl shadow-sm animate-fade-in-up mb-6 border-l-4 border-accent-color">
-                    <h2 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v2.5a1.5 1.5 0 01-3 0v-.5a1 1 0 00-1-1h-3a1 1 0 00-1 1v10a1 1 0 001 1h3a1 1 0 001-1v-.5a1.5 1.5 0 013 0V18a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V6a1 1 0 011-1h3a1 1 0 011 1v.5a1.5 1.5 0 003 0V3.5z" /></svg>
-                        <span>Trading Adviser</span>
-                    </h2>
-                    <div id="adviser-content" class="space-y-4"></div>
-                </div>
+                <!-- START: Collapsible Adviser Panel -->
+<div id="adviser-panel" class="collapsible-container card p-6 rounded-xl shadow-sm animate-fade-in-up mb-6 border-l-4 border-accent-color">
+    <!-- This is the new clickable header -->
+    <div class="collapsible-header">
+        <h2 class="text-xl font-semibold text-text-primary flex items-center gap-2">
+            <svg xmlns="http://www.w.org/2000/svg" class="h-6 w-6 text-accent-color" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v2.5a1.5 1.5 0 01-3 0v-.5a1 1 0 00-1-1h-3a1 1 0 00-1 1v10a1 1 0 001 1h3a1 1 0 001-1v-.5a1.5 1.5 0 013 0V18a1 1 0 01-1 1h-3a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V17a1 1 0 01-1 1H5a1 1 0 01-1-1v-2.5a1.5 1.5 0 00-3 0V6a1 1 0 011-1h3a1 1 0 011 1v.5a1.5 1.5 0 003 0V3.5z" /></svg>
+            <span>Trading Adviser</span>
+        </h2>
+        <!-- This is the rotating arrow icon -->
+        <svg class="collapsible-icon w-6 h-6 text-text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+    </div>
+
+    <!-- This content will now hide and show -->
+    <div class="collapsible-content">
+        <div id="adviser-content" class="space-y-4"></div>
+    </div>
+</div>
+<!-- END: Collapsible Adviser Panel -->
 
                 <div class="analytics-tabs">
                     <button class="tab-btn active" data-tab="overview">Overview</button>
