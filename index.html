@@ -1159,6 +1159,10 @@
         <div>
             <h3 class="text-sm font-semibold text-text-secondary mb-2">Data & Reports</h3>
             <div class="space-y-2">
+                <label for="import-mt5-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-accent-color text-white border border-transparent rounded-lg hover:bg-opacity-90 transition-colors block">
+                    Import MT5 (CSV)
+                </label>
+                <input type="file" id="import-mt5-file" class="hidden" accept=".csv">
                 <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to DB</button>
                 <label for="import-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors block">Import Data</label>
                 <input type="file" id="import-file" class="hidden" accept=".json">
@@ -2291,7 +2295,162 @@ if (checklist.length > 0) {
             if (minutes > 0) return `${minutes}m ${seconds}s`;
             return `${seconds}s`;
         }
+        
+      // --- MASTER VERSION: Instrument + Initial SL/TP + MFE/MAE ---
+// --- FIXED: Import Logic (Aligned with Analytics) ---
+const parseMT5CSV = (csvText) => {
+    const lines = csvText.trim().split('\n');
+    const cleanLines = lines.map(l => l.replace('\r', ''));
+    const headers = cleanLines[0].split(';'); 
+    const deals = [];
+    
+    for(let i=1; i<cleanLines.length; i++) {
+        if(!cleanLines[i].trim()) continue;
+        const row = cleanLines[i].split(';');
+        const deal = {};
+        headers.forEach((h, index) => deal[h.trim()] = row[index] ? row[index].trim() : "");
+        deals.push(deal);
+    }
+    
+    const positions = {};
+    deals.forEach(deal => {
+        const pid = deal.PositionID;
+        if(!pid) return;
+        if(!positions[pid]) positions[pid] = [];
+        positions[pid].push(deal);
+    });
+    
+    const journalTrades = [];
+    
+    Object.values(positions).forEach(group => {
+        const entryDeal = group.find(d => d.Entry === '0'); 
+        const exitDeals = group.filter(d => d.Entry === '1'); 
+        
+        if(entryDeal && exitDeals.length > 0) {
+            let totalProfit = 0;
+            let totalCommission = 0;
+            let totalSwap = 0;
+            
+            group.forEach(d => {
+                totalCommission += parseFloat(d.Commission || 0);
+                totalSwap += parseFloat(d.Swap || 0);
+                totalProfit += parseFloat(d.Profit || 0);
+            });
 
+            const lastExit = exitDeals[exitDeals.length-1];
+
+            // 1. Initial SL/TP
+            let finalSL = null;
+            let finalTP = null;
+            if (entryDeal.InitialSL && parseFloat(entryDeal.InitialSL) > 0) finalSL = parseFloat(entryDeal.InitialSL);
+            if (entryDeal.InitialTP && parseFloat(entryDeal.InitialTP) > 0) finalTP = parseFloat(entryDeal.InitialTP);
+
+            // 2. Calculate R:R Ratio (Required for "Planned Risk : Reward Analysis")
+            let rrRatio = null;
+            const entryPrice = parseFloat(entryDeal.Price);
+            if (finalSL && finalTP && finalSL !== entryPrice) {
+                const risk = Math.abs(entryPrice - finalSL);
+                const reward = Math.abs(finalTP - entryPrice);
+                rrRatio = parseFloat((reward / risk).toFixed(2));
+            }
+
+            // 3. MFE / MAE Data (Required for "Trade Excursion Analysis")
+            let highestPrice = parseFloat(lastExit.MaxPrice || 0);
+            let lowestPrice = parseFloat(lastExit.MinPrice || 0);
+            
+            // Fallback logic
+            if (highestPrice === 0) highestPrice = Math.max(entryPrice, parseFloat(lastExit.Price));
+            if (lowestPrice === 0) lowestPrice = Math.min(entryPrice, parseFloat(lastExit.Price));
+
+            const isBuy = entryDeal.Type === '0';
+            
+            // Mapping for Analytics (peakPrice = MFE, maePrice = MAE)
+            let peakPrice = 0; // Favorable (MFE)
+            let maePrice = 0;  // Adverse (MAE)
+
+            if (isBuy) {
+                peakPrice = highestPrice; 
+                maePrice = lowestPrice;   
+            } else {
+                peakPrice = lowestPrice;  
+                maePrice = highestPrice;  
+            }
+
+            const trade = {
+                id: crypto.randomUUID(),
+                mt5PositionId: entryDeal.PositionID,
+                indexName: entryDeal.Symbol, 
+                tradeType: isBuy ? 'Buy' : 'Sell',
+                entryPrice: entryPrice,
+                exitPrice: parseFloat(lastExit.Price),
+                lotSize: parseFloat(entryDeal.Lots),
+                timestamp: new Date(parseInt(entryDeal.Time) * 1000).toISOString(),
+                exitTimestamp: new Date(parseInt(lastExit.Time) * 1000).toISOString(),
+                profitLoss: totalProfit + totalCommission + totalSwap,
+                stopLoss: finalSL, 
+                takeProfit: finalTP, 
+                
+                // NEW: Aligned Properties for Analytics
+                rrRatio: rrRatio,      // Calculated!
+                peakPrice: peakPrice,  // Mapped!
+                maePrice: maePrice,    // Mapped!
+                
+                notesHTML: `<p class="text-xs text-text-secondary">Imported from MT5 (Ticket: ${entryDeal.PositionID})</p>`,
+                fees: totalCommission + totalSwap,
+                tags: [],             
+                psychologyTags: [],   
+                checklistMet: [],     
+                timeframe: null       
+            };
+            journalTrades.push(trade);
+        }
+    });
+    return journalTrades;
+};
+
+        const handleMT5Import = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const csvText = e.target.result;
+                    const newTrades = parseMT5CSV(csvText);
+                    const activeAccount = getActiveAccount();
+                    let addedCount = 0;
+
+                    newTrades.forEach(trade => {
+                        // Duplicate Check: Check by PositionID OR exact timestamp+symbol match
+                        const isDuplicate = activeAccount.trades.some(t => 
+                            (t.mt5PositionId && t.mt5PositionId === trade.mt5PositionId) || 
+                            (t.timestamp === trade.timestamp && t.indexName === trade.indexName && t.entryPrice === trade.entryPrice)
+                        );
+
+                        if (!isDuplicate) {
+                            activeAccount.trades.push(trade);
+                            addedCount++;
+                        }
+                    });
+
+                    if (addedCount > 0) {
+                        await saveAppData();
+                        refreshUI();
+                        showToast(`Successfully imported ${addedCount} new trades!`, "success");
+                    } else {
+                        showToast("No new trades found. All trades were duplicates.", "info");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Error parsing CSV file.", "error");
+                } finally {
+                    event.target.value = ''; 
+                }
+            };
+            reader.readAsText(file);
+        };
+        // --- END NEW CODE ---
+         
         // --- Form & Edit Logic ---
         const resetForm = () => {
             const form = dom['log-trade-btn'].closest('div.space-y-4');
@@ -2840,6 +2999,9 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
             // --- Data & Reports ---
             dom['export-btn'].addEventListener('click', exportData);
             dom['import-file'].addEventListener('change', importData);
+            if(document.getElementById('import-mt5-file')) {
+                document.getElementById('import-mt5-file').addEventListener('change', handleMT5Import);
+            }
             dom['export-pdf-btn'].addEventListener('click', generatePDF);
 
             // --- Filters ---
@@ -2999,7 +3161,96 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
             }
         };
 
+       // --- FIXED: Safe Deep Dive Renderer ---
+const renderDeepDiveSafe = (trades) => {
+    // Helper: Safely group trades
+    const safeGroupBy = (trades, prop) => {
+        const groups = {};
+        trades.forEach(t => {
+            let val = t[prop];
+            
+            // Handle missing/empty data gracefully
+            if (val === undefined || val === null || val === "") {
+                val = "Unspecified";
+            }
+            
+            // Handle Arrays (Tags/Psychology) vs Strings (Timeframe/Index)
+            const keys = Array.isArray(val) ? (val.length ? val : ["Unspecified"]) : [val];
+            
+            keys.forEach(k => {
+                if (!groups[k]) groups[k] = [];
+                groups[k].push(t);
+            });
+        });
+        return groups;
+    };
 
+    // Helper: Generate Card HTML
+    const createCard = (title, subset) => {
+        const wins = subset.filter(t => t.profitLoss > 0).length;
+        const total = subset.length;
+        const winRate = total > 0 ? (wins / total) * 100 : 0;
+        const netPnL = subset.reduce((sum, t) => sum + t.profitLoss, 0);
+        
+        // Safe Profit Factor Calc
+        const grossProfit = subset.filter(t => t.profitLoss > 0).reduce((s, t) => s + t.profitLoss, 0);
+        const grossLoss = Math.abs(subset.filter(t => t.profitLoss < 0).reduce((s, t) => s + t.profitLoss, 0));
+        const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? "∞" : "0.00") : (grossProfit / grossLoss).toFixed(2);
+
+        const pnlClass = netPnL >= 0 ? 'text-green-400' : 'text-red-400';
+        const winRateColor = winRate >= 50 ? 'text-green-400' : (winRate >= 30 ? 'text-yellow-400' : 'text-red-400');
+        
+        // Visual cue for Unspecified cards
+        const cardBorder = title === "Unspecified" ? "border-dashed border-gray-600 opacity-70" : "border-border-color";
+
+        return `
+            <div class="bg-bg-secondary p-4 rounded-lg border ${cardBorder}">
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-semibold text-sm text-text-primary truncate" title="${title}">${title}</h4>
+                    <span class="text-xs font-mono text-text-secondary">${total} trades</span>
+                </div>
+                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                    <div class="text-text-secondary">Win Rate</div>
+                    <div class="text-right font-bold ${winRateColor}">${winRate.toFixed(1)}%</div>
+                    
+                    <div class="text-text-secondary">Net P&L</div>
+                    <div class="text-right font-bold ${pnlClass}">$${netPnL.toFixed(2)}</div>
+                    
+                    <div class="text-text-secondary">Profit Factor</div>
+                    <div class="text-right font-mono">${profitFactor}</div>
+                </div>
+            </div>
+        `;
+    };
+
+    // --- CONFIGURATION: Map HTML IDs to correct Data Properties ---
+    const sections = [
+        { id: 'index-performance-body', prop: 'indexName' },       // Automatic
+        { id: 'tag-performance-body', prop: 'tags' },              // Manual
+        { id: 'psychology-performance-body', prop: 'psychologyTags' }, // Manual
+        { id: 'timeframe-performance-body', prop: 'timeframe' }    // Manual (Correct property name now)
+    ];
+
+    sections.forEach(section => {
+        const container = document.getElementById(section.id);
+        if (!container) return;
+
+        const groups = safeGroupBy(trades, section.prop);
+        
+        // Sort keys: Unspecified always last, others alphabetical
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            if(a === 'Unspecified') return 1;
+            if(b === 'Unspecified') return -1;
+            return a.localeCompare(b);
+        });
+
+        container.innerHTML = sortedKeys.map(key => createCard(key, groups[key])).join('');
+        
+        if (sortedKeys.length === 0) {
+            container.innerHTML = `<p class="text-text-secondary text-sm col-span-full text-center py-4">No data available.</p>`;
+        }
+    });
+};
         // --- UI Rendering ---
         const refreshUI = () => {
             const filteredTrades = applyFilters();
@@ -3045,10 +3296,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             const { maxDrawdownUSD } = updateDrawdownAnalysis(tradesForAnalytics);
             updateEquityCurveChart(tradesForAnalytics);
             updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
-            updateTagAnalysis(tradesForAnalytics, 'tags', dom['tag-performance-body']);
-            updateTagAnalysis(tradesForAnalytics, 'psychologyTags', dom['psychology-performance-body']);
-            updateGenericBreakdownAnalysis(tradesForAnalytics, 'indexName', dom['index-performance-body'], 'Instrument');
-            updateGenericBreakdownAnalysis(tradesForAnalytics, 'timeframe', dom['timeframe-performance-body'], 'Timeframe');
+            renderDeepDiveSafe(tradesForAnalytics);
             updateRRAnalysis(tradesForAnalytics);
             updateRRPerformanceAnalysis(tradesForAnalytics);
             updateTradeCalendar(); 
@@ -3505,7 +3753,8 @@ const renderYearView = (allTrades, container, winColor, lossColor) => {
                 }
             }));
         };
-
+         
+       
        const updateAdvancedAnalytics = (allTrades, maxDrawdownUSD) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
