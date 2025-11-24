@@ -2296,8 +2296,7 @@ if (checklist.length > 0) {
             return `${seconds}s`;
         }
         
-      // --- MASTER VERSION: Instrument + Initial SL/TP + MFE/MAE ---
-// --- FIXED: Import Logic (Aligned with Analytics) ---
+     // --- SHERLOCK VERSION: Prioritizes First Recorded SL ---
 const parseMT5CSV = (csvText) => {
     const lines = csvText.trim().split('\n');
     const cleanLines = lines.map(l => l.replace('\r', ''));
@@ -2339,13 +2338,36 @@ const parseMT5CSV = (csvText) => {
 
             const lastExit = exitDeals[exitDeals.length-1];
 
-            // 1. Initial SL/TP
+            // --- PRIORITY LOGIC FOR SL ---
             let finalSL = null;
             let finalTP = null;
-            if (entryDeal.InitialSL && parseFloat(entryDeal.InitialSL) > 0) finalSL = parseFloat(entryDeal.InitialSL);
-            if (entryDeal.InitialTP && parseFloat(entryDeal.InitialTP) > 0) finalTP = parseFloat(entryDeal.InitialTP);
+            
+            // Priority 1: The "Sherlock" SL (First SL ever detected in history)
+            // This catches the SL you added 10 seconds after entry!
+            if (lastExit.FirstRecordedSL && parseFloat(lastExit.FirstRecordedSL) > 0) {
+                finalSL = parseFloat(lastExit.FirstRecordedSL);
+            }
+            // Priority 2: The Initial Entry SL (If you set it at the start)
+            else if (entryDeal.InitialSL && parseFloat(entryDeal.InitialSL) > 0) {
+                finalSL = parseFloat(entryDeal.InitialSL);
+            }
+            // Priority 3: The Exit Comment (Last resort)
+            else {
+                 const comment = lastExit.Comment || "";
+                 const slMatch = comment.match(/sl\s+([\d.]+)/);
+                 if (slMatch) finalSL = parseFloat(slMatch[1]);
+            }
 
-            // 2. Calculate R:R Ratio (Required for "Planned Risk : Reward Analysis")
+            // Standard TP Logic
+            if (entryDeal.InitialTP && parseFloat(entryDeal.InitialTP) > 0) {
+                finalTP = parseFloat(entryDeal.InitialTP);
+            } else {
+                 const comment = lastExit.Comment || "";
+                 const tpMatch = comment.match(/tp\s+([\d.]+)/);
+                 if (tpMatch) finalTP = parseFloat(tpMatch[1]);
+            }
+
+            // R:R Calculation
             let rrRatio = null;
             const entryPrice = parseFloat(entryDeal.Price);
             if (finalSL && finalTP && finalSL !== entryPrice) {
@@ -2354,27 +2376,16 @@ const parseMT5CSV = (csvText) => {
                 rrRatio = parseFloat((reward / risk).toFixed(2));
             }
 
-            // 3. MFE / MAE Data (Required for "Trade Excursion Analysis")
+            // MFE / MAE Logic
             let highestPrice = parseFloat(lastExit.MaxPrice || 0);
             let lowestPrice = parseFloat(lastExit.MinPrice || 0);
             
-            // Fallback logic
             if (highestPrice === 0) highestPrice = Math.max(entryPrice, parseFloat(lastExit.Price));
             if (lowestPrice === 0) lowestPrice = Math.min(entryPrice, parseFloat(lastExit.Price));
 
             const isBuy = entryDeal.Type === '0';
-            
-            // Mapping for Analytics (peakPrice = MFE, maePrice = MAE)
-            let peakPrice = 0; // Favorable (MFE)
-            let maePrice = 0;  // Adverse (MAE)
-
-            if (isBuy) {
-                peakPrice = highestPrice; 
-                maePrice = lowestPrice;   
-            } else {
-                peakPrice = lowestPrice;  
-                maePrice = highestPrice;  
-            }
+            let peakPrice = isBuy ? highestPrice : lowestPrice;
+            let maePrice = isBuy ? lowestPrice : highestPrice;
 
             const trade = {
                 id: crypto.randomUUID(),
@@ -2389,12 +2400,9 @@ const parseMT5CSV = (csvText) => {
                 profitLoss: totalProfit + totalCommission + totalSwap,
                 stopLoss: finalSL, 
                 takeProfit: finalTP, 
-                
-                // NEW: Aligned Properties for Analytics
-                rrRatio: rrRatio,      // Calculated!
-                peakPrice: peakPrice,  // Mapped!
-                maePrice: maePrice,    // Mapped!
-                
+                rrRatio: rrRatio,
+                peakPrice: peakPrice,
+                maePrice: maePrice,
                 notesHTML: `<p class="text-xs text-text-secondary">Imported from MT5 (Ticket: ${entryDeal.PositionID})</p>`,
                 fees: totalCommission + totalSwap,
                 tags: [],             
