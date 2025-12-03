@@ -1,6 +1,4 @@
 
-
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -861,7 +859,6 @@
                                     <tr>
                                         <th scope="col" class="px-4 py-3">Trade Details</th>
                                         <th scope="col" class="px-4 py-3">Type</th>
-                                        <th scope="col" class="px-4 py-3">R:R</th>
                                         <th scope="col" class="px-4 py-3">Net P/L ($)</th>
                                         <th scope="col" class="px-4 py-3">Actions</th>
                                     </tr>
@@ -3347,7 +3344,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
         else if (trade.profitLoss > breakevenThreshold) { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-green-500'; }
         else { plText = `$${trade.profitLoss.toFixed(2)}`; plClass = 'text-red-500'; }
         
-        const rrText = trade.rrRatio ? `1 : ${trade.rrRatio.toFixed(2)}` : '-';
+        
         const typeClass = trade.tradeType === 'Buy' ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300';
         const tradeDate = new Date(trade.timestamp).toLocaleString('en-GB', { timeZone: 'Africa/Accra', dateStyle: 'medium', timeStyle: 'short' });
         
@@ -3378,7 +3375,6 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
                 ${psychologyTagSpans}
             </td>
             <td class="px-4 py-3 align-top"><span class="px-2 py-1 text-xs font-semibold rounded-full ${typeClass}">${trade.tradeType}</span></td>
-            <td class="px-4 py-3 font-medium align-top text-text-secondary">${rrText}</td>
             <td class="px-4 py-3 font-bold align-top ${plClass}">${plText}</td>
             <td class="px-4 py-3 align-top">
                 <div class="flex items-center space-x-2">
