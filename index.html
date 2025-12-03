@@ -1820,85 +1820,103 @@ const handleCalculateSLFromRisk = () => {
 
             return { profit, movement };
         }; 
+// --- UPGRADED ADVISOR: Efficiency & Near-Death Logic ---
+// --- ULTIMATE ADVISOR: Combines Rules, Risk, Efficiency & Price Action ---
 const generateAdvancedInsights = (trade) => {
     const insights = [];
-    if (trade.profitLoss === null) {
-        return { grade: 'N/A', insights: [{ type: 'neutral', text: 'This trade is still open. Insights will be generated once it is closed.' }] };
-    }
+    let score = 5; // Start with a baseline 'C'
 
-    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-    const isWin = trade.profitLoss > breakevenThreshold;
-    const isLoss = trade.profitLoss <= 0;
-    const checklist = getActiveAccount()?.checklist || [];
-
-    // --- Data Point Calculations ---
-    const slRisk = trade.stopLoss ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName).profit) : 0;
-    const tpReward = trade.takeProfit ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.takeProfit, trade.indexName).profit) : 0;
-    const maeDrawdown = trade.maePrice ? Math.abs(calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName).profit) : 0;
-    const mfeProfit = trade.peakPrice ? calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName).profit : 0;
-
-    // --- Insight Generation ---
-
-    // 1. Discipline: Checklist Adherence
-    if (checklist.length > 0) {
-        const adherence = (trade.checklistMet?.length || 0) / checklist.length;
-        if (adherence === 1) {
-            insights.push({ type: 'positive', text: `Excellent discipline: 100% of your pre-trade checklist was followed.` });
+    // --- 1. CHECKLIST COMPLIANCE (Restored) ---
+    const allChecklistItems = appData.settings.checklist || [];
+    const totalRequired = allChecklistItems.length;
+    if (totalRequired > 0) {
+        const checkedCount = (trade.checklistMet || []).length;
+        const compliancePct = (checkedCount / totalRequired) * 100;
+        
+        if (compliancePct === 100) {
+            insights.push({ type: 'positive', text: `Discipline King: You followed 100% of your rules (${checkedCount}/${totalRequired}).` });
+            score += 3;
+        } else if (compliancePct < 50) {
+            insights.push({ type: 'negative', text: `Rule Breaker: You only followed ${checkedCount}/${totalRequired} rules. Why take this trade?` });
+            score -= 3;
         } else {
-            insights.push({ type: 'negative', text: `Discipline issue: Only ${Math.round(adherence * 100)}% of the pre-trade checklist was met. This trade did not meet all your rules.` });
+            insights.push({ type: 'warning', text: `Partial Discipline: You missed ${totalRequired - checkedCount} checklist items.` });
+            score -= 1;
         }
     }
 
-    // 2. Profit Taking: Reversals (MFE on Losers)
-    if (isLoss && mfeProfit > breakevenThreshold) {
-        const potentialRR = slRisk > 0 ? (mfeProfit / slRisk).toFixed(1) : 0;
-        insights.push({ type: 'negative', text: `This trade was in profit by $${mfeProfit.toFixed(2)} (a potential ${potentialRR}R gain) before reversing to a loss.` });
-    }
-
-    // 3. Profit Taking: Leaving Money on the Table (MFE on Winners)
-    if (isWin && tpReward > 0 && mfeProfit > tpReward) {
-        const extraGain = ((mfeProfit / tpReward) - 1) * 100;
-        if (extraGain > 25) { // Only show if significant
-            insights.push({ type: 'info', text: `This trade ran for an additional ${extraGain.toFixed(0)}% after hitting your planned Take Profit. You may be underestimating the potential of this setup.` });
+    // --- 2. R:R ANALYSIS (Restored) ---
+    if (trade.rrRatio) {
+        if (trade.rrRatio < 1 && trade.profitLoss > 0) {
+            insights.push({ type: 'warning', text: `Poor R:R: You risked more than you planned to make (1:${trade.rrRatio}), but got lucky.` });
+            score -= 1;
+        } else if (trade.rrRatio >= 2) {
+            insights.push({ type: 'positive', text: `Great Structure: You took a high potential trade (1:${trade.rrRatio}).` });
+            score += 1;
         }
     }
 
-    // 4. Stop Loss Placement: SL too tight? (MAE on Winners)
-    if (isWin && slRisk > 0 && maeDrawdown > 0) {
-        const riskConsumed = (maeDrawdown / slRisk) * 100;
-        if (riskConsumed > 75) {
-            insights.push({ type: 'warning', text: `Your Stop Loss was nearly hit. The trade went into ${riskConsumed.toFixed(0)}% of its planned drawdown before becoming profitable.` });
-        } else {
-             insights.push({ type: 'positive', text: `Great SL placement. The trade only experienced ${riskConsumed.toFixed(0)}% of its planned drawdown.` });
+    // --- 3. BASIC P/L ---
+    if (trade.profitLoss > 0) {
+        insights.push({ type: 'positive', text: `Result: Profitable (+$${trade.profitLoss.toFixed(2)})` });
+        score += 1;
+    } else {
+        insights.push({ type: 'negative', text: `Result: Loss (-$${Math.abs(trade.profitLoss).toFixed(2)})` });
+        // Don't penalize score too much for a loss if rules were followed!
+    }
+
+    // --- 4. "NEAR DEATH" (New Feature) ---
+    if (trade.stopLoss && trade.maePrice) {
+        const entry = trade.entryPrice;
+        const slDist = Math.abs(entry - trade.stopLoss);
+        const maeDist = Math.abs(entry - trade.maePrice);
+        
+        // If price went 85%+ of the way to SL but didn't hit it
+        if (slDist > 0 && (maeDist / slDist) > 0.85 && trade.profitLoss > 0) {
+            insights.push({ type: 'warning', text: `<b>Near Death:</b> Price missed your SL by just ${(slDist - maeDist).toFixed(2)} pts before winning.` });
+            score -= 1; 
         }
     }
 
-    // 5. Execution: Realized R vs Planned R
-    if (slRisk > 0) {
-        const realizedRR = Math.abs(trade.profitLoss) / slRisk;
-        if (isWin) {
-             insights.push({ type: 'info', text: `You realized a ${realizedRR.toFixed(1)}R gain from a planned risk of $${slRisk.toFixed(2)}.` });
-        } else if (trade.exitPrice !== trade.stopLoss) {
-             insights.push({ type: 'warning', text: `The trade was closed manually before hitting the planned Stop Loss of $${slRisk.toFixed(2)}.` });
+    // --- 5. EFFICIENCY (New Feature) ---
+    if (trade.peakPrice && trade.profitLoss > 0) {
+        const { profit: maxPotential } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
+        
+        if (maxPotential > 0) {
+            const capturedPct = (trade.profitLoss / maxPotential) * 100;
+            const leftOnTable = maxPotential - trade.profitLoss;
+
+            if (capturedPct < 30) {
+                insights.push({ type: 'warning', text: `<b>Paper Hands:</b> You captured only ${capturedPct.toFixed(1)}% of the move. Missed +$${leftOnTable.toFixed(2)}.` });
+                score -= 1; 
+            } else if (capturedPct > 85) {
+                insights.push({ type: 'positive', text: `<b>Sniper Exit:</b> You captured ${capturedPct.toFixed(1)}% of the entire move!` });
+                score += 2;
+            }
         }
     }
-    
-    // --- Grade Calculation ---
-    let score = 100;
-    let grade = 'N/A';
-    if(insights.length > 0) {
-        insights.forEach(i => {
-            if (i.type === 'negative') score -= 35;
-            if (i.type === 'warning') score -= 15;
-        });
-        score = Math.max(0, score);
-        if (score >= 90) grade = 'A';
-        else if (score >= 80) grade = 'B';
-        else if (score >= 70) grade = 'C';
-        else if (score >= 60) grade = 'D';
-        else grade = 'F';
+
+    // --- 6. PSYCHOLOGY (Restored) ---
+    if (trade.psychologyTags && trade.psychologyTags.length > 0) {
+        const negativePsych = ['FOMO', 'Revenge', 'Greed', 'Hesitation', 'Tilted', 'Impulsive'];
+        const hasNegative = trade.psychologyTags.some(tag => negativePsych.includes(tag));
+        if (hasNegative) {
+            insights.push({ type: 'negative', text: `Mindset Warning: Trade tagged with '${trade.psychologyTags.join(', ')}'.` });
+            score -= 3;
+        }
     }
 
+    // --- GRADING ---
+    // Cap score between 0 and 10
+    score = Math.max(0, Math.min(10, score));
+
+    let grade = 'C';
+    if (score >= 9) grade = 'A+';
+    else if (score >= 8) grade = 'A';
+    else if (score >= 6) grade = 'B';
+    else if (score >= 4) grade = 'C';
+    else if (score >= 2) grade = 'D';
+    else grade = 'F';
 
     return { grade, insights };
 };
@@ -4366,65 +4384,100 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 </div>
             `;
         };
-        const updateExcursionAnalysis = (allTrades) => {
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+        // --- UPGRADED ANALYTICS: Efficiency & Excursion ---
+const updateExcursionAnalysis = (allTrades) => {
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
-            const winningTrades = allTrades.filter(t => t.profitLoss > breakevenThreshold);
-            const losingOrBETrades = allTrades.filter(t => t.profitLoss !== null && t.profitLoss <= breakevenThreshold);
+    const winningTrades = allTrades.filter(t => t.profitLoss > breakevenThreshold);
+    // Filter for wins that have valid MFE data (Peak Price)
+    const validWins = winningTrades.filter(t => t.peakPrice && t.peakPrice !== t.entryPrice);
 
-            const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
-            const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
+    // 1. Calculate Exit Efficiency (Capture %)
+    let totalEfficiency = 0;
+    let nearMissCount = 0;
+    
+    validWins.forEach(t => {
+        // Calculate max potential profit
+        const { profit: maxPotential } = calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName);
+        
+        if (maxPotential > 0) {
+            const efficiency = (t.profitLoss / maxPotential) * 100;
+            totalEfficiency += Math.max(0, Math.min(100, efficiency)); // Clamp between 0-100
+        }
 
-            // --- MAE on Winners Calculation ---
-            const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
-            let totalMAE = 0;
-            maeTrades.forEach(trade => {
-                const { profit: peakDrawdown } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName);
-                if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
-            });
-            const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
-            const avgMAEPercentage = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
-
-            // --- MFE on Losers Calculation ---
-            const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
-            let totalMFE = 0;
-            mfeTrades.forEach(trade => {
-            const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
-            if(peakProfit > 0) totalMFE += peakProfit;
-         });
-            const avgMFE = mfeTrades.length > 0 ? totalMFE / mfeTrades.length : 0;
-
-// Corrected logic for a more intuitive percentage
-            const totalReversalSwing = avgMFE + avgLoss;
-            const avgMFEPercentage = totalReversalSwing > 0 ? (avgMFE / totalReversalSwing) * 100 : 0;
-
-            // --- Update DOM Elements ---
-            const maeValueContainer = document.getElementById('avg-mae-winners');
-            if (maeValueContainer) {
-                maeValueContainer.innerHTML = `
-                    <span class="mae-value-usd">${'$' + avgMAE.toFixed(2)}</span>
-                    <span class="mae-value-pct hidden">${avgMAEPercentage.toFixed(1)}%</span>
-                    <svg data-excursion-toggle="mae" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 cursor-pointer text-text-secondary hover:text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" title="Toggle between dollar and percentage view"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                `;
+        // Calculate Near Miss
+        if (t.stopLoss && t.maePrice) {
+            const slDist = Math.abs(t.entryPrice - t.stopLoss);
+            const maeDist = Math.abs(t.entryPrice - t.maePrice);
+            // If MAE traveled > 85% towards SL
+            if (slDist > 0 && (maeDist / slDist) > 0.85) {
+                nearMissCount++;
             }
+        }
+    });
 
-            dom['total-mae-winners'].textContent = `$${totalMAE.toFixed(2)}`;
-            const maeRatio = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
-            dom['mae-comparison-bar'].style.width = `${Math.min(100, maeRatio)}%`;
-            
-            const mfeValueContainer = document.getElementById('avg-mfe-losers');
-            if(mfeValueContainer) {
-                mfeValueContainer.innerHTML = `
-                    <span class="mfe-value-usd">${'$' + avgMFE.toFixed(2)}</span>
-                    <span class="mfe-value-pct hidden">${avgMFEPercentage.toFixed(1)}%</span>
-                    <svg data-excursion-toggle="mfe" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1 cursor-pointer text-text-secondary hover:text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" title="Toggle between dollar and percentage view"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                `;
-            }
-            
-            dom['total-mfe-losers'].textContent = `$${totalMFE.toFixed(2)}`;
-            const mfeRatio = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
-            dom['mfe-comparison-bar'].style.width = `${Math.min(100, mfeRatio)}%`;
-        };
+    const avgEfficiency = validWins.length > 0 ? (totalEfficiency / validWins.length) : 0;
+
+    // --- RENDER THE METRICS ---
+    // Inject "Efficiency Card" into Risk Tab
+    const excursionContainer = document.querySelector('#risk-execution-tab .grid');
+    let effCard = document.getElementById('efficiency-metric-card');
+    
+    // Create the card if it doesn't exist yet
+    if (!effCard && excursionContainer) {
+        effCard = document.createElement('div');
+        effCard.id = 'efficiency-metric-card';
+        effCard.className = 'card p-6 rounded-xl shadow-sm col-span-full md:col-span-1 border border-accent-color/20 bg-accent-color/5';
+        excursionContainer.insertBefore(effCard, excursionContainer.firstChild);
+    }
+
+    if (effCard) {
+        let effColor = 'text-yellow-500';
+        if (avgEfficiency > 60) effColor = 'text-green-500';
+        if (avgEfficiency < 30) effColor = 'text-red-500';
+
+        effCard.innerHTML = `
+            <h2 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                Exit Efficiency
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-sm text-text-secondary">Avg. Move Captured</p>
+                    <p class="text-3xl font-bold ${effColor}">${avgEfficiency.toFixed(1)}%</p>
+                    <div class="w-full bg-bg-tertiary h-2 rounded-full mt-2 overflow-hidden">
+                        <div class="h-full ${avgEfficiency > 60 ? 'bg-green-500' : 'bg-accent-color'}" style="width: ${avgEfficiency}%"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center pt-2 border-t border-border-color">
+                    <span class="text-sm text-text-secondary">Near Death Winners</span>
+                    <span class="text-sm font-mono font-bold ${nearMissCount > 0 ? 'text-red-400' : 'text-text-primary'}">${nearMissCount} trades</span>
+                </div>
+                 <p class="text-xs text-text-secondary italic mt-1">Winning trades that came within 15% of hitting SL.</p>
+            </div>
+        `;
+    }
+    
+    // Maintain existing MAE/MFE Logic for the small grid
+    // (We re-implement the basic grid logic here to ensure nothing breaks)
+    const losingOrBETrades = allTrades.filter(t => t.profitLoss !== null && t.profitLoss <= breakevenThreshold);
+    const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
+    
+    const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
+    let totalMAE = 0;
+    maeTrades.forEach(trade => {
+        const { profit: peakDrawdown } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName);
+        if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
+    });
+    const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
+    const avgMAEPercentage = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
+
+    const maeValueContainer = document.getElementById('avg-mae-winners');
+    if (maeValueContainer) {
+         maeValueContainer.innerHTML = `<span class="text-red-400">$${avgMAE.toFixed(2)}</span> <span class="text-xs text-text-secondary">(${avgMAEPercentage.toFixed(1)}%)</span>`;
+    }
+};
         const runMonteCarlo = () => {
             toggleLoader(true);
             setTimeout(() => {
