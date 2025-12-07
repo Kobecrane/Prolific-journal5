@@ -1086,65 +1086,103 @@
                     </div>
                     </div>
 
-                    <div id="risk-execution-tab" class="tab-content animate-fade-in">
-                        <div class="space-y-6">
-                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Risk Consistency Tracker</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Plots the initial dollar risk for each trade with a defined Stop Loss.</p><div class="h-64"><canvas id="riskConsistencyChart"></canvas></div></div>
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Planned Risk : Reward Analysis</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades where Stop Loss & Take Profit were recorded.</p><div id="rr-analysis-body"></div></div>
-                                <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Performance by Planned R:R</h2><div id="rr-performance-body" class="space-y-4"></div></div>
-                            </div>
-                            <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Excursion Analysis (MAE/MFE)</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border-color/50 rounded-lg overflow-hidden">
-
-    <div class="bg-bg-secondary p-4">
-        <h3 class="font-semibold text-center text-red-400">MAE on Winners</h3>
-        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Drawdown During a Win)</p>
-
-        <div class="flex justify-between items-baseline">
-            <span class="text-sm font-medium text-text-secondary">Avg. MAE</span>
-            <span id="avg-mae-winners" class="text-2xl font-bold text-red-400">
-                </span>
+                    <div id="risk-execution-tab" class="tab-content animate-fade-in hidden">
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        <div class="card p-5 rounded-xl border border-border-color bg-bg-secondary shadow-sm relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Avg Planned R:R</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent-color" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20"/><path d="M12 2v18"/><path d="M22 2l-10 10"/></svg>
+            </div>
+            <div id="kpi-planned-rr" class="text-2xl font-bold text-text-primary">--</div>
+            <p class="text-xs text-text-secondary mt-1">Target structure</p>
         </div>
 
-        <div class="flex justify-between items-baseline mt-1">
-            <span class="text-sm font-medium text-text-secondary">Total MAE</span>
-            <span id="total-mae-winners" class="text-lg font-semibold text-red-400/80">$0.00</span>
+        <div class="card p-5 rounded-xl border border-border-color bg-bg-secondary shadow-sm relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Realized R:R</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+            </div>
+            <div id="kpi-realized-rr" class="text-2xl font-bold text-text-primary">--</div>
+            <p id="kpi-realized-sub" class="text-xs text-text-secondary mt-1">Actual performance</p>
         </div>
-        <div class="mt-3">
-            <p class="text-xs text-text-secondary text-center">Avg. MAE relative to Avg. Win</p>
-            <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
-                <div id="mae-comparison-bar" class="bg-red-500 h-2.5 rounded-full" style="width: 0%"></div>
+
+        <div class="card p-5 rounded-xl border border-border-color bg-bg-secondary shadow-sm relative overflow-hidden">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Exit Efficiency</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <div id="kpi-efficiency" class="text-2xl font-bold text-text-primary">--%</div>
+            <div class="w-full bg-bg-tertiary h-1.5 rounded-full mt-2 overflow-hidden">
+                <div id="kpi-efficiency-bar" class="h-full bg-yellow-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div class="card p-5 rounded-xl border border-border-color bg-bg-secondary shadow-sm relative overflow-hidden">
+             <div class="flex justify-between items-start mb-2">
+                <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Near Death Wins</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div id="kpi-near-death" class="text-2xl font-bold text-text-primary">--</div>
+            <p class="text-xs text-text-secondary mt-1">Trades saved by < 15%</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <div class="card p-6 rounded-xl border border-border-color bg-bg-secondary shadow-sm lg:col-span-2 flex flex-col">
+            <div class="mb-4">
+                <h3 class="font-bold text-lg text-text-primary">Risk Consistency</h3>
+                <p class="text-xs text-text-secondary">Initial Dollar Risk per Trade (Discipline Tracker)</p>
+            </div>
+            <div class="flex-1 min-h-[250px] relative">
+                <canvas id="riskConsistencyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card p-0 rounded-xl border border-border-color bg-bg-secondary shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-border-color">
+                <h3 class="font-bold text-lg text-text-primary">Pain vs. Gain</h3>
+                <p class="text-xs text-text-secondary">Analysis of drawdown vs missed profit</p>
+            </div>
+            
+            <div class="flex-1 grid grid-rows-2">
+                <div class="p-6 border-b border-border-color/10 bg-green-500/5 flex flex-col justify-center relative group hover:bg-green-500/10 transition-colors">
+                    <div class="flex justify-between items-end">
+                         <div>
+                             <span class="text-sm font-semibold text-green-400 uppercase tracking-wide">Missed Profit</span>
+                             <div id="dash-mfe-val" class="text-2xl font-bold text-green-400 mt-1">--</div>
+                         </div>
+                         <div class="text-right">
+                             <div id="dash-mfe-pct" class="text-sm font-mono text-green-400/70">--%</div>
+                         </div>
+                    </div>
+                    <p class="text-xs text-text-secondary mt-2 opacity-60 group-hover:opacity-100">Avg profit seen on losing trades</p>
+                </div>
+
+                <div class="p-6 bg-red-500/5 flex flex-col justify-center relative group hover:bg-red-500/10 transition-colors">
+                    <div class="flex justify-between items-end">
+                         <div>
+                             <span class="text-sm font-semibold text-red-400 uppercase tracking-wide">Max Drawdown</span>
+                             <div id="dash-mae-val" class="text-2xl font-bold text-red-400 mt-1">--</div>
+                         </div>
+                         <div class="text-right">
+                             <div id="dash-mae-pct" class="text-sm font-mono text-red-400/70">--%</div>
+                         </div>
+                    </div>
+                     <p class="text-xs text-text-secondary mt-2 opacity-60 group-hover:opacity-100">Avg heat taken on winning trades</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="bg-bg-secondary p-4">
-        <h3 class="font-semibold text-center text-green-400">MFE on Losers/BE</h3>
-        <p class="text-xs text-center text-text-secondary mb-3">(Avg. Potential on a Loss)</p>
-
-        <div class="flex justify-between items-baseline">
-            <span class="text-sm font-medium text-text-secondary">Avg. Slipped P/L</span>
-            <span id="avg-mfe-losers" class="text-2xl font-bold text-green-400">
-                </span>
-        </div>
-
-        <div class="flex justify-between items-baseline mt-1">
-            <span class="text-sm font-medium text-text-secondary">Total Slipped P/L</span>
-            <span id="total-mfe-losers" class="text-lg font-semibold text-green-400/80">$0.00</span>
-        </div>
-        <div class="mt-3">
-            <p class="text-xs text-text-secondary text-center">Avg. Slipped P/L relative to Avg. Loss</p>
-            <div class="w-full bg-bg-tertiary rounded-full h-2.5 mt-1">
-                <div id="mfe-comparison-bar" class="bg-green-500 h-2.5 rounded-full" style="width: 0%"></div>
+    <div class="card p-6 rounded-xl border border-border-color bg-bg-secondary shadow-sm">
+        <h3 class="font-bold text-lg text-text-primary mb-4">Performance by Planned R:R</h3>
+        <div id="rr-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             </div>
-        </div>
     </div>
 </div>
-
-</div>                                
-<div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Reversal Analysis (MFE)</h2><p class="text-xs text-text-secondary mb-4 -mt-3">Analyzes trades that were in profit but ended as losses/breakeven to identify patterns.</p><div id="reversal-analysis-body"></div></div>
-                            
-                        </div>
-                    </div>
 
                     <div id="forecasting-tab" class="tab-content animate-fade-in">
                         <div class="space-y-6">
@@ -3725,16 +3763,30 @@ const updateTradeCalendar = () => {
     }
 };
 
+// --- SMART CALENDAR: 8-Column Grid (Days + Weekly Total) ---
 const renderDayView = (allTrades, container, winColor, lossColor) => {
+    // 1. Set Title
     dom['calendar-title'].textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    dom['calendar-day-headers'].style.display = 'grid';
-    container.className = 'grid grid-cols-7 gap-2';
+
+    // 2. Setup Headers (Switch to 8 Columns)
+    const headers = dom['calendar-day-headers'];
+    headers.style.display = 'grid';
+    // Note: grid-cols-8 to make room for the summary
+    headers.className = 'grid grid-cols-8 gap-2 text-center text-xs text-text-secondary mb-2 font-bold uppercase tracking-wider';
+    headers.innerHTML = `
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        <div class="text-accent-color">Week</div>
+    `;
+
+    // 3. Setup Grid Container
+    container.className = 'grid grid-cols-8 gap-2';
 
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    // 4. Pre-calculate Daily P/L
     const dailyPL = allTrades.reduce((acc, trade) => {
         const tradeDate = new Date(trade.timestamp);
         if (tradeDate.getFullYear() === year && tradeDate.getMonth() === month) {
@@ -3744,85 +3796,301 @@ const renderDayView = (allTrades, container, winColor, lossColor) => {
         return acc;
     }, {});
 
-    for (let i = 0; i < firstDay; i++) { container.innerHTML += `<div></div>`; }
+    // 5. Render The Grid
+    let currentWeekPL = 0;
+    
+    // We calculate total cells needed to complete full rows (weeks)
+    // Formula: Round up to nearest multiple of 7
+    const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
 
-    for (let day = 1; day <= daysInMonth; day++) {
-        const pl = dailyPL[day];
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+    for (let i = 0; i < totalCells; i++) {
+        const dayOfMonth = i - firstDay + 1;
+        const isValidDay = dayOfMonth > 0 && dayOfMonth <= daysInMonth;
+        
+        // --- RENDER DAY CELL ---
+        if (isValidDay) {
+            const pl = dailyPL[dayOfMonth] || 0;
+            currentWeekPL += pl;
+            
+            // Dynamic Coloring
+            let bgClass = 'bg-bg-tertiary/30 hover:bg-bg-tertiary border-border-color';
+            let textClass = 'text-text-secondary';
+            let borderClass = 'border';
 
-        const dayDiv = document.createElement('div');
-        dayDiv.className = `p-2 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        dayDiv.innerHTML = `<div class="font-semibold text-text-primary">${day}</div><div class="text-xs mt-1 font-bold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(2)}` : ''}</div>`;
-        dayDiv.onclick = () => showTradesForDay(new Date(year, month, day));
-        container.appendChild(dayDiv);
-    }
-};
+            if (pl > 0) {
+                bgClass = 'bg-green-500/10 hover:bg-green-500/20';
+                textClass = 'text-green-500';
+                borderClass = 'border border-green-500/30';
+            } else if (pl < 0) {
+                bgClass = 'bg-red-500/10 hover:bg-red-500/20';
+                textClass = 'text-red-400';
+                borderClass = 'border border-red-500/30';
+            }
 
-const renderMonthView = (allTrades, container, winColor, lossColor) => {
-    const year = calendarDate.getFullYear();
-    dom['calendar-title'].textContent = year;
-    dom['calendar-day-headers'].style.display = 'none';
-    container.className = 'grid grid-cols-3 md:grid-cols-4 gap-2';
+            const dayDiv = document.createElement('div');
+            dayDiv.className = `p-2 rounded-lg cursor-pointer transition-all min-h-[70px] flex flex-col justify-between ${bgClass} ${borderClass}`;
+            dayDiv.innerHTML = `
+                <div class="text-[10px] font-semibold text-text-secondary">${dayOfMonth}</div>
+                <div class="text-sm font-bold ${textClass} text-right truncate">
+                    ${pl !== 0 ? '$' + pl.toFixed(0) : '-'}
+                </div>
+            `;
+            
+          dayDiv.onclick = () => {
+                // Get trades for this specific day
+                const clickedDateStr = new Date(year, month, dayOfMonth).toLocaleDateString('en-CA');
+                const dayTrades = allTrades.filter(t => {
+                    return new Date(t.timestamp).toLocaleDateString('en-CA') === clickedDateStr;
+                });
 
-    const monthlyPL = allTrades.reduce((acc, trade) => {
-        const tradeDate = new Date(trade.timestamp);
-        if (tradeDate.getFullYear() === year) {
-            const month = tradeDate.getMonth();
-            acc[month] = (acc[month] || 0) + trade.profitLoss;
+                if (dayTrades.length > 0) {
+                    openDayModal(clickedDateStr, dayTrades);
+                } else {
+                    showToast("No trades recorded for this day.", "info");
+                }
+            };
+
+            container.appendChild(dayDiv);
+        } else {
+            // Empty Placeholder
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = "min-h-[70px] opacity-0 pointer-events-none";
+            container.appendChild(emptyDiv);
         }
-        return acc;
-    }, {});
 
-    for (let month = 0; month < 12; month++) {
-        const pl = monthlyPL[month];
-        const monthName = new Date(year, month).toLocaleString('en-US', { month: 'short' });
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+        // --- RENDER WEEKLY SUMMARY (Every 7th Cell) ---
+        if ((i + 1) % 7 === 0) {
+            let summaryColor = 'text-text-secondary';
+            let summaryBg = 'bg-bg-secondary';
+            
+            if (currentWeekPL > 0) {
+                summaryColor = 'text-green-400';
+                summaryBg = 'bg-green-500/5';
+            } else if (currentWeekPL < 0) {
+                summaryColor = 'text-red-400';
+                summaryBg = 'bg-red-500/5';
+            }
 
-        const monthDiv = document.createElement('div');
-        monthDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-       monthDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${monthName}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
-        monthDiv.onclick = () => {
-            calendarDate.setMonth(month);
-            calendarViewMode = 'day';
-            updateTradeCalendar();
-        };
-        container.appendChild(monthDiv);
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `p-2 ${summaryBg} border border-border-color/50 rounded-lg flex flex-col justify-center items-center min-h-[70px] relative overflow-hidden`;
+            summaryDiv.innerHTML = `
+                <div class="text-[9px] uppercase tracking-wider text-text-secondary/70 font-bold mb-1">Total</div>
+                <div class="text-sm font-bold ${summaryColor}">
+                    ${currentWeekPL !== 0 ? '$' + currentWeekPL.toFixed(0) : '-'}
+                </div>
+            `;
+            container.appendChild(summaryDiv);
+            
+            // Reset for next week
+            currentWeekPL = 0;
+        }
     }
 };
+// --- DAY SUMMARY MODAL LOGIC ---
+const openDayModal = (dateStr, trades) => {
+    // 1. Calculate Stats
+    const count = trades.length;
+    if (count === 0) return; // Don't open for empty days
 
+    const wins = trades.filter(t => t.profitLoss > 0).length;
+    const winRate = (wins / count) * 100;
+    const netPL = trades.reduce((sum, t) => sum + t.profitLoss, 0);
+    
+    // Find Best/Worst
+    const sortedPL = trades.map(t => t.profitLoss).sort((a, b) => b - a);
+    const best = sortedPL[0];
+    const worst = sortedPL[sortedPL.length - 1];
+
+    // 2. Populate UI
+    document.getElementById('day-modal-date').textContent = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    
+    const netEl = document.getElementById('day-modal-net');
+    netEl.textContent = `Net P/L: ${netPL >= 0 ? '+' : ''}$${netPL.toFixed(2)}`;
+    netEl.className = `text-sm font-mono mt-1 font-bold ${netPL >= 0 ? 'text-green-500' : 'text-red-500'}`;
+
+    document.getElementById('day-modal-count').textContent = count;
+    
+    const wrEl = document.getElementById('day-modal-winrate');
+    wrEl.textContent = `${winRate.toFixed(0)}%`;
+    wrEl.className = `text-xl font-black mt-1 ${winRate >= 50 ? 'text-green-500' : 'text-red-500'}`;
+
+    document.getElementById('day-modal-best').textContent = `+$${best.toFixed(2)}`;
+    document.getElementById('day-modal-worst').textContent = worst < 0 ? `-$${Math.abs(worst).toFixed(2)}` : `$${worst.toFixed(2)}`;
+
+    // 3. Setup Filter Button
+    const btn = document.getElementById('day-modal-filter-btn');
+    btn.onclick = () => {
+        // Apply Filter
+        const filterDate = dateStr; // YYYY-MM-DD
+        const startInput = document.getElementById('filter-start-date');
+        const endInput = document.getElementById('filter-end-date');
+        
+        if(startInput && endInput) {
+            startInput.value = filterDate;
+            endInput.value = filterDate;
+            startInput.dispatchEvent(new Event('change'));
+            endInput.dispatchEvent(new Event('change'));
+            refreshUI();
+            
+            closeDayModal();
+            // Scroll to history
+            setTimeout(() => {
+                document.getElementById('trade-history-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            
+            showToast(`Filtered list to ${filterDate}`, 'info');
+        }
+    };
+
+    // 4. Show Modal
+    const modal = document.getElementById('day-summary-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+const closeDayModal = () => {
+    const modal = document.getElementById('day-summary-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};
+
+// Expose to window
+window.closeDayModal = closeDayModal;
+// --- REDESIGNED: Month View (Premium Cards) ---
+const renderMonthView = (allTrades, container, winColor, lossColor) => {
+    dom['calendar-title'].textContent = calendarDate.getFullYear();
+    dom['calendar-day-headers'].style.display = 'none'; 
+    // Switch to 4 columns for a cleaner 3-row layout (Jan-Apr, May-Aug, Sep-Dec)
+    container.className = 'grid grid-cols-2 md:grid-cols-4 gap-4';
+
+    const year = calendarDate.getFullYear();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    months.forEach((monthName, index) => {
+        // Filter trades for this specific month
+        const monthTrades = allTrades.filter(t => {
+            const d = new Date(t.timestamp);
+            return d.getFullYear() === year && d.getMonth() === index;
+        });
+
+        const monthlyPL = monthTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+        const tradeCount = monthTrades.length;
+
+        // Styling
+        let bgClass = 'bg-bg-secondary border-border-color';
+        let textClass = 'text-text-secondary';
+        let glowClass = '';
+        
+        if (monthlyPL > 0) {
+            bgClass = 'bg-green-500/5 border-green-500/30';
+            textClass = 'text-green-500';
+            glowClass = 'hover:shadow-[0_0_15px_rgba(34,197,94,0.15)]';
+        } else if (monthlyPL < 0) {
+            bgClass = 'bg-red-500/5 border-red-500/30';
+            textClass = 'text-red-400';
+            glowClass = 'hover:shadow-[0_0_15px_rgba(248,113,113,0.15)]';
+        } else if (tradeCount === 0) {
+             bgClass = 'bg-bg-tertiary/30 border-dashed border-border-color opacity-60';
+        }
+
+        const div = document.createElement('div');
+        div.className = `p-5 rounded-xl border ${bgClass} cursor-pointer transition-all duration-300 transform hover:-translate-y-1 ${glowClass} flex flex-col justify-between h-32`;
+        
+        div.innerHTML = `
+            <div class="flex justify-between items-start">
+                <span class="text-sm font-bold text-text-primary uppercase tracking-wider">${monthName}</span>
+                <span class="text-xs font-mono text-text-secondary bg-bg-primary px-2 py-0.5 rounded-full border border-border-color">${tradeCount} trds</span>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold ${textClass}">${monthlyPL !== 0 ? (monthlyPL > 0 ? '+' : '') + '$' + monthlyPL.toFixed(0) : '-'}</div>
+            </div>
+        `;
+        
+        div.onclick = () => {
+            if (tradeCount > 0) {
+                calendarDate.setMonth(index);
+                calendarViewMode = 'day';
+                updateTradeCalendar();
+            }
+        };
+        
+        container.appendChild(div);
+    });
+};
+
+// --- REDESIGNED: Year View (Yearly Report Cards) ---
 const renderYearView = (allTrades, container, winColor, lossColor) => {
-    const startYear = Math.floor(calendarDate.getFullYear() / 10) * 10;
-    dom['calendar-title'].textContent = `${startYear} - ${startYear + 9}`;
+    dom['calendar-title'].textContent = "Annual Performance";
     dom['calendar-day-headers'].style.display = 'none';
-    container.className = 'grid grid-cols-2 md:grid-cols-5 gap-2';
+    container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
 
-    const yearlyPL = allTrades.reduce((acc, trade) => {
-        const year = new Date(trade.timestamp).getFullYear();
-        acc[year] = (acc[year] || 0) + trade.profitLoss;
-        return acc;
-    }, {});
+    const yearlyData = {};
+    
+    // Group and Calculate Stats per Year
+    allTrades.forEach(t => {
+        const y = new Date(t.timestamp).getFullYear();
+        if (!yearlyData[y]) yearlyData[y] = { pl: 0, count: 0, wins: 0 };
+        
+        yearlyData[y].pl += t.profitLoss;
+        yearlyData[y].count++;
+        if (t.profitLoss > 0) yearlyData[y].wins++;
+    });
 
-    for (let i = 0; i < 10; i++) {
-        const year = startYear + i;
-        const pl = yearlyPL[year];
-        let bgColor = 'bg-tertiary/50 hover:bg-tertiary';
-        if (pl > 0) bgColor = 'bg-green-800/60 hover:bg-green-700/60';
-        else if (pl < 0) bgColor = 'bg-red-800/60 hover:bg-red-700/60';
+    const years = Object.keys(yearlyData).sort((a, b) => b - a);
+    if (years.length === 0) years.push(new Date().getFullYear());
 
-        const yearDiv = document.createElement('div');
-        yearDiv.className = `p-4 flex flex-col justify-center items-center h-24 border border-border-color rounded-md cursor-pointer transition-colors ${bgColor}`;
-        yearDiv.innerHTML = `<div class="font-bold text-lg text-text-primary">${year}</div><div class="text-sm mt-1 font-semibold ${pl > 0 ? winColor : (pl < 0 ? lossColor : 'text-text-secondary')}">${pl ? `$${pl.toFixed(0)}` : '$0'}</div>`;
-        yearDiv.onclick = () => {
+    years.forEach(year => {
+        const data = yearlyData[year] || { pl: 0, count: 0, wins: 0 };
+        const winRate = data.count > 0 ? (data.wins / data.count) * 100 : 0;
+        
+        let accentColor = 'border-border-color';
+        let plColor = 'text-text-secondary';
+        let bgGradient = 'bg-bg-secondary';
+
+        if (data.pl > 0) {
+            accentColor = 'border-green-500';
+            plColor = 'text-green-500';
+            bgGradient = 'bg-gradient-to-br from-bg-secondary to-green-900/10';
+        } else if (data.pl < 0) {
+            accentColor = 'border-red-500';
+            plColor = 'text-red-400';
+            bgGradient = 'bg-gradient-to-br from-bg-secondary to-red-900/10';
+        }
+
+        const div = document.createElement('div');
+        div.className = `p-6 rounded-2xl border-l-4 ${accentColor} ${bgGradient} shadow-lg cursor-pointer transition-all hover:scale-[1.02]`;
+        
+        div.innerHTML = `
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-3xl font-black text-text-primary opacity-80">${year}</h3>
+                <div class="px-3 py-1 rounded-lg bg-bg-tertiary text-xs font-mono text-text-secondary border border-border-color">
+                    ${data.count} Trades
+                </div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between items-end">
+                    <span class="text-sm text-text-secondary">Net Profit</span>
+                    <span class="text-2xl font-bold ${plColor}">${data.pl !== 0 ? (data.pl > 0 ? '+' : '') + '$' + data.pl.toFixed(2) : '$0.00'}</span>
+                </div>
+                <div class="w-full bg-bg-tertiary h-1.5 rounded-full overflow-hidden">
+                     <div class="h-full ${data.pl >= 0 ? 'bg-green-500' : 'bg-red-500'}" style="width: ${Math.min(100, Math.abs(data.pl / 100))}%"></div>
+                </div>
+                <div class="flex justify-between pt-2">
+                    <span class="text-xs text-text-secondary">Win Rate</span>
+                    <span class="text-xs font-bold ${winRate >= 50 ? 'text-green-500' : 'text-orange-400'}">${winRate.toFixed(1)}%</span>
+                </div>
+            </div>
+        `;
+        
+        div.onclick = () => {
             calendarDate.setFullYear(year);
-            calendarViewMode = 'month';
+            calendarViewMode = 'month'; // Drill down to month view
             updateTradeCalendar();
         };
-        container.appendChild(yearDiv);
-    }
+
+        container.appendChild(div);
+    });
 };
 
         const generatePDF = async () => {
@@ -4229,43 +4497,51 @@ const updateGenericBreakdownAnalysis = (trades, property, bodyElement, title) =>
                 bodyElement.appendChild(statCard);
             });
         };
-       const updateRRAnalysis = (allTrades) => {
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-            const rrAnalysisBody = dom['rr-analysis-body'];
-            rrAnalysisBody.innerHTML = '';
-            const rrTrades = allTrades.filter(t => t.rrRatio !== null && t.rrRatio > 0 && t.profitLoss !== null);
+       // --- DASHBOARD UPDATE 1: R:R Stats ---
+const updateRRAnalysis = (allTrades) => {
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const rrTrades = allTrades.filter(t => t.rrRatio !== null && t.rrRatio > 0 && t.profitLoss !== null);
 
-            if (rrTrades.length === 0) {
-                rrAnalysisBody.innerHTML = '<p class="text-center text-text-secondary py-4 col-span-full">No trades with Planned R:R data to analyze.</p>';
-                return;
-            }
+    // Default values
+    let avgPlannedRR = 0;
+    let realizedRR = 0;
+    let realizedColor = 'text-text-primary';
 
-            const totalPlannedRR = rrTrades.reduce((acc, t) => acc + t.rrRatio, 0);
-            const avgPlannedRR = totalPlannedRR / rrTrades.length;
-            
-            const winningTrades = rrTrades.filter(t => t.profitLoss > breakevenThreshold);
-            const losingTrades = rrTrades.filter(t => t.profitLoss <= 0);
-            const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
-            // Replace it with this line
-const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0));
-            const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
-            const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
-            const realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
+    if (rrTrades.length > 0) {
+        const totalPlannedRR = rrTrades.reduce((acc, t) => acc + t.rrRatio, 0);
+        avgPlannedRR = totalPlannedRR / rrTrades.length;
+        
+        const winningTrades = rrTrades.filter(t => t.profitLoss > breakevenThreshold);
+        const losingTrades = rrTrades.filter(t => t.profitLoss <= 0);
+        
+        const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
+        const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0));
+        
+        const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
+        const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
+        
+        realizedRR = avgLoss > 0 ? avgProfit / avgLoss : 0;
+        
+        if (realizedRR >= avgPlannedRR) realizedColor = 'text-green-500';
+        else if (realizedRR < 1) realizedColor = 'text-red-500';
+    }
 
+    // Update New Dashboard Elements
+    const kpiPlanned = document.getElementById('kpi-planned-rr');
+    const kpiRealized = document.getElementById('kpi-realized-rr');
+    const kpiRealizedSub = document.getElementById('kpi-realized-sub');
 
-            const totalCard = document.createElement('div');
-            totalCard.className = 'col-span-full bg-accent-color/10 p-4 rounded-lg border border-accent-color/20 mb-4 grid grid-cols-2 gap-4';
-            totalCard.innerHTML = `
-                <div class="text-center">
-                    <p class="text-xs text-accent-color font-semibold uppercase">Avg. Planned R:R</p>
-                    <p class="text-2xl font-bold text-accent-color">1 : ${avgPlannedRR.toFixed(2)}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-xs text-accent-color font-semibold uppercase">Avg. Realized R:R</p>
-                    <p class="text-2xl font-bold ${realizedRR >= avgPlannedRR ? 'text-green-500' : 'text-red-500'}">1 : ${realizedRR.toFixed(2)}</p>
-                </div>`;
-            rrAnalysisBody.appendChild(totalCard);
-        };
+    if (kpiPlanned) kpiPlanned.textContent = `1 : ${avgPlannedRR.toFixed(2)}`;
+    if (kpiRealized) {
+        kpiRealized.textContent = `1 : ${realizedRR.toFixed(2)}`;
+        kpiRealized.className = `text-2xl font-bold ${realizedColor}`;
+    }
+    if (kpiRealizedSub) {
+        const diff = realizedRR - avgPlannedRR;
+        kpiRealizedSub.textContent = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} vs Planned`;
+        kpiRealizedSub.className = `text-xs mt-1 ${diff >= 0 ? 'text-green-500' : 'text-red-400'}`;
+    }
+};
         const showTradesForDay = (date) => {
             dom['calendar-day-title'].textContent = `Trades for ${date.toLocaleDateString('en-US', { dateStyle: 'full' })}`;
             const tradesContainer = dom['calendar-day-trades'];
@@ -4384,101 +4660,88 @@ const totalLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.profitLoss, 0
                 </div>
             `;
         };
-        // --- UPGRADED ANALYTICS: Efficiency & Excursion ---
+       // --- DASHBOARD UPDATE 2: Efficiency & Excursion ---
 const updateExcursionAnalysis = (allTrades) => {
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
 
     const winningTrades = allTrades.filter(t => t.profitLoss > breakevenThreshold);
-    // Filter for wins that have valid MFE data (Peak Price)
+    const losingOrBETrades = allTrades.filter(t => t.profitLoss !== null && t.profitLoss <= breakevenThreshold);
+    
+    // 1. Efficiency & Near Death
     const validWins = winningTrades.filter(t => t.peakPrice && t.peakPrice !== t.entryPrice);
-
-    // 1. Calculate Exit Efficiency (Capture %)
     let totalEfficiency = 0;
     let nearMissCount = 0;
     
     validWins.forEach(t => {
-        // Calculate max potential profit
         const { profit: maxPotential } = calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName);
-        
         if (maxPotential > 0) {
             const efficiency = (t.profitLoss / maxPotential) * 100;
-            totalEfficiency += Math.max(0, Math.min(100, efficiency)); // Clamp between 0-100
+            totalEfficiency += Math.max(0, Math.min(100, efficiency));
         }
-
-        // Calculate Near Miss
         if (t.stopLoss && t.maePrice) {
             const slDist = Math.abs(t.entryPrice - t.stopLoss);
             const maeDist = Math.abs(t.entryPrice - t.maePrice);
-            // If MAE traveled > 85% towards SL
-            if (slDist > 0 && (maeDist / slDist) > 0.85) {
-                nearMissCount++;
-            }
+            if (slDist > 0 && (maeDist / slDist) > 0.85) nearMissCount++;
         }
     });
 
     const avgEfficiency = validWins.length > 0 ? (totalEfficiency / validWins.length) : 0;
 
-    // --- RENDER THE METRICS ---
-    // Inject "Efficiency Card" into Risk Tab
-    const excursionContainer = document.querySelector('#risk-execution-tab .grid');
-    let effCard = document.getElementById('efficiency-metric-card');
-    
-    // Create the card if it doesn't exist yet
-    if (!effCard && excursionContainer) {
-        effCard = document.createElement('div');
-        effCard.id = 'efficiency-metric-card';
-        effCard.className = 'card p-6 rounded-xl shadow-sm col-span-full md:col-span-1 border border-accent-color/20 bg-accent-color/5';
-        excursionContainer.insertBefore(effCard, excursionContainer.firstChild);
+    // UPDATE KPI CARDS
+    const kpiEff = document.getElementById('kpi-efficiency');
+    const kpiBar = document.getElementById('kpi-efficiency-bar');
+    const kpiNearDeath = document.getElementById('kpi-near-death');
+
+    if (kpiEff) kpiEff.textContent = `${avgEfficiency.toFixed(1)}%`;
+    if (kpiBar) {
+        kpiBar.style.width = `${avgEfficiency}%`;
+        kpiBar.className = `h-full transition-all duration-500 ${avgEfficiency > 60 ? 'bg-green-500' : (avgEfficiency < 30 ? 'bg-red-500' : 'bg-yellow-500')}`;
+    }
+    if (kpiNearDeath) {
+        kpiNearDeath.textContent = nearMissCount;
+        kpiNearDeath.className = `text-2xl font-bold ${nearMissCount === 0 ? 'text-green-500' : 'text-red-500'}`;
     }
 
-    if (effCard) {
-        let effColor = 'text-yellow-500';
-        if (avgEfficiency > 60) effColor = 'text-green-500';
-        if (avgEfficiency < 30) effColor = 'text-red-500';
-
-        effCard.innerHTML = `
-            <h2 class="text-xl font-semibold mb-4 text-text-primary flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent-color" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                Exit Efficiency
-            </h2>
-            <div class="space-y-4">
-                <div>
-                    <p class="text-sm text-text-secondary">Avg. Move Captured</p>
-                    <p class="text-3xl font-bold ${effColor}">${avgEfficiency.toFixed(1)}%</p>
-                    <div class="w-full bg-bg-tertiary h-2 rounded-full mt-2 overflow-hidden">
-                        <div class="h-full ${avgEfficiency > 60 ? 'bg-green-500' : 'bg-accent-color'}" style="width: ${avgEfficiency}%"></div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between items-center pt-2 border-t border-border-color">
-                    <span class="text-sm text-text-secondary">Near Death Winners</span>
-                    <span class="text-sm font-mono font-bold ${nearMissCount > 0 ? 'text-red-400' : 'text-text-primary'}">${nearMissCount} trades</span>
-                </div>
-                 <p class="text-xs text-text-secondary italic mt-1">Winning trades that came within 15% of hitting SL.</p>
-            </div>
-        `;
-    }
-    
-    // Maintain existing MAE/MFE Logic for the small grid
-    // (We re-implement the basic grid logic here to ensure nothing breaks)
-    const losingOrBETrades = allTrades.filter(t => t.profitLoss !== null && t.profitLoss <= breakevenThreshold);
+    // 2. MAE (Heat on Winners)
     const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
-    
     const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
-    let totalMAE = 0;
-    maeTrades.forEach(trade => {
-        const { profit: peakDrawdown } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName);
-        if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
-    });
-    const avgMAE = maeTrades.length > 0 ? totalMAE / maeTrades.length : 0;
+    
+    let avgMAE = 0;
+    if (maeTrades.length > 0) {
+        let totalMAE = 0;
+        maeTrades.forEach(trade => {
+            const { profit: peakDrawdown } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName);
+            if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
+        });
+        avgMAE = totalMAE / maeTrades.length;
+    }
     const avgMAEPercentage = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
 
-    const maeValueContainer = document.getElementById('avg-mae-winners');
-    if (maeValueContainer) {
-         maeValueContainer.innerHTML = `<span class="text-red-400">$${avgMAE.toFixed(2)}</span> <span class="text-xs text-text-secondary">(${avgMAEPercentage.toFixed(1)}%)</span>`;
+    const maeVal = document.getElementById('dash-mae-val');
+    const maePct = document.getElementById('dash-mae-pct');
+    if(maeVal) maeVal.textContent = `$${avgMAE.toFixed(2)}`;
+    if(maePct) maePct.textContent = `${avgMAEPercentage.toFixed(1)}%`;
+
+    // 3. MFE (Missed Profit on Losers)
+    const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
+    const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
+
+    let avgMFE = 0;
+    if (mfeTrades.length > 0) {
+        let totalMFE = 0;
+        mfeTrades.forEach(trade => {
+            const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
+            if(peakProfit > 0) totalMFE += peakProfit;
+        });
+        avgMFE = totalMFE / mfeTrades.length;
     }
-};
-        const runMonteCarlo = () => {
+    const avgMFEPercentage = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
+
+    const mfeVal = document.getElementById('dash-mfe-val');
+    const mfePct = document.getElementById('dash-mfe-pct');
+    if(mfeVal) mfeVal.textContent = `$${avgMFE.toFixed(2)}`;
+    if(mfePct) mfePct.textContent = `${avgMFEPercentage.toFixed(1)}%`;
+};        const runMonteCarlo = () => {
             toggleLoader(true);
             setTimeout(() => {
                 const tradesToProject = parseInt(dom['mc-trades'].value);
@@ -5981,6 +6244,40 @@ window.applyBulkEdit = applyBulkEdit;
             <button onclick="closeBulkEditModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-text-secondary hover:bg-bg-tertiary transition-colors">Cancel</button>
             <button onclick="applyBulkEdit()" class="px-4 py-2 rounded-lg text-sm font-bold bg-accent-color text-white hover:bg-opacity-90 shadow-lg shadow-accent-color/20 transition-all transform hover:scale-105">Apply Changes</button>
         </div>
+    </div>
+</div>
+<div id="day-summary-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[200] backdrop-blur-sm animate-fade-in">
+    <div class="bg-bg-secondary w-full max-w-sm rounded-2xl shadow-2xl border border-border-color p-6 transform transition-all scale-100 relative">
+        <button onclick="closeDayModal()" class="absolute top-4 right-4 text-text-secondary hover:text-text-primary p-2">✕</button>
+        
+        <div class="text-center mb-6">
+            <h3 id="day-modal-date" class="text-xl font-bold text-text-primary">--</h3>
+            <p id="day-modal-net" class="text-sm font-mono mt-1 text-text-secondary">Net P/L: --</p>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-bg-tertiary p-3 rounded-xl text-center border border-border-color">
+                <p class="text-[10px] text-text-secondary uppercase tracking-wider font-bold">Trades</p>
+                <p id="day-modal-count" class="text-xl font-black text-text-primary mt-1">--</p>
+            </div>
+            <div class="bg-bg-tertiary p-3 rounded-xl text-center border border-border-color">
+                <p class="text-[10px] text-text-secondary uppercase tracking-wider font-bold">Win Rate</p>
+                <p id="day-modal-winrate" class="text-xl font-black text-text-primary mt-1">--</p>
+            </div>
+            <div class="bg-green-500/10 border border-green-500/20 p-3 rounded-xl text-center">
+                <p class="text-[10px] text-green-400 uppercase tracking-wider font-bold">Best Trade</p>
+                <p id="day-modal-best" class="text-lg font-bold text-green-500 mt-1">--</p>
+            </div>
+            <div class="bg-red-500/10 border border-red-500/20 p-3 rounded-xl text-center">
+                <p class="text-[10px] text-red-400 uppercase tracking-wider font-bold">Worst Trade</p>
+                <p id="day-modal-worst" class="text-lg font-bold text-red-400 mt-1">--</p>
+            </div>
+        </div>
+
+        <button id="day-modal-filter-btn" class="w-full py-3 bg-accent-color hover:bg-opacity-90 text-white font-bold rounded-xl transition-all shadow-lg shadow-accent-color/20 flex items-center justify-center gap-2">
+            <span>View Trades in History</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
+        </button>
     </div>
 </div>
 </body>
