@@ -1822,44 +1822,40 @@ const handleCalculateSLFromRisk = () => {
     showToast(`Stop Loss set to ${stopLossPrice.toFixed(decimalPlaces)} for a $${riskAmount.toFixed(2)} risk.`, "success");
 };
         const calculatePL = (type, lot, entry, exit, index) => {
-            if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) {
-                return { profit: null, movement: null };
-            }
-            
-            let diff = (type === 'Buy') ? exit - entry : entry - exit;
-            let profit;
+    // 1. Safety checks
+    if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) {
+        return { profit: null, movement: null };
+    }
+    
+    // 2. Calculate raw price difference
+    let diff = (type === 'Buy') ? exit - entry : entry - exit;
+    let profit;
 
-            // --- Determine the point/pip value based on the instrument ---
-            // This logic now mirrors getPipMultiplier for consistency
-            if (index.includes('/')) {
-                // Standard Forex calculation (100,000 units per lot)
-                profit = diff * 100000 * lot;
-            } else if (index.startsWith('Volatility')) {
-                // For most VIX, contract size is 1, so profit is diff * lot.
-                // This is a common spec, but you can adjust if needed.
-                profit = diff * lot;
-            } else if (index.includes('Crash') || index.includes('Boom')) {
-                // 1 point movement = $1 profit change per lot
-                profit = diff * lot;
-            } else if (index.includes('Jump') || index.includes('Step') || index.includes('DEX')) {
-                 // 1 point movement = $1 profit change per lot
-                profit = diff * lot;
-            } else {
-                // Default for other indices (Gold, US 500, etc.)
-                profit = diff * lot;
-            }
+    // 3. Determine Profit based on Instrument Type
+    if (index.includes('/')) {
+        // Forex (Standard Lot = 100,000 units)
+        profit = diff * 100000 * lot;
+    } else if (index.startsWith('Volatility') || index.includes('Boom') || index.includes('Crash') || index.includes('Jump') || index.includes('Step') || index.includes('Range') || index.includes('DEX')) {
+        // Deriv Indices (1 point = $1 per lot)
+        profit = diff * lot;
+    } else {
+        // Metals/Crypto/Indices (Standard 1 point = $1 per lot approximation)
+        profit = diff * lot;
+    }
 
-            // Calculate movement in pips/points
-            let movement = Math.abs(exit - entry);
-            const multiplier = getPipMultiplier(index); // Reuse our multiplier function
-            if (multiplier !== 0) {
-                movement = movement / multiplier;
-            }
+    // 4. Calculate Movement in Pips
+    let movement = Math.abs(exit - entry);
+    // FIX: Pass 'entry' to getPipMultiplier so it works for Volatility Indices
+    const multiplier = getPipMultiplier(index, entry); 
+    
+    if (multiplier !== 0) {
+        movement = movement / multiplier;
+    }
 
-            return { profit, movement };
-        }; 
-// --- UPGRADED ADVISOR: Efficiency & Near-Death Logic ---
-// --- ULTIMATE ADVISOR: Combines Rules, Risk, Efficiency & Price Action ---
+    return { profit, movement };
+}; 
+
+
 const generateAdvancedInsights = (trade) => {
     const insights = [];
     let score = 5; // Start with a baseline 'C'
@@ -3109,17 +3105,28 @@ const applyBulkEdit = async () => {
             };
 
             // Analytics Page Tab Logic
-            const tabButtons = document.querySelectorAll('.analytics-tabs .tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-            setupCollapsibleSections();
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    const tabId = button.dataset.tab + '-tab';
-                    tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
-                });
-            });
+const tabButtons = document.querySelectorAll('.analytics-tabs .tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+setupCollapsibleSections();
+
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // 1. Switch Active Classes
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        const tabId = button.dataset.tab + '-tab';
+        tabContents.forEach(content => content.classList.toggle('active', content.id === tabId));
+        
+        // 2. FORCE REDRAW: If clicking "Risk & Execution", redraw the tracker
+        if (button.dataset.tab === 'risk-execution') {
+             // Small timeout allows the tab to become visible before drawing
+             setTimeout(() => {
+                 const trades = applyFilters(); // Get current filtered data
+                 updateRiskConsistencyTracker(trades);
+             }, 50);
+        }
+    });
+});
             setupChecklistManager();
 dom['analytics-page'].addEventListener('click', (e) => {
                 const toggleBtn = e.target.closest('[data-excursion-toggle]');
@@ -5763,76 +5770,102 @@ const calculatePriceFromPips = (type) => {
     priceInput.value = finalPrice.toFixed(decimalPlaces);
 };
 
-        const updateRiskConsistencyTracker = (allTrades) => {
-           const riskTrades = allTrades
-               .filter(t => t.stopLoss !== null && !isNaN(t.stopLoss) && t.entryPrice !== null)
-               .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+       const updateRiskConsistencyTracker = (allTrades) => {
+    // 1. Filter for trades that have a valid numeric Stop Loss and Entry
+    const riskTrades = allTrades
+        .filter(t => {
+            const hasSL = t.stopLoss !== null && t.stopLoss !== '' && !isNaN(parseFloat(t.stopLoss));
+            const hasEntry = t.entryPrice !== null && t.entryPrice !== '' && !isNaN(parseFloat(t.entryPrice));
+            return hasSL && hasEntry;
+        })
+        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-           if (riskConsistencyChart) riskConsistencyChart.destroy();
-           
-           if (riskTrades.length < 2) {
-               const canvas = dom.riskConsistencyChart;
-               if (canvas) {
-                  const ctx = canvas.getContext('2d');
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-               }
-               return;
-           }
-
-          // This is the new, more accurate calculation
-const riskData = riskTrades.map(trade => {
-    // We can reuse our main P/L function to accurately find the potential loss (our risk)
-    const { profit: riskInDollars } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.stopLoss, trade.indexName);
+    // 2. Destroy previous chart instance
+    if (riskConsistencyChart) {
+        riskConsistencyChart.destroy();
+        riskConsistencyChart = null;
+    }
     
-    // We use Math.abs because a loss is negative, but risk is a positive value.
-    return { x: new Date(trade.timestamp), y: Math.abs(riskInDollars || 0) };
-});
+    const canvas = document.getElementById('riskConsistencyChart');
+    if (!canvas) return;
 
-           const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
-           const avgRisk = totalRisk / riskData.length;
+    // 3. If not enough data, clear canvas and exit
+    if (riskTrades.length < 2) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
 
-             const chartOptions = getChartColors();
-           riskConsistencyChart = new Chart(dom.riskConsistencyChart, {
-               type: 'line',
-               data: { // The data object should contain the datasets
-                   datasets: [{
-                       label: 'Risk per Trade ($)',
-                       data: riskData,
-                       borderColor: 'rgba(234, 179, 8, 0.8)', // Amber color
-                       backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                       fill: true,
-                       pointRadius: 3,
-                       pointHoverRadius: 5,
-                   }, {
-                       label: 'Average Risk ($)',
-                       data: riskData.map(d => ({ x: d.x, y: avgRisk })),
-                       borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.5)',
-                       borderDash: [5, 5],
-                       borderWidth: 2,
-                       pointRadius: 0,
-                       fill: false,
-                   }]
-               },
+    // 4. Calculate Risk Data
+    const riskData = riskTrades.map(trade => {
+        const { profit } = calculatePL(
+            trade.tradeType, 
+            parseFloat(trade.lotSize), 
+            parseFloat(trade.entryPrice), 
+            parseFloat(trade.stopLoss), 
+            trade.indexName
+        );
+        
+        // Handle potential calculation errors safely
+        const riskAmount = (profit !== null && !isNaN(profit)) ? Math.abs(profit) : 0;
+        return { x: new Date(trade.timestamp), y: riskAmount };
+    });
 
-// ...
-               options: {
-                   responsive: true,
-                   maintainAspectRatio: false,
-                   scales: {
-                       x: { type: 'time', time: { unit: 'day' }, grid: { color: chartOptions.gridColor }, ticks: { color: chartOptions.textColor } },
-                       y: { 
-                           beginAtZero: true, 
-                           grid: { color: chartOptions.gridColor }, 
-                           ticks: { color: chartOptions.textColor, callback: (value) => `$${value.toFixed(0)}` } 
-                       }
-                   },
-                   plugins: { 
-                       legend: { display: true, labels: { color: chartOptions.textColor } },
-                       tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: $${ctx.raw.y.toFixed(2)}` } }
-                   }
-               }
-           });
-        };
+    // 5. Calculate Average Risk Line
+    const totalRisk = riskData.reduce((acc, data) => acc + data.y, 0);
+    const avgRisk = riskData.length > 0 ? totalRisk / riskData.length : 0;
+
+    // 6. Render Chart
+    const chartOptions = getChartColors();
+    riskConsistencyChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Risk per Trade ($)',
+                data: riskData,
+                borderColor: 'rgba(234, 179, 8, 0.8)', // Amber color
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                fill: true,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                tension: 0.2
+            }, {
+                label: 'Average Risk ($)',
+                data: riskData.map(d => ({ x: d.x, y: avgRisk })),
+                borderColor: document.documentElement.classList.contains('light') ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { 
+                    type: 'time', 
+                    time: { unit: 'day' }, 
+                    grid: { color: chartOptions.gridColor }, 
+                    ticks: { color: chartOptions.textColor } 
+                },
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: chartOptions.gridColor }, 
+                    ticks: { color: chartOptions.textColor, callback: (value) => `$${value.toFixed(0)}` } 
+                }
+            },
+            plugins: { 
+                legend: { display: true, labels: { color: chartOptions.textColor } },
+                tooltip: { 
+                    callbacks: { 
+                        label: (ctx) => `${ctx.dataset.label}: $${ctx.raw.y.toFixed(2)}` 
+                    } 
+                }
+            }
+        }
+    });
+};
 
         const updateRRPerformanceAnalysis = (allTrades) => {
             const body = dom['rr-performance-body'];
