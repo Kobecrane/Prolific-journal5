@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -1086,7 +1087,7 @@
                     </div>
                     </div>
 
-                    <div id="risk-execution-tab" class="tab-content animate-fade-in hidden">
+                    <div id="risk-execution-tab" class="tab-content animate-fade-in">
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         
@@ -3119,10 +3120,10 @@ tabButtons.forEach(button => {
         
         // 2. FORCE REDRAW: If clicking "Risk & Execution", redraw the tracker
         if (button.dataset.tab === 'risk-execution') {
-             // Small timeout allows the tab to become visible before drawing
              setTimeout(() => {
-                 const trades = applyFilters(); // Get current filtered data
+                 const trades = applyFilters(); 
                  updateRiskConsistencyTracker(trades);
+                 updateExcursionAnalysis(trades); // <--- ADD THIS LINE
              }, 50);
         }
     });
@@ -4669,86 +4670,86 @@ const updateRRAnalysis = (allTrades) => {
         };
        // --- DASHBOARD UPDATE 2: Efficiency & Excursion ---
 const updateExcursionAnalysis = (allTrades) => {
-    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    // 1. Safety Check: Ensure elements exist before trying to update them
+    const mfeValEl = document.getElementById('dash-mfe-val');
+    const mfePctEl = document.getElementById('dash-mfe-pct');
+    const maeValEl = document.getElementById('dash-mae-val');
+    const maePctEl = document.getElementById('dash-mae-pct');
 
-    const winningTrades = allTrades.filter(t => t.profitLoss > breakevenThreshold);
-    const losingOrBETrades = allTrades.filter(t => t.profitLoss !== null && t.profitLoss <= breakevenThreshold);
+    if (!mfeValEl || !maeValEl) return; 
+
+    const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
     
-    // 1. Efficiency & Near Death
-    const validWins = winningTrades.filter(t => t.peakPrice && t.peakPrice !== t.entryPrice);
-    let totalEfficiency = 0;
-    let nearMissCount = 0;
+    // 2. Filter Trades
+    // Only analyze closed trades
+    const closedTrades = allTrades.filter(t => t.profitLoss !== null);
+    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
+    const losingOrBETrades = closedTrades.filter(t => t.profitLoss <= breakevenThreshold);
+
+    // 3. MAE (Pain) Logic: Analyze "Heat" taken on Winning Trades
+    let totalMAE = 0;
+    let maeCount = 0;
     
-    validWins.forEach(t => {
-        const { profit: maxPotential } = calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName);
-        if (maxPotential > 0) {
-            const efficiency = (t.profitLoss / maxPotential) * 100;
-            totalEfficiency += Math.max(0, Math.min(100, efficiency));
-        }
-        if (t.stopLoss && t.maePrice) {
-            const slDist = Math.abs(t.entryPrice - t.stopLoss);
-            const maeDist = Math.abs(t.entryPrice - t.maePrice);
-            if (slDist > 0 && (maeDist / slDist) > 0.85) nearMissCount++;
+    winningTrades.forEach(trade => {
+        const maePrice = parseFloat(trade.maePrice);
+        const entryPrice = parseFloat(trade.entryPrice);
+        const lotSize = parseFloat(trade.lotSize);
+        
+        // Only calculate if we have a valid MAE price recorded
+        if (!isNaN(maePrice) && !isNaN(entryPrice)) {
+            const { profit } = calculatePL(trade.tradeType, lotSize, entryPrice, maePrice, trade.indexName);
+            // We are looking for negative numbers (drawdown). 
+            // We take the absolute value to show "Avg Heat".
+            if (profit !== null && profit < 0) {
+                totalMAE += Math.abs(profit);
+                maeCount++;
+            }
         }
     });
 
-    const avgEfficiency = validWins.length > 0 ? (totalEfficiency / validWins.length) : 0;
-
-    // UPDATE KPI CARDS
-    const kpiEff = document.getElementById('kpi-efficiency');
-    const kpiBar = document.getElementById('kpi-efficiency-bar');
-    const kpiNearDeath = document.getElementById('kpi-near-death');
-
-    if (kpiEff) kpiEff.textContent = `${avgEfficiency.toFixed(1)}%`;
-    if (kpiBar) {
-        kpiBar.style.width = `${avgEfficiency}%`;
-        kpiBar.className = `h-full transition-all duration-500 ${avgEfficiency > 60 ? 'bg-green-500' : (avgEfficiency < 30 ? 'bg-red-500' : 'bg-yellow-500')}`;
-    }
-    if (kpiNearDeath) {
-        kpiNearDeath.textContent = nearMissCount;
-        kpiNearDeath.className = `text-2xl font-bold ${nearMissCount === 0 ? 'text-green-500' : 'text-red-500'}`;
-    }
-
-    // 2. MAE (Heat on Winners)
-    const avgProfit = winningTrades.length > 0 ? winningTrades.reduce((acc, t) => acc + t.profitLoss, 0) / winningTrades.length : 0;
-    const maeTrades = winningTrades.filter(t => t.maePrice !== null && !isNaN(t.maePrice));
+    const avgMAE = maeCount > 0 ? totalMAE / maeCount : 0;
     
-    let avgMAE = 0;
-    if (maeTrades.length > 0) {
-        let totalMAE = 0;
-        maeTrades.forEach(trade => {
-            const { profit: peakDrawdown } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.maePrice, trade.indexName);
-            if(peakDrawdown < 0) totalMAE += Math.abs(peakDrawdown);
-        });
-        avgMAE = totalMAE / maeTrades.length;
-    }
-    const avgMAEPercentage = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
+    // Context: Compare Avg Heat vs Avg Profit
+    const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
+    const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
+    const maePct = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
 
-    const maeVal = document.getElementById('dash-mae-val');
-    const maePct = document.getElementById('dash-mae-pct');
-    if(maeVal) maeVal.textContent = `$${avgMAE.toFixed(2)}`;
-    if(maePct) maePct.textContent = `${avgMAEPercentage.toFixed(1)}%`;
+    // 4. MFE (Gain) Logic: Analyze "Missed Profit" on Losing/BE Trades
+    let totalMFE = 0;
+    let mfeCount = 0;
 
-    // 3. MFE (Missed Profit on Losers)
-    const avgLoss = losingOrBETrades.length > 0 ? Math.abs(losingOrBETrades.reduce((acc, t) => acc + t.profitLoss, 0) / losingOrBETrades.length) : 0;
-    const mfeTrades = losingOrBETrades.filter(t => t.peakPrice !== null && !isNaN(t.peakPrice));
+    losingOrBETrades.forEach(trade => {
+        const peakPrice = parseFloat(trade.peakPrice);
+        const entryPrice = parseFloat(trade.entryPrice);
+        const lotSize = parseFloat(trade.lotSize);
 
-    let avgMFE = 0;
-    if (mfeTrades.length > 0) {
-        let totalMFE = 0;
-        mfeTrades.forEach(trade => {
-            const { profit: peakProfit } = calculatePL(trade.tradeType, trade.lotSize, trade.entryPrice, trade.peakPrice, trade.indexName);
-            if(peakProfit > 0) totalMFE += peakProfit;
-        });
-        avgMFE = totalMFE / mfeTrades.length;
-    }
-    const avgMFEPercentage = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
+        // Only calculate if we have a valid Peak price recorded
+        if (!isNaN(peakPrice) && !isNaN(entryPrice)) {
+            const { profit } = calculatePL(trade.tradeType, lotSize, entryPrice, peakPrice, trade.indexName);
+            // We are looking for positive numbers (profit seen before loss).
+            if (profit !== null && profit > 0) {
+                totalMFE += profit;
+                mfeCount++;
+            }
+        }
+    });
 
-    const mfeVal = document.getElementById('dash-mfe-val');
-    const mfePct = document.getElementById('dash-mfe-pct');
-    if(mfeVal) mfeVal.textContent = `$${avgMFE.toFixed(2)}`;
-    if(mfePct) mfePct.textContent = `${avgMFEPercentage.toFixed(1)}%`;
-};        const runMonteCarlo = () => {
+    const avgMFE = mfeCount > 0 ? totalMFE / mfeCount : 0;
+    
+    // Context: Compare Avg Missed Profit vs Avg Actual Loss
+    const totalLoss = losingOrBETrades.reduce((acc, t) => acc + Math.abs(t.profitLoss), 0);
+    const avgLoss = losingOrBETrades.length > 0 ? totalLoss / losingOrBETrades.length : 0;
+    const mfePct = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
+
+    // 5. Update the DOM
+    maeValEl.textContent = `$${avgMAE.toFixed(2)}`;
+    if (maePctEl) maePctEl.textContent = `${maePct.toFixed(1)}%`;
+    
+    mfeValEl.textContent = `$${avgMFE.toFixed(2)}`;
+    if (mfePctEl) mfePctEl.textContent = `${mfePct.toFixed(1)}%`;
+};
+
+const runMonteCarlo = () => {
             toggleLoader(true);
             setTimeout(() => {
                 const tradesToProject = parseInt(dom['mc-trades'].value);
