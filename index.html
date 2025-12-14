@@ -1196,36 +1196,115 @@
     </main>
     
     <!-- Modals and Overlays -->
-    <div id="settings-menu-panel" class="hidden fixed top-16 right-6 w-80 bg-secondary rounded-lg shadow-xl z-50 border border-border-color p-4 space-y-4">
-        <div>
-            <h3 class="text-sm font-semibold text-text-secondary mb-2">Data & Reports</h3>
-            <div class="space-y-2">
-                <label for="import-mt5-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-accent-color text-white border border-transparent rounded-lg hover:bg-opacity-90 transition-colors block">
-                    Import MT5 (CSV)
-                </label>
-                <input type="file" id="import-mt5-file" class="hidden" accept=".csv">
-                <button id="save-data-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Save Data to DB</button>
-                <label for="import-file" class="btn w-full text-center cursor-pointer text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors block">Import Data</label>
-                <input type="file" id="import-file" class="hidden" accept=".json">
-                <button id="export-btn" class="btn w-full text-sm font-semibold p-2 bg-tertiary border border-border-color rounded-lg hover:bg-border-color transition-colors">Export Data</button>
-                <button id="export-pdf-btn" class="btn w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  Export Analytics PDF
-              </button>
+    <div id="settings-menu-panel" class="fixed inset-y-0 right-0 w-80 bg-bg-secondary/95 backdrop-blur-md border-l border-border-color shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col">
+    
+    <div class="flex items-center justify-between p-6 border-b border-border-color">
+        <h2 class="text-lg font-bold text-text-primary">Settings</h2>
+        <button id="close-settings-btn" class="text-text-secondary hover:text-text-primary transition-colors p-2 rounded-lg hover:bg-bg-tertiary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+        
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Appearance</h3>
+            
+            <div class="bg-bg-tertiary/50 p-4 rounded-xl border border-border-color space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-text-primary mb-2 block">Accent Color</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="accent-color-picker" class="h-10 w-14 bg-transparent cursor-pointer rounded overflow-hidden border-0 p-0" title="Choose Accent Color">
+                        <span class="text-xs text-text-secondary">Pick a color to match your vibe.</span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div>
-            <h3 class="text-sm font-semibold text-text-secondary mb-2">Theme Accent Color</h3>
-            <input type="color" id="accent-color-picker" class="w-full h-10 p-1 bg-tertiary rounded-lg cursor-pointer">
+
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Analysis Configuration</h3>
+            
+            <div class="bg-bg-tertiary/50 p-4 rounded-xl border border-border-color space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-medium text-text-primary">Breakeven Threshold</label>
+                        <span id="breakeven-value" class="text-xs font-mono bg-bg-primary px-2 py-1 rounded border border-border-color">$2.00</span>
+                    </div>
+                    <input type="range" id="breakeven-slider" min="0" max="50" step="0.5" class="w-full h-2 bg-bg-primary rounded-lg appearance-none cursor-pointer accent-accent-color">
+                    <p class="text-[10px] text-text-secondary mt-2">Trades below this profit are considered "Breakeven".</p>
+                </div>
+            </div>
+            
+            <div class="bg-bg-tertiary/50 p-4 rounded-xl border border-border-color space-y-4">
+                <div class="flex justify-between items-center">
+                    <label class="text-sm font-medium text-text-primary">Pip Analysis Mode</label>
+                    <button id="pip-analysis-settings-btn" class="text-xs text-accent-color hover:underline">Edit Rules</button>
+                </div>
+                
+                <div id="pip-analysis-settings-panel" class="hidden space-y-3 pt-2 border-t border-border-color mt-2">
+                    <div class="flex items-center gap-4 text-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="pip-analysis-mode" value="strict" class="text-accent-color focus:ring-accent-color">
+                            <span>Strict (Exact Price)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="pip-analysis-mode" value="flexible" checked class="text-accent-color focus:ring-accent-color">
+                            <span>Flexible (Tolerance)</span>
+                        </label>
+                    </div>
+                    <div id="pip-analysis-tolerance-container">
+                        <div class="flex justify-between text-xs text-text-secondary mb-1">
+                            <span>Tolerance %</span>
+                            <span id="pip-analysis-tolerance-value">10</span>
+                        </div>
+                        <input type="range" id="pip-analysis-tolerance" min="1" max="20" value="10" class="w-full h-1 bg-bg-primary rounded-lg appearance-none cursor-pointer accent-accent-color">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-          <h3 class="text-sm font-semibold text-text-secondary mb-2">Breakeven Threshold ($)</h3>
-          <div class="flex items-center gap-2">
-              <input type="range" id="breakeven-slider" min="0" max="50" step="0.5" class="w-full h-2 bg-tertiary rounded-lg appearance-none cursor-pointer">
-              <span id="breakeven-value" class="text-sm font-mono w-12 text-center">$2.00</span>
-          </div>
-      </div>
+
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Data Management</h3>
+            
+            <div class="grid grid-cols-1 gap-3">
+                <button id="save-data-btn" class="flex items-center justify-center gap-2 w-full p-3 bg-bg-tertiary hover:bg-bg-tertiary/80 border border-border-color rounded-xl text-sm font-semibold transition-all hover:scale-[1.02]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save Changes to DB
+                </button>
+                
+                <div class="grid grid-cols-2 gap-3">
+                     <label class="flex flex-col items-center justify-center gap-1 p-3 bg-bg-tertiary hover:bg-bg-tertiary/80 border border-border-color rounded-xl text-sm font-semibold cursor-pointer transition-all hover:border-accent-color group">
+                        <svg class="text-text-secondary group-hover:text-accent-color transition-colors" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span class="text-xs">Import JSON</span>
+                        <input type="file" id="import-file" class="hidden" accept=".json">
+                    </label>
+                    
+                    <button id="export-btn" class="flex flex-col items-center justify-center gap-1 p-3 bg-bg-tertiary hover:bg-bg-tertiary/80 border border-border-color rounded-xl text-sm font-semibold transition-all hover:border-accent-color group">
+                        <svg class="text-text-secondary group-hover:text-accent-color transition-colors" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span class="text-xs">Export JSON</span>
+                    </button>
+                </div>
+
+                <label class="flex items-center justify-center gap-2 w-full p-3 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 text-blue-500 rounded-xl text-sm font-semibold cursor-pointer transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Import MT5 History
+                    <input type="file" id="import-mt5-file" class="hidden" accept=".csv">
+                </label>
+
+                <button id="export-pdf-btn" class="flex items-center justify-center gap-2 w-full p-3 bg-red-600 hover:bg-red-700 text-white border border-transparent rounded-xl text-sm font-semibold shadow-lg shadow-red-600/20 transition-all hover:scale-[1.02]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Generate PDF Report
+                </button>
+            </div>
+        </div>
     </div>
+    
+    <div class="p-4 border-t border-border-color bg-bg-tertiary/30 text-center">
+        <p class="text-[10px] text-text-secondary">Prolific Journal v2.0 • Local Storage Mode</p>
+    </div>
+</div>
+
+<div id="settings-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden transition-opacity duration-300 opacity-0"></div>
 
     <div id="accounts-modal" class="modal-overlay">
          <div class="modal-content max-w-md">
@@ -3231,45 +3310,75 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
                 });
             });
             
-            // --- Settings Panel ---
+            // --- Settings Panel (Slide-Over) ---
             const settingsMenuBtn = dom['settings-menu-btn'];
             const settingsMenuPanel = dom['settings-menu-panel'];
+            const settingsBackdrop = document.getElementById('settings-backdrop');
+            const closeSettingsBtn = document.getElementById('close-settings-btn');
+
+            const openSettings = () => {
+                // Show backdrop
+                settingsBackdrop.classList.remove('hidden');
+                // Small delay to allow transition to render
+                setTimeout(() => settingsBackdrop.classList.remove('opacity-0'), 10);
+                
+                // Slide in panel
+                settingsMenuPanel.classList.remove('translate-x-full');
+            };
+
+            const closeSettings = () => {
+                // Slide out panel
+                settingsMenuPanel.classList.add('translate-x-full');
+                
+                // Fade out backdrop
+                settingsBackdrop.classList.add('opacity-0');
+                
+                // Hide backdrop after animation finishes
+                setTimeout(() => {
+                    settingsBackdrop.classList.add('hidden');
+                }, 300);
+            };
+
             settingsMenuBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                settingsMenuPanel.classList.toggle('hidden');
+                openSettings();
             });
-            document.addEventListener('click', (e) => {
-                if (settingsMenuBtn && !settingsMenuBtn.contains(e.target) && settingsMenuPanel && !settingsMenuPanel.contains(e.target)) {
-                    settingsMenuPanel.classList.add('hidden');
-                }
-            });
+
+            closeSettingsBtn.addEventListener('click', closeSettings);
+            settingsBackdrop.addEventListener('click', closeSettings);
             
-            // --- Account Management ---
-            dom['manage-accounts-btn'].addEventListener('click', () => { renderAccountsList(); dom['accounts-modal'].classList.add('open'); });
-            dom['close-accounts-modal-btn'].addEventListener('click', () => dom['accounts-modal'].classList.remove('open'));
-            dom['add-account-btn'].addEventListener('click', () => {
-                addAccount(dom['new-account-name'].value);
-                dom['new-account-name'].value = '';
-                renderAccountsList();
-            });
-            dom['account-switcher'].addEventListener('change', () => switchAccount(dom['account-switcher'].value));
+            // Pip Analysis Settings Toggle logic (Keep existing logic if any, or add this)
+            const pipSettingsBtn = document.getElementById('pip-analysis-settings-btn');
+            const pipSettingsPanel = document.getElementById('pip-analysis-settings-panel');
             
-            // --- Data & Reports ---
-            dom['export-btn'].addEventListener('click', exportData);
-            dom['import-file'].addEventListener('change', importData);
-            if(document.getElementById('import-mt5-file')) {
-                document.getElementById('import-mt5-file').addEventListener('change', handleMT5Import);
+            if(pipSettingsBtn && pipSettingsPanel) {
+                pipSettingsBtn.addEventListener('click', () => {
+                   const isHidden = pipSettingsPanel.classList.contains('hidden');
+                   pipSettingsPanel.classList.toggle('hidden');
+                   pipSettingsBtn.textContent = isHidden ? 'Hide Rules' : 'Edit Rules';
+                });
             }
-            dom['export-pdf-btn'].addEventListener('click', generatePDF);
-            makeDraggable(document.getElementById('bulk-action-bar'));
-            // --- Filters ---
-            ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date', 'filter-timeframe'].forEach(id => {
-               if(dom[id]) dom[id].addEventListener('change', refreshUI);
+
+            // Radio & Slider logic for Pip Analysis
+            document.querySelectorAll('input[name="pip-analysis-mode"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    appData.settings.pipAnalysisMode = e.target.value;
+                    dom['pip-analysis-tolerance-container'].classList.toggle('hidden', e.target.value !== 'flexible');
+                    saveAppData();
+                    if(typeof updatePipAnalysis === 'function') updatePipAnalysis(applyFilters());
+                });
             });
-            dom['reset-filters-btn'].addEventListener('click', () => {
-                ['filter-instrument', 'filter-tag', 'filter-psychology-tag', 'filter-type', 'filter-outcome', 'filter-start-date', 'filter-end-date', 'filter-timeframe'].forEach(id => dom[id].value = '');
-                refreshUI();
-            });
+
+            const pipToleranceSlider = document.getElementById('pip-analysis-tolerance');
+            if(pipToleranceSlider) {
+                pipToleranceSlider.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value);
+                    document.getElementById('pip-analysis-tolerance-value').textContent = val;
+                    appData.settings.pipAnalysisTolerance = val;
+                    saveAppData();
+                     if(typeof updatePipAnalysis === 'function') updatePipAnalysis(applyFilters());
+                });
+            }
             
             // --- Analytics & Tools ---
             dom['run-mc-btn'].addEventListener('click', runMonteCarlo);
