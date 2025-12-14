@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -23,18 +27,18 @@
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light-border.css" />
     <style>
         :root {
-            --bg-primary: #1a1c23;
-            --bg-secondary: #20222a;
-            --bg-tertiary: #2a2d37;
-            --text-primary: #f0f0f0;
-            --text-secondary: #a0a0a0;
-            --border-color: #3a3d4a;
-            --accent-color: #4f46e5; /* Default accent color */
-            --reversal-card-bg: rgba(234, 88, 12, 0.1); /* orange-600 with 10% opacity */
-            --reversal-card-border: rgba(234, 88, 12, 0.2);
-            --reversal-card-header: #fb923c; /* orange-400 */
-            --reversal-card-text: #fdba74; /* orange-300 */
-        }
+    --bg-primary: #09090b;
+    --bg-secondary: #121214;
+    --bg-tertiary: #18181b;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --border-color: #27272a;
+    --accent-color: #6366f1;
+    --reversal-card-bg: rgba(234, 88, 12, 0.08);
+    --reversal-card-border: rgba(234, 88, 12, 0.15);
+    --reversal-card-header: #fb923c;
+    --reversal-card-text: #fdba74;
+}
         /* ADD THIS CSS FOR LIGHT MODE */
         .light {
             --bg-primary: #f3f4f6; /* gray-100 */
@@ -155,8 +159,9 @@
         }
         
         .sidebar {
-            transition: width 0.3s ease;
-        }
+    background-color: #000000 !important;
+    border-right: 1px solid var(--border-color);
+}
 
         .sidebar-link.active {
             background-color: var(--accent-color);
@@ -202,21 +207,19 @@
     margin-top: 3px;
 }
         .card {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-        }
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
         .card:hover {
             transform: translateY(-4px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.2);
         }
         
-        .form-input {
-            background-color: var(--bg-tertiary);
-            border-color: var(--border-color);
-            color: var(--text-primary);
-            transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-        }
+        .form-input, select {
+    background-color: #0f0f11 !important;
+    border-color: var(--border-color) !important;
+}
 
         .form-input:focus {
             --tw-ring-color: var(--accent-color);
