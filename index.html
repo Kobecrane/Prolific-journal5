@@ -3309,6 +3309,26 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
                 saveAppData();
                 showToast("Data saved successfully!", "success");
             });
+             // --- Account Management (FIX ADDED HERE) ---
+            dom['manage-accounts-btn'].addEventListener('click', () => {
+                renderAccountsList();
+                dom['accounts-modal'].classList.add('open');
+            });
+
+            dom['close-accounts-modal-btn'].addEventListener('click', () => {
+                dom['accounts-modal'].classList.remove('open');
+            });
+
+            dom['add-account-btn'].addEventListener('click', async () => {
+                const name = dom['new-account-name'].value;
+                if (name) {
+                    await addAccount(name);
+                    dom['new-account-name'].value = '';
+                    renderAccountsList();
+                } else {
+                    showToast("Account name cannot be empty.", "error");
+                }
+            });
             
             // --- Sidebar and Page Navigation ---
             dom.sidebarLinks.forEach(link => {
