@@ -740,6 +740,17 @@
                                     <option value="">None</option>
                                 </select>
                             </div>
+<div id="stack-trade-container" class="animate-fade-in">
+    <label for="parent-trade-select" class="block text-sm font-medium text-text-secondary text-accent-color">
+        <span class="flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" /></svg>
+            Stack / Add to Position
+        </span>
+    </label>
+    <select id="parent-trade-select" class="mt-1 w-full p-2 form-input rounded-lg border-accent-color/30">
+        <option value="">-- Select Open Trade to Stack --</option>
+    </select>
+</div>
                              <div>
     <label for="entry-timeframe" class="block text-sm font-medium text-text-secondary">Entry Timeframe</label>
     <select id="entry-timeframe" class="form-input mt-1 w-full p-2 rounded-lg">
@@ -1924,6 +1935,22 @@ const handleCalculateSLFromRisk = () => {
     
     showToast(`Stop Loss set to ${stopLossPrice.toFixed(decimalPlaces)} for a $${riskAmount.toFixed(2)} risk.`, "success");
 };
+       const getNextGroupId = () => {
+    const trades = getActiveTrades();
+    const groupIds = trades.map(t => t.groupId).filter(Boolean);
+    
+    if (groupIds.length === 0) return 'G-1';
+
+    // Extract numbers (e.g., turn "G-5" into 5)
+    const numbers = groupIds.map(id => {
+        const num = parseInt(id.split('-')[1]);
+        return isNaN(num) ? 0 : num;
+    });
+    
+    // Find the highest number and add 1
+    const maxId = Math.max(...numbers);
+    return `G-${maxId + 1}`;
+};
         const calculatePL = (type, lot, entry, exit, index) => {
     // 1. Safety checks
     if (exit === null || exit === undefined || isNaN(entry) || isNaN(exit) || isNaN(lot) || !index) {
@@ -2644,6 +2671,8 @@ const parseMT5CSV = (csvText) => {
             dom['realtime-pl-display'].innerHTML = '';
             dom['realtime-pl-display'].className = 'p-2 text-center rounded-lg h-10 transition-all';
             renderChecklists(); renderChecklistOnForm();
+            document.getElementById('stack-trade-container').classList.remove('hidden');
+            updateStackTradeDropdown();
         };
 
         const enterEditMode = (tradeId) => {
@@ -2675,6 +2704,7 @@ const parseMT5CSV = (csvText) => {
             renderChecklists(tradeToEdit.tags || [], tradeToEdit.psychologyTags || []);
             renderChecklistOnForm(tradeToEdit.checklistMet || []);
             updateRealtimePL();
+            document.getElementById('stack-trade-container').classList.add('hidden');
         };
         
         const handleLogTrade = () => {
@@ -2690,7 +2720,7 @@ const parseMT5CSV = (csvText) => {
              const notesHTML = dom['trade-comments-editor'].innerHTML.trim();
              const playId = dom['playbook-select'].value || null;
              const timeframe = dom['entry-timeframe'].value;
-
+             const parentTradeId = document.getElementById('parent-trade-select').value;
              const selectedTags = Array.from(dom['tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
              const selectedPsychologyTags = Array.from(dom['psychology-tags-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
               const checkedChecklistItems = Array.from(dom['trade-checklist'].querySelectorAll('input:checked')).map(cb => cb.value);
@@ -2717,20 +2747,54 @@ activeAccount.trades[tradeIndex] = { ...originalTrade, indexName: dom['index-sel
                       showToast("Trade updated successfully!", "success");
                   }
              } else {
-                   for (let i = 0; i < numPositions; i++) {
-                       let { profit: profitLoss, movement: pointsMoved } = calculatePL(tradeType, lotSize, entryPrice, exitPrice, dom['index-selector'].value);
-                       if(profitLoss !== null) profitLoss -= fees;
-                       const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
-                       
-                       activeAccount.trades.push({
-                           id: crypto.randomUUID(),
-                           timestamp: new Date().toISOString(),
-                           exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
-                           indexName: dom['index-selector'].value, tradeType, lotSize, entryPrice, exitPrice, stopLoss, takeProfit, peakPrice, maePrice, fees, profitLoss, pointsMoved, rrRatio, tags: selectedTags, psychologyTags: selectedPsychologyTags, playId, notesHTML,  checklistMet: checkedChecklistItems, timeframe
-                       });
-                   }
-                   showToast(`${numPositions} trade(s) logged successfully!`, "success");
-             }
+                // --- START STACKING LOGIC ---
+                let groupId = null;
+                if (parentTradeId) {
+                    const parentTrade = activeAccount.trades.find(t => t.id === parentTradeId);
+                    if (parentTrade) {
+                        if (!parentTrade.groupId) {
+                            // If parent has no group, create one and assign it
+                            parentTrade.groupId = getNextGroupId();
+                        }
+                        // Assign the parent's group ID to the new trade
+                        groupId = parentTrade.groupId;
+                    }
+                }
+                // --- END STACKING LOGIC ---
+
+                for (let i = 0; i < numPositions; i++) {
+                    let { profit: profitLoss, movement: pointsMoved } = calculatePL(tradeType, lotSize, entryPrice, exitPrice, dom['index-selector'].value);
+                    if(profitLoss !== null) profitLoss -= fees;
+                    const rrRatio = calculateRR(tradeType, entryPrice, stopLoss, takeProfit);
+                    
+                    activeAccount.trades.push({
+                        id: crypto.randomUUID(),
+                        groupId: groupId, // <--- IMPORTANT: This links the trade!
+                        timestamp: new Date().toISOString(),
+                        exitTimestamp: exitPrice !== null ? new Date().toISOString() : null,
+                        indexName: dom['index-selector'].value, 
+                        tradeType, 
+                        lotSize, 
+                        entryPrice, 
+                        exitPrice, 
+                        stopLoss, 
+                        takeProfit, 
+                        peakPrice, 
+                        maePrice, 
+                        fees, 
+                        profitLoss, 
+                        pointsMoved, 
+                        rrRatio, 
+                        tags: selectedTags, 
+                        psychologyTags: selectedPsychologyTags, 
+                        playId, 
+                        notesHTML,  
+                        checklistMet: checkedChecklistItems, 
+                        timeframe
+                    });
+                }
+                showToast(`${numPositions} trade(s) logged successfully!`, "success");
+            }
              saveAppData();
              refreshUI();
              resetForm();
@@ -3200,6 +3264,51 @@ const applyBulkEdit = async () => {
     refreshUI();
     showToast(`Successfully updated ${updateCount} trades!`, 'success');
 };
+        const updateStackTradeDropdown = () => {
+    const instrument = dom['index-selector'].value;
+    const select = document.getElementById('parent-trade-select');
+    const container = document.getElementById('stack-trade-container');
+
+    // Make sure the container is ALWAYS visible
+    container.classList.remove('hidden');
+
+    // Find open trades for this instrument
+    const openTrades = getActiveTrades().filter(t => t.indexName === instrument && t.profitLoss === null);
+
+    // Reset Dropdown
+    select.innerHTML = '';
+
+    if (openTrades.length > 0) {
+        // SCENARIO A: We found open trades. Enable the dropdown.
+        select.disabled = false;
+        select.classList.remove('opacity-50', 'cursor-not-allowed');
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "";
+        defaultOption.textContent = "-- Select Open Trade to Stack --";
+        select.appendChild(defaultOption);
+
+        // Add open trades
+        openTrades.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t.id;
+            const type = t.tradeType.toUpperCase();
+            const groupLabel = t.groupId ? `[${t.groupId}] ` : '';
+            // Show Entry Price and Time to help identify the trade
+            option.textContent = `${groupLabel}${type} @ ${t.entryPrice} (${new Date(t.timestamp).toLocaleTimeString()})`;
+            select.appendChild(option);
+        });
+    } else {
+        // SCENARIO B: No open trades. Disable the dropdown but KEEP IT VISIBLE.
+        select.disabled = true;
+        select.classList.add('opacity-50', 'cursor-not-allowed');
+        
+        const option = document.createElement('option');
+        option.textContent = `No Open ${instrument} Trades`;
+        select.appendChild(option);
+    }
+};
         const setupEventListeners = () => {
            
             // Helper to clear inputs
@@ -3279,14 +3388,12 @@ dom['sell-btn'].addEventListener('click', () => {
 }
 
 if (dom['index-selector']) {
-    dom['index-selector'].addEventListener('input', () => {
+    dom['index-selector'].addEventListener('change', () => {
+        updateStackTradeDropdown(); 
         updateRealtimePL();
-        // Changing the instrument SHOULD clear the fields, as pip values change.
         clearPipAndPriceInputs();
     });
-}
-
-            // --- ADVANCED PIPS/PRICE EVENT LISTENERS ---
+}            // --- ADVANCED PIPS/PRICE EVENT LISTENERS ---
             dom['sl-pips'].addEventListener('input', () => calculatePriceFromPips('sl'));
             dom['tp-pips'].addEventListener('input', () => calculatePriceFromPips('tp'));
             dom['stop-loss'].addEventListener('input', () => calculatePipsFromPrice('sl'));
@@ -3516,8 +3623,27 @@ dom['calculate-sl-from-risk-btn'].addEventListener('click', handleCalculateSLFro
                     if (confirmed) {
                         const activeAccount = getActiveAccount();
                         const tradeIndex = activeAccount.trades.findIndex(t => t.id === deleteBtn.dataset.id);
+                        
                         if(tradeIndex > -1) {
+                            // --- START: ORPHAN FIX ---
+                            // 1. Capture the group ID before deleting
+                            const deletedTrade = activeAccount.trades[tradeIndex];
+                            const groupId = deletedTrade.groupId;
+
+                            // 2. Delete the trade
                             activeAccount.trades.splice(tradeIndex, 1);
+
+                            // 3. Check if we left an orphan behind
+                            if (groupId) {
+                                const remainingGroupMembers = activeAccount.trades.filter(t => t.groupId === groupId);
+                                
+                                // If only 1 trade is left in the group, it's not a stack anymore.
+                                if (remainingGroupMembers.length === 1) {
+                                    remainingGroupMembers[0].groupId = null;
+                                }
+                            }
+                            // --- END: ORPHAN FIX ---
+
                             saveAppData();
                             refreshUI();
                             showToast("Trade deleted", "info");
@@ -3671,7 +3797,7 @@ const renderDeepDiveSafe = (trades) => {
             updateFilterDropdowns();
             populatePlaybookSelect();
             renderChecklistOnForm();    
-        
+            updateStackTradeDropdown();
             updateSummary(filteredTrades);
             updateAccountGrowth(allTrades);
             
@@ -3739,13 +3865,23 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
 
     const fragment = document.createDocumentFragment();
     tradesToRender.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(trade => {
-        const row = document.createElement('tr');
-        row.className = 'border-b border-border-color';
-        // Check if this trade is currently selected
-            const isSelected = selectedTradeIds.has(trade.id);
-            const checkState = isSelected ? 'checked' : '';
-            const rowBg = isSelected ? 'bg-accent-color/5' : '';
-            row.className = `border-b border-border-color hover:bg-bg-tertiary/50 transition-colors ${rowBg}`;
+    const row = document.createElement('tr');
+
+    // --- START NEW GROUPING VISUALS ---
+    const isSelected = selectedTradeIds.has(trade.id);
+    const checkState = isSelected ? 'checked' : '';
+    const rowBg = isSelected ? 'bg-accent-color/5' : '';
+
+    // Add left border and slight background if grouped
+    let groupClass = '';
+    let groupBadge = '';
+    if (trade.groupId) {
+        groupClass = 'border-l-4 border-l-accent-color bg-accent-color/5';
+        groupBadge = `<span class="text-[10px] bg-accent-color text-white px-1.5 py-0.5 rounded ml-2" title="Group ID: ${trade.groupId}">Stack</span>`;
+    }
+
+    row.className = `border-b border-border-color hover:bg-bg-tertiary/50 transition-colors ${rowBg} ${groupClass}`;
+    // --- END NEW GROUPING VISUALS ---
         
         const isClosed = trade.profitLoss !== null;
         let plText, plClass;
@@ -3785,6 +3921,7 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
                 <td class="px-4 py-3 align-top">
                 <div class="font-medium text-text-primary flex items-center gap-2">
     ${trade.indexName}
+    ${groupBadge} 
     ${!isClosed ? '<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Trade is Open"></span>' : ''}
 </div>
                 <div class="text-xs text-text-secondary">${tradeDate}</div>
