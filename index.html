@@ -1217,49 +1217,53 @@
         </div>
 
         <div class="card p-0 rounded-xl border border-border-color bg-bg-secondary shadow-sm overflow-hidden flex flex-col">
-            <div class="p-5 border-b border-border-color">
-                <h3 class="font-bold text-lg text-text-primary">Pain vs. Gain</h3>
-                <p class="text-xs text-text-secondary">Analysis of drawdown vs missed profit</p>
-            </div>
-            
-            <div class="flex-1 grid grid-rows-2">
-                <div class="p-6 border-b border-border-color/10 bg-green-500/5 flex flex-col justify-center relative group hover:bg-green-500/10 transition-colors">
-                    <div class="flex justify-between items-end">
-                         <div>
-                             <span class="text-sm font-semibold text-green-400 uppercase tracking-wide">Missed Profit</span>
-                             <div id="dash-mfe-val" class="text-2xl font-bold text-green-400 mt-1">--</div>
-                         </div>
-                         <div class="text-right">
-                             <div id="dash-mfe-pct" class="text-sm font-mono text-green-400/70">--%</div>
-                         </div>
-                    </div>
-                    <p class="text-xs text-text-secondary mt-2 opacity-60 group-hover:opacity-100">Avg profit seen on losing trades</p>
-                </div>
-
-                <div class="p-6 bg-red-500/5 flex flex-col justify-center relative group hover:bg-red-500/10 transition-colors">
-                    <div class="flex justify-between items-end">
-                         <div>
-                             <span class="text-sm font-semibold text-red-400 uppercase tracking-wide">Max Drawdown</span>
-                             <div id="dash-mae-val" class="text-2xl font-bold text-red-400 mt-1">--</div>
-                         </div>
-                         <div class="text-right">
-                             <div id="dash-mae-pct" class="text-sm font-mono text-red-400/70">--%</div>
-                         </div>
-                    </div>
-                     <p class="text-xs text-text-secondary mt-2 opacity-60 group-hover:opacity-100">Avg heat taken on winning trades</p>
-                </div>
+    <div class="p-4 border-b border-border-color flex justify-between items-center">
+        <div>
+            <h3 class="font-bold text-lg text-text-primary">Efficiency Analysis</h3>
+            <p class="text-xs text-text-secondary">Optimize your Entries & Exits</p>
+        </div>
+        <div class="group relative">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-text-secondary cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div class="absolute right-0 w-64 p-3 bg-bg-tertiary border border-border-color rounded-lg shadow-xl text-xs text-text-secondary hidden group-hover:block z-50">
+                <p class="mb-2"><strong>Fumble Ratio:</strong> How much profit you saw before the trade turned into a loss.</p>
+                <p><strong>Stop Efficiency:</strong> How much of your Stop Loss distance did price actually travel? If low, your stops are too wide.</p>
             </div>
         </div>
     </div>
-
-    <div class="card p-6 rounded-xl border border-border-color bg-bg-secondary shadow-sm">
-        <h3 class="font-bold text-lg text-text-primary mb-4">Performance by Planned R:R</h3>
-        <div id="rr-performance-body" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    
+    <div class="flex-1 grid grid-rows-2 divide-y divide-border-color">
+        <div class="p-5 bg-gradient-to-r from-bg-secondary to-green-500/5 hover:to-green-500/10 transition-colors">
+            <div class="flex justify-between items-end mb-2">
+                 <div>
+                    <span class="text-[10px] font-bold text-green-400 uppercase tracking-widest">Fumble Ratio (Missed Gains)</span>
+                    <div id="dash-mfe-val" class="text-lg font-bold text-text-primary mt-1">$0.00</div>
+                 </div>
+                 <span id="dash-mfe-pct" class="text-xs font-mono font-bold text-green-400">0%</span>
             </div>
+            <div class="w-full bg-bg-tertiary rounded-full h-1.5 mb-2 overflow-hidden">
+                <div id="dash-mfe-bar" class="bg-green-500 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            <p id="dash-mfe-diagnosis" class="text-xs text-text-secondary italic">Waiting for data...</p>
+        </div>
+
+        <div class="p-5 bg-gradient-to-r from-bg-secondary to-red-500/5 hover:to-red-500/10 transition-colors">
+             <div class="flex justify-between items-end mb-2">
+                 <div>
+                    <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest">Stop Loss Efficiency</span>
+                    <div id="dash-mae-val" class="text-lg font-bold text-text-primary mt-1">0%</div>
+                 </div>
+                 <span id="dash-mae-pct" class="text-xs font-mono font-bold text-red-400">Used</span>
+            </div>
+            <div class="w-full bg-bg-tertiary rounded-full h-1.5 mb-2 overflow-hidden">
+                <div id="dash-mae-bar" class="bg-red-500 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+             <p id="dash-mae-diagnosis" class="text-xs text-text-secondary italic">Waiting for data...</p>
+        </div>
     </div>
 </div>
 
-                    <div id="forecasting-tab" class="tab-content animate-fade-in">
+</div>
+</div>  <div id="forecasting-tab" class="tab-content animate-fade-in">
                         <div class="space-y-6">
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Monte Carlo Simulation</h2><div class="flex flex-wrap items-end gap-4 mb-4"><div><label for="mc-trades" class="block text-sm font-medium text-text-secondary">Trades to Project</label><input type="number" id="mc-trades" value="252" class="form-input mt-1 p-2 rounded-lg w-32"></div><div><label for="mc-simulations" class="block text-sm font-medium text-text-secondary">Simulations</label><input type="number" id="mc-simulations" value="1000" class="form-input mt-1 p-2 rounded-lg w-32"></div><button id="run-mc-btn" class="font-semibold py-2 px-4 rounded-lg btn btn-primary text-white">Run Simulation</button></div><div id="mc-results-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"><canvas id="mcChart"></canvas><div id="mc-stats" class="text-sm"></div></div></div>
                             <div class="card p-6 rounded-xl shadow-sm"><h2 class="text-xl font-semibold mb-4 text-text-primary">Trade Calendar</h2><div class="flex items-center justify-between mb-4"><button id="calendar-prev-btn" class="p-2 rounded-full hover:bg-tertiary">&lt;</button><h3 id="calendar-title" class="text-lg font-semibold text-center flex-grow cursor-pointer hover:text-accent-color transition-colors" title="Click to go up a level"></h3><button id="calendar-next-btn" class="p-2 rounded-full hover:bg-tertiary">&gt;</button></div><div class="flex justify-center mb-4"><div id="calendar-view-toggle" class="flex items-center bg-tertiary p-1 rounded-lg"><button data-view="day" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Day</button><button data-view="month" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Month</button><button data-view="year" class="calendar-view-btn px-3 py-1 text-xs font-semibold rounded-md transition-colors">Year</button></div></div><div id="calendar-day-headers" class="grid grid-cols-7 gap-1 text-center text-xs text-text-secondary mb-2"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div><div id="calendar-body" class="grid gap-2"></div></div>
@@ -1502,8 +1506,7 @@
             'avg-mae-winners', 'total-mae-winners', 'mae-comparison-bar',
             'avg-mfe-losers', 'total-mfe-losers', 'mfe-comparison-bar',
             'custom-modal-overlay', 'custom-modal-title', 'custom-modal-text', 'custom-modal-cancel-btn', 'custom-modal-confirm-btn', 'custom-modal-input-container', 'custom-modal-input',
-            'accent-color-picker', 'sl-pips', 'tp-pips', 'riskConsistencyChart', 'rr-performance-body',
-            'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body', 'calendar-prev-btn', 
+            'accent-color-picker', 'sl-pips', 'tp-pips', 'riskConsistencyChart', 'breakeven-slider', 'breakeven-value', 'avg-win-loss-comparison', 'trade-duration-performance-body', 'calendar-prev-btn', 
 'calendar-next-btn', 
 'calendar-title', 
 'calendar-view-toggle', 
@@ -2308,248 +2311,226 @@ const renderAvgWinLossBars = (avgWin, avgLoss) => {
 
 const updateAdviser = (allTrades) => {
     const content = dom['adviser-content'];
-    content.innerHTML = ''; // Clear previous advice
+    content.innerHTML = ''; 
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
 
-    if (closedTrades.length < 20) { // Increased threshold for super advanced analysis
-        content.innerHTML = '<p class="text-center text-text-secondary">Log at least 20 trades for the Super Advanced Adviser to generate its report.</p>';
+    if (closedTrades.length < 10) { 
+        content.innerHTML = '<div class="p-6 text-center border border-dashed border-border-color rounded-xl"><p class="text-text-secondary">AI Adviser needs at least 10 closed trades to generate a reliable behavioral profile.</p></div>';
         return;
     }
 
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
+    const activeAccount = getActiveAccount(); 
 
-    // --- 1. GATHER ALL ANALYTICS & METRICS ---
-    const metrics = {};
-    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
-    const losingTrades = closedTrades.filter(t => t.profitLoss <= 0);
+    // --- 1. METRICS CALCULATION (MERGED OLD & NEW) ---
+    const wins = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
+    const losses = closedTrades.filter(t => t.profitLoss <= 0);
     
-    metrics.totalProfit = winningTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-    metrics.totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profitLoss, 0));
-    metrics.profitFactor = metrics.totalLoss > 0 ? metrics.totalProfit / metrics.totalLoss : Infinity;
-    metrics.winRate = (winningTrades.length + losingTrades.length) > 0 ? (winningTrades.length / (winningTrades.length + losingTrades.length)) * 100 : 0;
-    metrics.avgWin = winningTrades.length > 0 ? metrics.totalProfit / winningTrades.length : 0;
-    metrics.avgLoss = losingTrades.length > 0 ? metrics.totalLoss / losingTrades.length : 0;
-    metrics.realizedRR = metrics.avgLoss > 0 ? metrics.avgWin / metrics.avgLoss : 0;
-    
-    // Day of week performance
-    metrics.dailyPerformance = { 'Sun': {pl:0, count:0}, 'Mon': {pl:0, count:0}, 'Tue': {pl:0, count:0}, 'Wed': {pl:0, count:0}, 'Thu': {pl:0, count:0}, 'Fri': {pl:0, count:0}, 'Sat': {pl:0, count:0} };
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    closedTrades.forEach(t => { const day = days[new Date(t.timestamp).getDay()]; metrics.dailyPerformance[day].pl += t.profitLoss; metrics.dailyPerformance[day].count++; });
+    // Basic Stats
+    const totalPL = closedTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+    const profitFactor = Math.abs(losses.reduce((s, t) => s + t.profitLoss, 0)) > 0 ? wins.reduce((s, t) => s + t.profitLoss, 0) / Math.abs(losses.reduce((s, t) => s + t.profitLoss, 0)) : Infinity;
+    const winRate = closedTrades.length > 0 ? (wins.length / closedTrades.length) * 100 : 0;
+    const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.profitLoss, 0) / wins.length : 0;
+    const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + t.profitLoss, 0)) / losses.length : 0;
+    const realizedRR = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-    // Risk Consistency
-    const riskTrades = closedTrades.filter(t => t.stopLoss !== null && !isNaN(t.stopLoss));
-    const riskAmounts = riskTrades.map(t => Math.abs(calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.stopLoss, t.indexName).profit || 0));
-    if (riskAmounts.length > 1) {
-        metrics.avgRisk = riskAmounts.reduce((a, b) => a + b, 0) / riskAmounts.length;
-        const variance = riskAmounts.reduce((a, b) => a + Math.pow(b - metrics.avgRisk, 2), 0) / riskAmounts.length;
-        metrics.riskStdDev = Math.sqrt(variance);
-        metrics.riskConsistencyRatio = metrics.avgRisk > 0 ? metrics.riskStdDev / metrics.avgRisk : 0;
-    } else { metrics.riskConsistencyRatio = 0; }
-    
-    // --- Checklist Adherence
-const checklist = getActiveAccount()?.checklist || [];
-metrics.nonCompliantTrades = [];
-if (checklist.length > 0) {
-    // CORRECTED LOGIC: A trade is non-compliant if not every master rule is found in the trade's checklist.
-    metrics.nonCompliantTrades = closedTrades.filter(trade => {
-        const checkedItems = trade.checklistMet || [];
-        return !checklist.every(masterRule => checkedItems.includes(masterRule));
-    });
+    // A. NEW: TIME ANALYSIS (The "Hope" Detector)
+    const getDuration = (t) => new Date(t.exitTimestamp) - new Date(t.timestamp);
+    const avgHoldWin = wins.length > 0 ? wins.reduce((sum, t) => sum + getDuration(t), 0) / wins.length : 0;
+    const avgHoldLoss = losses.length > 0 ? losses.reduce((sum, t) => sum + getDuration(t), 0) / losses.length : 0;
+    const hopeRatio = avgHoldWin > 0 ? avgHoldLoss / avgHoldWin : 1; 
 
-    if (metrics.nonCompliantTrades.length > 0) {
-        metrics.nonCompliantPL = metrics.nonCompliantTrades.reduce((sum, t) => sum + t.profitLoss, 0);
-    }
-}
-
-    // Psychology
-    const psychologyStats = {};
-    closedTrades.forEach(trade => { (trade.psychologyTags || []).forEach(tag => { if (!psychologyStats[tag]) psychologyStats[tag] = { totalPL: 0, count: 0 }; psychologyStats[tag].totalPL += trade.profitLoss; psychologyStats[tag].count++; }); });
-    metrics.topPsychologyLeak = Object.entries(psychologyStats).filter(([tag, data]) => data.count > 2 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
-
-    // MFE on Losers (Reversals)
-    const reversedTrades = closedTrades.filter(t => t.profitLoss <= 0 && t.peakPrice && calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit > breakevenThreshold);
-    if (reversedTrades.length > 0) {
-        metrics.slippedProfit = reversedTrades.reduce((sum, t) => sum + calculatePL(t.tradeType, t.lotSize, t.entryPrice, t.peakPrice, t.indexName).profit, 0);
-        metrics.reversalRate = reversedTrades.length / closedTrades.length;
-    }
-
-    // Best Strategy
-    const tagStats = closedTrades.reduce((acc, trade) => { (trade.tags || []).forEach(tag => { if (!acc[tag]) acc[tag] = { totalPL: 0, count: 0 }; acc[tag].totalPL += trade.profitLoss; acc[tag].count++; }); return acc; }, {});
-    metrics.topStrategy = Object.entries(tagStats).filter(([tag, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-
-    // *** NEW LOGIC: Analyze Strategy Tag Pairs ***
-    const tagPairStats = {};
-    closedTrades.forEach(trade => {
-        if (trade.tags && trade.tags.length >= 2) {
-            const sortedTags = [...trade.tags].sort(); // Create a sorted copy
-            for (let i = 0; i < sortedTags.length; i++) {
-                for (let j = i + 1; j < sortedTags.length; j++) {
-                    const pairKey = `${sortedTags[i]}|${sortedTags[j]}`; // Use a delimiter
-                    if (!tagPairStats[pairKey]) {
-                        tagPairStats[pairKey] = { totalPL: 0, count: 0 };
-                    }
-                    tagPairStats[pairKey].totalPL += trade.profitLoss;
-                    tagPairStats[pairKey].count++;
-                }
+    // B. NEW: ENTRY PRECISION (The "Sniper" Score)
+    let validSniperTrades = 0;
+    let totalHeatRatio = 0;
+    wins.forEach(t => {
+        if (t.maePrice && t.stopLoss && t.entryPrice) {
+            const riskDist = Math.abs(t.entryPrice - t.stopLoss);
+            const heatDist = Math.abs(t.entryPrice - t.maePrice);
+            if (riskDist > 0) {
+                totalHeatRatio += (heatDist / riskDist);
+                validSniperTrades++;
             }
         }
     });
+    const avgHeat = validSniperTrades > 0 ? (totalHeatRatio / validSniperTrades) * 100 : 0;
 
-    const MIN_PAIR_TRADES = 3; // Minimum trades for a pair to be considered significant
-    const significantPairs = Object.entries(tagPairStats)
-        .filter(([key, data]) => data.count >= MIN_PAIR_TRADES && data.totalPL > 0)
-        .sort((a, b) => b[1].totalPL - a[1].totalPL);
-    
-    metrics.topTagPair = significantPairs.length > 0 ? significantPairs[0] : null;
-    // *** END OF NEW LOGIC ***
-    
-    // Timeframe Performance
-    const timeframeStats = closedTrades.reduce((acc, trade) => {
-        if (trade.timeframe) {
-            if (!acc[trade.timeframe]) acc[trade.timeframe] = { totalPL: 0, count: 0 };
-            acc[trade.timeframe].totalPL += trade.profitLoss;
-            acc[trade.timeframe].count++;
-        }
-        return acc;
-    }, {});
-    metrics.topTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL > 0).sort((a, b) => b[1].totalPL - a[1].totalPL)[0];
-    metrics.worstTimeframe = Object.entries(timeframeStats).filter(([tf, data]) => data.count > 3 && data.totalPL < 0).sort((a, b) => a[1].totalPL - b[1].totalPL)[0];
-    
-    // --- 2. DEFINE THE ADVANCED RULES ENGINE ---
-    let strengths = [];
-    let weaknesses = [];
-
-    // --- STRENGTH IDENTIFICATION ---
-    if (metrics.profitFactor >= 2) strengths.push({ score: 95, text: `Excellent Profitability (Profit Factor: ${metrics.profitFactor.toFixed(2)})` });
-    if (metrics.realizedRR >= 2) strengths.push({ score: 90, text: `Superb Risk Management (Avg Win is ${metrics.realizedRR.toFixed(1)}x Avg Loss)` });
-    // Add the new synergy check
-    if (metrics.topTagPair) {
-        const pairName = metrics.topTagPair[0].replace('|', ' & ');
-        const pairData = metrics.topTagPair[1];
-        strengths.push({ score: 88, text: `Powerful Tag Synergy ('${pairName}' combination is highly profitable, generating $${pairData.totalPL.toFixed(2)})` });
-    }
-    if (metrics.topStrategy) strengths.push({ score: 85, text: `High-Performing Strategy ('${metrics.topStrategy[0]}' has generated $${metrics.topStrategy[1].totalPL.toFixed(2)})` });
-    if (metrics.topTimeframe) strengths.push({ score: 82, text: `High-Performing Timeframe ('${metrics.topTimeframe[0]}' has generated $${metrics.topTimeframe[1].totalPL.toFixed(2)})` });
-    if (metrics.winRate > 65) strengths.push({ score: 80, text: `High Win Rate Accuracy (${metrics.winRate.toFixed(1)}%)` });
-
-
-    // --- WEAKNESS IDENTIFICATION ---
-    if (metrics.profitFactor < 1) weaknesses.push({ id: 'unprofitable', score: 100, impact: Math.abs(metrics.totalProfit + metrics.totalLoss), category: 'Profitability', title: "System is Unprofitable", description: `Your Profit Factor is ${metrics.profitFactor.toFixed(2)}. This is the most critical issue as your total losses currently outweigh your total profits.` });
-    if (metrics.realizedRR < 1 && metrics.avgLoss > 0) weaknesses.push({ id: 'negativeRR', score: 90, impact: metrics.avgLoss - metrics.avgWin, category: 'Risk Management', title: "Negative Risk:Reward", description: `Your average loss ($${metrics.avgLoss.toFixed(2)}) is bigger than your average win ($${metrics.avgWin.toFixed(2)}), making long-term profitability very difficult.` });
-    if (metrics.riskConsistencyRatio > 0.6) weaknesses.push({ id: 'badSizing', score: 85, impact: metrics.riskStdDev, category: 'Risk Management', title: "Inconsistent Position Sizing", description: `Your risk per trade is highly erratic. This makes your equity curve unpredictable and suggests emotional sizing.` });
-    if (metrics.reversalRate > 0.20) weaknesses.push({ id: 'badExits', score: 80, impact: metrics.slippedProfit, category: 'Execution', title: "Poor Profit Taking", description: `You let ${Math.round(metrics.reversalRate*100)}% of trades reverse from winners to losers, costing you $${metrics.slippedProfit.toFixed(2)} in potential profit.` });
-    if (metrics.nonCompliantPL < 0) weaknesses.push({ id: 'noDiscipline', score: 75, impact: Math.abs(metrics.nonCompliantPL), category: 'Discipline', title: "Lack of Discipline", description: `Breaking your own rules is expensive. Your non-compliant trades have cost you $${Math.abs(metrics.nonCompliantPL).toFixed(2)}.` });
-    const worstDay = Object.entries(metrics.dailyPerformance).filter(([d, data]) => data.count > 4 && data.pl < 0).sort((a,b) => a[1].pl - b[1].pl)[0];
-    if (worstDay) weaknesses.push({ id: 'badDay', score: 70, impact: Math.abs(worstDay[1].pl), category: 'Patterns', title: `Performance Leak on ${worstDay[0]}s`, description: `You have a clear negative pattern on ${worstDay[0]}s, with a cumulative loss of $${Math.abs(worstDay[1].pl).toFixed(2)}.` });
-    if (metrics.topPsychologyLeak) weaknesses.push({ id: 'psychology', score: 65, impact: Math.abs(metrics.topPsychologyLeak[1].totalPL), category: 'Psychology', title: `Psychological Leak: '${metrics.topPsychologyLeak[0]}'`, description: `Trading while feeling '${metrics.topPsychologyLeak[0]}' is your most expensive emotional error.` });
-    if (metrics.worstTimeframe) weaknesses.push({ id: 'badTimeframe', score: 68, impact: Math.abs(metrics.worstTimeframe[1].totalPL), category: 'Patterns', title: `Performance Leak on ${metrics.worstTimeframe[0]} Timeframe`, description: `You have a clear negative pattern on the ${metrics.worstTimeframe[0]} timeframe, with a cumulative loss of $${Math.abs(metrics.worstTimeframe[1].totalPL).toFixed(2)}.` });
-
-    // --- 3. CORRELATE DATA FOR "TOXIC COMBOS" ---
-    if(weaknesses.length > 0) {
-        weaknesses.sort((a, b) => b.score - a.score);
-        const topWeakness = weaknesses[0];
-        let correlationDetail = '';
-
-        if (topWeakness.id === 'noDiscipline' && metrics.topPsychologyLeak) {
-            const nonCompliantWithLeak = metrics.nonCompliantTrades.filter(t => t.psychologyTags?.includes(metrics.topPsychologyLeak[0]));
-            if (nonCompliantWithLeak.length / metrics.nonCompliantTrades.length > 0.4) {
-                 correlationDetail = `A key finding is the link between your psychology and discipline. When you trade with '${metrics.topPsychologyLeak[0]}', you are significantly more likely to break your own rules.`;
+    // C. NEW: REVENGE TRADING DETECTION
+    let revengeSignals = 0;
+    const sortedTrades = [...closedTrades].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    for (let i = 1; i < sortedTrades.length; i++) {
+        const prev = sortedTrades[i-1];
+        const curr = sortedTrades[i];
+        if (prev.profitLoss < 0) {
+            const timeDiffMins = (new Date(curr.timestamp) - new Date(prev.exitTimestamp)) / 60000;
+            if (timeDiffMins < 20 && timeDiffMins > 0 && curr.lotSize > prev.lotSize) {
+                revengeSignals++;
             }
-        }
-        else if (topWeakness.id === 'negativeRR' && worstDay) {
-            const losingTradesOnWorstDay = losingTrades.filter(t => days[new Date(t.timestamp).getDay()] === worstDay[0]);
-            if(losingTradesOnWorstDay.length / losingTrades.length > 0.3) { // If >30% of losses occur on the worst day
-                 correlationDetail = `This issue is most severe on <strong>${worstDay[0]}s</strong>. You tend to take bigger losses on this day, which drags down your entire average.`;
-            }
-        }
-        else if(topWeakness.id === 'badSizing' && metrics.topPsychologyLeak) {
-            const riskTradesWithLeak = riskTrades.filter(t => t.psychologyTags?.includes(metrics.topPsychologyLeak[0]));
-            if (riskTradesWithLeak.length / riskTrades.length > 0.3) { // If >30% of trades with risk have the leak tag
-                correlationDetail = `Your inconsistent sizing appears to be driven by emotion. Trades tagged with '${metrics.topPsychologyLeak[0]}' show the highest variance in position size.`;
-            }
-        }
-        
-        if (correlationDetail) {
-            weaknesses[0].description += ` <br><strong>Correlation found:</strong> ${correlationDetail}`;
         }
     }
 
+    // D. OLD: STRUCTURAL ANALYSIS (Timeframe, Day, Strategy)
+    const timeframeStats = {};
+    const dayStats = {};
+    const strategyStats = {};
+    
+    closedTrades.forEach(t => {
+        // Timeframe
+        if(t.timeframe) {
+            if(!timeframeStats[t.timeframe]) timeframeStats[t.timeframe] = { pl: 0, count: 0 };
+            timeframeStats[t.timeframe].pl += t.profitLoss;
+            timeframeStats[t.timeframe].count++;
+        }
+        // Day
+        const day = new Date(t.timestamp).toLocaleDateString('en-US', {weekday: 'long'});
+        if(!dayStats[day]) dayStats[day] = { pl: 0, count: 0 };
+        dayStats[day].pl += t.profitLoss;
+        dayStats[day].count++;
+        // Strategy
+        if(t.tags) {
+            t.tags.forEach(tag => {
+                if(!strategyStats[tag]) strategyStats[tag] = { pl: 0, count: 0 };
+                strategyStats[tag].pl += t.profitLoss;
+                strategyStats[tag].count++;
+            });
+        }
+    });
 
-    // --- 4. GENERATE PERSONA & ACTION PLAN ---
-    let persona = "You are a Developing Trader.";
-    if (strengths.length > 2 && weaknesses.length < 2) persona = "You are a Consistent & Profitable Trader.";
-    else if (metrics.realizedRR > 1.5 && metrics.winRate < 50) persona = "You are a Patient Trader with great risk management but could improve entry timing.";
-    else if (metrics.winRate > 60 && metrics.realizedRR < 1.2) persona = "You are an Accurate Trader with precise entries, but need to work on maximizing profits.";
-    else if (weaknesses.find(w => w.id === 'noDiscipline') || weaknesses.find(w => w.id === 'psychology')) persona = "You are an Emotional Trader whose psychology is the biggest barrier to profitability.";
+    const worstTimeframe = Object.entries(timeframeStats).sort((a,b) => a[1].pl - b[1].pl)[0];
+    const bestTimeframe = Object.entries(timeframeStats).sort((a,b) => b[1].pl - a[1].pl)[0];
+    const worstDay = Object.entries(dayStats).sort((a,b) => a[1].pl - b[1].pl)[0];
+    const bestStrategy = Object.entries(strategyStats).sort((a,b) => b[1].pl - a[1].pl)[0];
 
+    // --- 2. LOGIC ENGINE (STRENGTHS & WEAKNESSES) ---
+    const strengths = [];
+    const weaknesses = [];
+
+    // Strengths
+    if (winRate > 60) strengths.push({ text: `High Accuracy (${winRate.toFixed(1)}% Win Rate)` });
+    if (avgHeat > 0 && avgHeat < 20) strengths.push({ text: `Sniper Entries (Winners only take ${avgHeat.toFixed(0)}% heat)` });
+    if (hopeRatio < 0.8) strengths.push({ text: `Fast Loser Cutting (Losers held shorter than winners)` });
+    if (bestStrategy) strengths.push({ text: `Best Strategy: "${bestStrategy[0]}" (+$${bestStrategy[1].pl.toFixed(2)})` });
+    if (bestTimeframe) strengths.push({ text: `Best Timeframe: ${bestTimeframe[0]} (+$${bestTimeframe[1].pl.toFixed(2)})` });
+
+    // Weaknesses (Prioritized by Impact)
+    // 1. Revenge Trading (Highest Severity)
+    if (revengeSignals > 0) {
+        weaknesses.push({
+            id: 'revenge', score: 100, category: 'Psychology', title: 'Revenge Trading Detected',
+            description: `We detected <b>${revengeSignals} times</b> where you entered immediately after a loss with larger size.`
+        });
+    }
+    // 2. The "Hope" Factor
+    if (hopeRatio > 2.0) {
+        weaknesses.push({
+            id: 'hope', score: 95, category: 'Psychology', title: 'The "Hope" Factor',
+            description: `You hold losers <b>${hopeRatio.toFixed(1)}x longer</b> than winners. You are hoping trades turn around instead of cutting them.`
+        });
+    }
+    // 3. Entry Timing
+    if (avgHeat > 75) {
+        weaknesses.push({
+            id: 'timing', score: 90, category: 'Execution', title: 'Imprecise Entries',
+            description: `Your winners go <b>${avgHeat.toFixed(0)}%</b> toward your stop loss before working. You are surviving by luck, not precision.`
+        });
+    }
+    // 4. Structural Leaks (Old Features)
+    if (worstTimeframe && worstTimeframe[1].pl < -100) {
+        weaknesses.push({
+            id: 'badTimeframe', score: 80, category: 'Patterns', title: `Leak on ${worstTimeframe[0]} Timeframe`,
+            description: `You have lost <b>$${Math.abs(worstTimeframe[1].pl).toFixed(2)}</b> on the ${worstTimeframe[0]} timeframe.`
+        });
+    }
+    if (worstDay && worstDay[1].pl < -100) {
+        weaknesses.push({
+            id: 'badDay', score: 75, category: 'Patterns', title: `Performance Leak on ${worstDay[0]}s`,
+            description: `<b>${worstDay[0]}</b> is your worst trading day, with a total loss of $${Math.abs(worstDay[1].pl).toFixed(2)}.`
+        });
+    }
+    if (realizedRR < 1 && avgLoss > 0) {
+         weaknesses.push({
+            id: 'negativeRR', score: 85, category: 'Risk Management', title: 'Inverted Risk:Reward',
+            description: `Your average loss ($${avgLoss.toFixed(2)}) is bigger than your average win ($${avgWin.toFixed(2)}).`
+        });
+    }
+
+    // --- 3. ACTION PLANS (EXPANDED) ---
     const actionPlan = {
-        'unprofitable': ["1. **Stop Trading Live.** Go back to demo or paper trading immediately.", "2. **Focus on ONE setup** from your playbook. Master it.", "3. **Do not proceed** until you can achieve a Profit Factor > 1.2 over 50+ trades."],
-        'negativeRR': ["1. **Mandatory R:R Check:** Before every trade, explicitly state your planned R:R. If it's below 1.5, reject the trade.", "2. **Review Your Top 5 Losses:** Find the exact point you should have exited. Was it a break of structure? A candle close? Define this as a hard exit rule.", "3. **Let Winners Run:** Trust your Take Profit. Use smaller position sizes if you feel fear about giving back profits."],
-        'badSizing': ["1. **Use a Position Size Calculator:** This is non-negotiable. Use one for EVERY trade.", "2. **Define Fixed Risk:** Decide on a fixed % (e.g., 1%) or fixed dollar amount (e.g., $100) to risk per trade.", "3. **Lock It In:** Write this risk amount on a sticky note and put it on your monitor. Do not deviate."],
-        'badExits': ["1. **Implement a Breakeven Rule:** Once a trade reaches 1R in profit, move your stop loss to your entry price. This is your #1 priority.", "2. **Partial Profits:** Consider taking 50% profit at 1.5R or 2R. This secures gains and makes it easier to hold for the final target.", "3. **Study Your MFE:** Review the 'Slipped P/L' metric in your analytics. This is money you are leaving on the table."],
-        'noDiscipline': ["1. **Print Your Checklist:** Keep a physical copy on your desk. Touch each item before entering a trade.", "2. **Introduce a 'Cool-off' Period:** If you break a rule, you must stop trading for the rest of the day.", "3. **Accountability:** At the end of each day, write one sentence explaining why you followed or broke your rules."],
-        'badDay': [`1. **Analyze All ${worstDay ? worstDay[0] : ''} Trades:** What do they have in common? Are you forcing setups? Is volume low?`, `2. **Cut Risk in Half:** For the next 4 weeks, trade with 50% of your normal size on ${worstDay ? worstDay[0] : ''}s.`, `3. **Consider Taking it Off:** If performance doesn't improve, use that day for review and study instead of live trading.`],
-        'psychology': [`1. **Identify the Trigger:** Before each trade, pause and ask, "Am I feeling ${metrics.topPsychologyLeak ? metrics.topPsychologyLeak[0] : 'emotional'}?".`, `2. **Create a State-Change Routine:** If the answer is yes, you MUST step away. Walk, listen to music, stretch. Do not trade until you feel neutral.`, `3. **Journal the Emotion:** Write down *why* you felt that way. Was it after a loss? A big win? A news event? Finding the source is key.`],
-       'badTimeframe': [
-            `1. <strong>Analyze All Losing Trades</strong> on the ${metrics.worstTimeframe ? metrics.worstTimeframe[0] : ''} timeframe. Is the setup less clear? Are you forcing trades?`,
-            `2. <strong>Impose a Rule:</strong> For the next 20 trades, either avoid this timeframe completely or reduce your position size by 75% when trading on it.`,
-            `3. <strong>Compare to Your Best Timeframe:</strong> What are the key differences in market conditions or your own execution versus your most profitable timeframe?`
-        ]
+        'revenge': ["1. **The 30-Minute Rule:** After any loss, you are physically forbidden from placing a trade for 30 minutes.", "2. **Walk Away:** Leave the screen. The urge to revenge trade peaks in the first 5 minutes.", "3. **Hard Stop:** If you revenge trade again, switch account to 'Read Only' mode for 24h."],
+        'hope': ["1. **Time-Based Stop:** If a trade hasn't moved in your favor within 3 candles, kill it manually.", "2. **Hard SL Only:** Never trade without a hard stop loss in the broker.", "3. **Journal the Emotion:** Write down 'I am hoping' the moment you feel it, then exit."],
+        'timing': ["1. **Wait for Pullbacks:** You are entering too early. Wait for price to retrace 50% of the setup candle.", "2. **Tighten Stops:** Since your winners survive deep drawdowns, your stops are likely too wide for your entry style.", "3. **Limit Orders:** Stop using market execution. Force yourself to get a better price."],
+        'badTimeframe': [`1. **Stop Trading ${worstTimeframe ? worstTimeframe[0] : 'this'} Timeframe:** It does not suit your personality.`, `2. **Move Up/Down:** If you are losing on ${worstTimeframe ? worstTimeframe[0] : ''}, try the next timeframe up for clarity or down for precision.`],
+        'badDay': [`1. **No Trade ${worstDay ? worstDay[0] : 'Day'}:** Take this day off for the next month.`, `2. **Review Session:** Use this day to review logs instead of risking capital.`],
+        'negativeRR': ["1. **Cut Losers Faster:** Don't let a loss pass 1R.", "2. **Hold Winners:** Set a TP at 2R and DO NOT touch it."]
     };
 
-
-    // --- 5. RENDER THE REPORT ---
-    strengths.sort((a,b) => b.score - a.score);
-    weaknesses.sort((a, b) => b.impact - a.impact); // Sort by financial impact!
-
-    const topWeakness = weaknesses[0];
-
-    const categoryIcons = {
-        'Profitability': '📈', 'Risk Management': '🛡️', 'Execution': '🎯', 'Discipline': '📋', 'Patterns': '🗓️', 'Psychology': '🧠'
-    };
-
+    // --- 4. RENDER UI ---
     let html = `<div class="p-4 bg-tertiary/50 rounded-lg border border-border-color space-y-6">`;
 
-    // Executive Summary
+    // A. "Vibe Check" / Persona
+    let persona = "Developing Trader";
+    let personaColor = "text-text-secondary";
+    if (revengeSignals > 0) { persona = "⚠️ High Risk: Revenge Trader"; personaColor = "text-red-500"; }
+    else if (hopeRatio > 1.5) { persona = "⚠️ Caution: Hopeful Holder"; personaColor = "text-yellow-500"; }
+    else if (winRate > 50 && totalPL > 0 && avgHeat < 30) { persona = "✅ Pro: Disciplined Sniper"; personaColor = "text-green-500"; }
+
     html += `<div>
-                <h3 class="text-xs font-semibold uppercase text-text-secondary tracking-wider">Executive Summary</h3>
-                <p class="text-lg font-semibold text-accent-color mt-1">"${persona}"</p>
+                <h3 class="text-xs font-semibold uppercase text-text-secondary tracking-wider">Behavioral Profile</h3>
+                <p class="text-lg font-bold ${personaColor} mt-1">${persona}</p>
              </div>`;
-    
-    // Strengths
+
+    // B. New "Cards" for Behavioral Stats
+    html += `<div class="grid grid-cols-3 gap-2">
+                <div class="bg-bg-secondary p-3 rounded border border-border-color text-center">
+                    <div class="text-[10px] text-text-secondary uppercase">Sniper Score</div>
+                    <div class="text-lg font-bold ${avgHeat < 30 ? 'text-green-500' : 'text-red-500'}">${(100-avgHeat).toFixed(0)}/100</div>
+                </div>
+                <div class="bg-bg-secondary p-3 rounded border border-border-color text-center">
+                    <div class="text-[10px] text-text-secondary uppercase">Hope Ratio</div>
+                    <div class="text-lg font-bold ${hopeRatio < 1 ? 'text-green-500' : 'text-red-500'}">${hopeRatio.toFixed(2)}x</div>
+                </div>
+                <div class="bg-bg-secondary p-3 rounded border border-border-color text-center">
+                    <div class="text-[10px] text-text-secondary uppercase">Revenge</div>
+                    <div class="text-lg font-bold ${revengeSignals === 0 ? 'text-green-500' : 'text-red-500'}">${revengeSignals}</div>
+                </div>
+             </div>`;
+
+    // C. Strengths & Weaknesses Lists
     if (strengths.length > 0) {
         html += `<div class="border-t border-border-color pt-4">
-                    <h3 class="text-base font-bold text-green-400">✅ Key Strengths</h3>
+                    <h3 class="text-base font-bold text-green-400">✅ Top Strengths</h3>
                     <ul class="list-disc list-inside mt-2 space-y-1 text-sm text-text-secondary">
-                        ${strengths.slice(0,2).map(s => `<li>${s.text}</li>`).join('')}
+                        ${strengths.slice(0,3).map(s => `<li>${s.text}</li>`).join('')}
                     </ul>
                 </div>`;
     }
 
-    // Weaknesses
     if (weaknesses.length > 0) {
+        weaknesses.sort((a,b) => b.score - a.score); // Sort by severity
+        const topWeakness = weaknesses[0];
+        
         html += `<div class="border-t border-border-color pt-4">
-                    <h3 class="text-base font-bold text-red-400">🚨 Critical Growth Areas</h3>
+                    <h3 class="text-base font-bold text-red-400">🚨 Critical Leaks</h3>
                      <div class="space-y-3 mt-2">
                         ${weaknesses.slice(0,2).map(w => `
                             <div class="text-sm">
-                                <p class="font-semibold text-text-primary">${categoryIcons[w.category] || '🔹'} ${w.title}</p>
-                                <p class="text-text-secondary text-xs pl-6">${w.description}</p>
+                                <p class="font-semibold text-text-primary"> ${w.title}</p>
+                                <p class="text-text-secondary text-xs pl-0">${w.description}</p>
                             </div>
                         `).join('')}
                     </div>
                 </div>`;
-    }
 
-    // Action Plan
-    if (topWeakness) {
+        // D. Action Plan
         html += `<div class="border-t border-border-color pt-4">
-                    <h3 class="text-base font-bold text-yellow-400">🎯 Your #1 Action Plan: Fixing "${topWeakness.title}"</h3>
+                    <h3 class="text-base font-bold text-yellow-400">🎯 AI Coaching Plan: Fixing "${topWeakness.title}"</h3>
                     <ol class="list-decimal list-inside mt-2 space-y-2 text-sm text-text-secondary">
-                         ${actionPlan[topWeakness.id] ? actionPlan[topWeakness.id].map(step => `<li>${step}</li>`).join('') : '<li>No specific action plan available. Focus on journaling this issue.</li>'}
+                         ${actionPlan[topWeakness.id] ? actionPlan[topWeakness.id].map(step => `<li>${step}</li>`).join('') : '<li>Focus on journaling to identify the root cause.</li>'}
                     </ol>
                 </div>`;
     }
+
+    // E. Risk Optimization Call (Retained!)
     html += updateRiskOptimizationEngine(closedTrades, breakevenThreshold);
     html += `</div>`;
     content.innerHTML = html;
@@ -3931,7 +3912,6 @@ if (!dom['analytics-page'].classList.contains('hidden')) {
             updateAdvancedAnalytics(tradesForAnalytics, maxDrawdownUSD);
             renderDeepDiveSafe(tradesForAnalytics);
             updateRRAnalysis(tradesForAnalytics);
-            updateRRPerformanceAnalysis(tradesForAnalytics);
             updateTradeCalendar(); 
             updateReversalAnalysis(tradesForAnalytics);
             updateExcursionAnalysis(tradesForAnalytics);
@@ -5054,85 +5034,110 @@ const updateRRAnalysis = (allTrades) => {
                 </div>
             `;
         };
-       // --- DASHBOARD UPDATE 2: Efficiency & Excursion ---
-const updateExcursionAnalysis = (allTrades) => {
-    // 1. Safety Check: Ensure elements exist before trying to update them
+       const updateExcursionAnalysis = (allTrades) => {
+    // 1. Get Elements
     const mfeValEl = document.getElementById('dash-mfe-val');
     const mfePctEl = document.getElementById('dash-mfe-pct');
+    const mfeBar = document.getElementById('dash-mfe-bar');
+    const mfeDiag = document.getElementById('dash-mfe-diagnosis');
+    
     const maeValEl = document.getElementById('dash-mae-val');
     const maePctEl = document.getElementById('dash-mae-pct');
+    const maeBar = document.getElementById('dash-mae-bar');
+    const maeDiag = document.getElementById('dash-mae-diagnosis');
 
     if (!mfeValEl || !maeValEl) return; 
 
     const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-    
-    // 2. Filter Trades
-    // Only analyze closed trades
     const closedTrades = allTrades.filter(t => t.profitLoss !== null);
-    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold);
-    const losingOrBETrades = closedTrades.filter(t => t.profitLoss <= breakevenThreshold);
 
-    // 3. MAE (Pain) Logic: Analyze "Heat" taken on Winning Trades
-    let totalMAE = 0;
-    let maeCount = 0;
+    // --- LOGIC 1: STOP LOSS EFFICIENCY (Winners) ---
+    // How much of the planned stop loss did we actually use?
+    const winningTrades = closedTrades.filter(t => t.profitLoss > breakevenThreshold && t.maePrice && t.stopLoss);
     
-    winningTrades.forEach(trade => {
-        const maePrice = parseFloat(trade.maePrice);
-        const entryPrice = parseFloat(trade.entryPrice);
-        const lotSize = parseFloat(trade.lotSize);
+    let totalEfficiency = 0;
+    let validWinners = 0;
+
+    winningTrades.forEach(t => {
+        const entry = parseFloat(t.entryPrice);
+        const sl = parseFloat(t.stopLoss);
+        const mae = parseFloat(t.maePrice);
         
-        // Only calculate if we have a valid MAE price recorded
-        if (!isNaN(maePrice) && !isNaN(entryPrice)) {
-            const { profit } = calculatePL(trade.tradeType, lotSize, entryPrice, maePrice, trade.indexName);
-            // We are looking for negative numbers (drawdown). 
-            // We take the absolute value to show "Avg Heat".
-            if (profit !== null && profit < 0) {
-                totalMAE += Math.abs(profit);
-                maeCount++;
-            }
+        // Distance from Entry to SL (Planned Risk)
+        const plannedRiskDist = Math.abs(entry - sl);
+        // Distance from Entry to MAE (Actual Heat)
+        const actualHeatDist = Math.abs(entry - mae);
+
+        if (plannedRiskDist > 0) {
+            // If actual heat > planned risk, we cap at 100% (stop hit/slipped)
+            const ratio = Math.min((actualHeatDist / plannedRiskDist) * 100, 100);
+            totalEfficiency += ratio;
+            validWinners++;
         }
     });
 
-    const avgMAE = maeCount > 0 ? totalMAE / maeCount : 0;
+    const avgStopEfficiency = validWinners > 0 ? (totalEfficiency / validWinners) : 0;
+
+    // Render Stop Efficiency
+    maeValEl.textContent = `${avgStopEfficiency.toFixed(1)}%`;
+    maeBar.style.width = `${avgStopEfficiency}%`;
     
-    // Context: Compare Avg Heat vs Avg Profit
-    const totalProfit = winningTrades.reduce((acc, t) => acc + t.profitLoss, 0);
-    const avgProfit = winningTrades.length > 0 ? totalProfit / winningTrades.length : 0;
-    const maePct = avgProfit > 0 ? (avgMAE / avgProfit) * 100 : 0;
+    // Diagnosis Logic
+    if (avgStopEfficiency < 25) {
+        maeDiag.textContent = "💡 Action: Your stops are too loose. Tighten them to increase position size.";
+        maeDiag.className = "text-xs text-green-400 font-medium";
+    } else if (avgStopEfficiency > 75) {
+        maeDiag.textContent = "⚠️ Danger: Entries are imprecise. You are surviving by luck.";
+        maeDiag.className = "text-xs text-red-400 font-medium";
+    } else {
+        maeDiag.textContent = "✅ Healthy: You are giving trades appropriate room to breathe.";
+        maeDiag.className = "text-xs text-text-secondary";
+    }
 
-    // 4. MFE (Gain) Logic: Analyze "Missed Profit" on Losing/BE Trades
-    let totalMFE = 0;
-    let mfeCount = 0;
+    // --- LOGIC 2: FUMBLE RATIO (Losers) ---
+    // How much profit did we see before taking the loss?
+    const losingTrades = closedTrades.filter(t => t.profitLoss <= 0 && t.peakPrice);
+    
+    let totalFumbleRatio = 0;
+    let validLosers = 0;
+    let avgMissedGains = 0;
 
-    losingOrBETrades.forEach(trade => {
-        const peakPrice = parseFloat(trade.peakPrice);
-        const entryPrice = parseFloat(trade.entryPrice);
-        const lotSize = parseFloat(trade.lotSize);
+    losingTrades.forEach(t => {
+        const entry = parseFloat(t.entryPrice);
+        const peak = parseFloat(t.peakPrice);
+        const lot = parseFloat(t.lotSize);
+        const actualLoss = Math.abs(t.profitLoss);
 
-        // Only calculate if we have a valid Peak price recorded
-        if (!isNaN(peakPrice) && !isNaN(entryPrice)) {
-            const { profit } = calculatePL(trade.tradeType, lotSize, entryPrice, peakPrice, trade.indexName);
-            // We are looking for positive numbers (profit seen before loss).
-            if (profit !== null && profit > 0) {
-                totalMFE += profit;
-                mfeCount++;
-            }
+        // Calculate how much profit we saw (MFE)
+        const { profit: maxProfit } = calculatePL(t.tradeType, lot, entry, peak, t.indexName);
+        
+        if (maxProfit > 0 && actualLoss > 0) {
+            const ratio = (maxProfit / actualLoss) * 100;
+            totalFumbleRatio += ratio;
+            avgMissedGains += maxProfit;
+            validLosers++;
         }
     });
 
-    const avgMFE = mfeCount > 0 ? totalMFE / mfeCount : 0;
-    
-    // Context: Compare Avg Missed Profit vs Avg Actual Loss
-    const totalLoss = losingOrBETrades.reduce((acc, t) => acc + Math.abs(t.profitLoss), 0);
-    const avgLoss = losingOrBETrades.length > 0 ? totalLoss / losingOrBETrades.length : 0;
-    const mfePct = avgLoss > 0 ? (avgMFE / avgLoss) * 100 : 0;
+    const avgFumbleRatio = validLosers > 0 ? (totalFumbleRatio / validLosers) : 0;
+    const avgMissedValue = validLosers > 0 ? (avgMissedGains / validLosers) : 0;
 
-    // 5. Update the DOM
-    maeValEl.textContent = `$${avgMAE.toFixed(2)}`;
-    if (maePctEl) maePctEl.textContent = `${maePct.toFixed(1)}%`;
-    
-    mfeValEl.textContent = `$${avgMFE.toFixed(2)}`;
-    if (mfePctEl) mfePctEl.textContent = `${mfePct.toFixed(1)}%`;
+    // Render Fumble Ratio
+    mfeValEl.textContent = `$${avgMissedValue.toFixed(2)}`;
+    mfePctEl.textContent = `${avgFumbleRatio.toFixed(1)}% Ratio`;
+    mfeBar.style.width = `${Math.min(avgFumbleRatio, 100)}%`;
+
+    // Diagnosis Logic
+    if (avgFumbleRatio > 80) {
+        mfeDiag.textContent = "⚠️ Critical: You let big winners turn into losers. Use a Trailing Stop.";
+        mfeDiag.className = "text-xs text-red-400 font-medium";
+    } else if (avgFumbleRatio > 40) {
+        mfeDiag.textContent = "💡 Action: Secure partials (50%) when price hits 1R.";
+        mfeDiag.className = "text-xs text-yellow-400 font-medium";
+    } else {
+        mfeDiag.textContent = "✅ Good Defense: You cut losses before they ran into profit.";
+        mfeDiag.className = "text-xs text-text-secondary";
+    }
 };
 
 const runMonteCarlo = () => {
@@ -6254,58 +6259,7 @@ const calculatePriceFromPips = (type) => {
     });
 };
 
-        const updateRRPerformanceAnalysis = (allTrades) => {
-            const body = dom['rr-performance-body'];
-            body.innerHTML = '';
-            const rrTrades = allTrades.filter(t => t.rrRatio !== null && t.rrRatio > 0 && t.profitLoss !== null);
-
-            if (rrTrades.length === 0) {
-                body.innerHTML = '<p class="text-center text-text-secondary">No trades with planned R:R to analyze.</p>';
-                return;
-            }
-
-            const rrBuckets = {
-                'Under 1R': { trades: 0, wins: 0, totalPL: 0 },
-                '1R - 1.9R': { trades: 0, wins: 0, totalPL: 0 },
-                '2R - 2.9R': { trades: 0, wins: 0, totalPL: 0 },
-                '3R+': { trades: 0, wins: 0, totalPL: 0 }
-            };
-
-            const breakevenThreshold = appData.settings.breakevenThreshold || 2.0;
-
-            rrTrades.forEach(trade => {
-                let bucket;
-                if (trade.rrRatio < 1) bucket = 'Under 1R';
-                else if (trade.rrRatio < 2) bucket = '1R - 1.9R';
-                else if (trade.rrRatio < 3) bucket = '2R - 2.9R';
-                else bucket = '3R+';
-
-                rrBuckets[bucket].trades++;
-                rrBuckets[bucket].totalPL += trade.profitLoss;
-                if (trade.profitLoss > breakevenThreshold) {
-                    rrBuckets[bucket].wins++;
-                }
-            });
-
-            const fragment = document.createDocumentFragment();
-            for (const [bucketName, stats] of Object.entries(rrBuckets)) {
-                if (stats.trades === 0) continue;
-
-                const winRate = (stats.trades > 0 ? (stats.wins / stats.trades) * 100 : 0).toFixed(1);
-                const plClass = stats.totalPL >= 0 ? 'text-green-500' : 'text-red-500';
-
-                const bucketEl = document.createElement('div');
-                bucketEl.className = 'grid grid-cols-4 items-center bg-tertiary/50 p-3 rounded-lg text-sm';
-                bucketEl.innerHTML = `
-                    <div class="font-bold text-text-primary col-span-1">${bucketName}</div>
-                    <div class="text-center"><span class="font-semibold text-text-primary">${stats.trades}</span> <span class="text-text-secondary">trades</span></div>
-                    <div class="text-center"><span class="font-semibold text-text-primary">${winRate}%</span> <span class="text-text-secondary">win rate</span></div>
-                    <div class="text-right font-bold ${plClass}">$${stats.totalPL.toFixed(2)}</div>
-                `;
-                fragment.appendChild(bucketEl);
-            }
-            body.appendChild(fragment);
-        };
+        
 
         const updateAvgWinLossComparison = (allTrades) => {
             const container = dom['avg-win-loss-comparison'];
